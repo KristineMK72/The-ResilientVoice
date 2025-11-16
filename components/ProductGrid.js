@@ -14,12 +14,12 @@ export default function ProductGrid({ category }) {
       try {
         const res = await fetch("/api/products");
         const data = await res.json();
-        // Ensure products have required fields (id, name, price, image, type)
+        // Format products to include required fields
         const formattedProducts = data.map(p => ({
           id: p.id || p._id, // Adjust based on your API response
           name: p.name,
           price: p.price || 0, // Default to 0 if no price
-          image: p.thumbnail, // Use thumbnail as image source
+          image: p.thumbnail, // Use thumbnail directly from API
           type: p.category || "all", // Default to "all" if no category
           printfulVariantId: p.printfulVariantId || p.external, // Map to Printful ID or external
         }));
@@ -65,7 +65,14 @@ export default function ProductGrid({ category }) {
         {filteredProducts.map((product) => (
           <div key={product.id} className="card shop-product" data-type={product.type}>
             {product.image && (
-              <Image src={product.image} width={300} height={300} alt={product.name} className="shop-image" />
+              <Image
+                src={product.image}
+                width={300}
+                height={300}
+                alt={product.name}
+                className="shop-image"
+                style={{ objectFit: "cover" }} // Ensure image fits properly
+              />
             )}
             <h3 className="shop-name">{product.name}</h3>
             <p className="shop-price">${product.price.toFixed(2)}</p>
