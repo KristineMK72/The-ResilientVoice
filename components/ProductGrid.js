@@ -1,19 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 
+// Dynamic product data (can be moved to a separate file or API later)
+const loadProducts = () => [
+  { id: 1, name: "Hope Mug", thumbnail: "/images/hope-mug.jpg", category: "accessories", price: 14.99 },
+  { id: 2, name: "Warrior T-Shirt", thumbnail: "/images/warrior-shirt.jpg", category: "warrior", price: 29.99 },
+  { id: 3, name: "Grace Hoodie", thumbnail: "/images/grace-hoodie.jpg", category: "faith", price: 49.99 },
+  { id: 4, name: "Resilient Cap", thumbnail: "/images/resilient-cap.jpg", category: "accessories", price: 19.99 },
+];
+
 export default function ProductGrid({ category }) {
+  const [products, setProducts] = useState([]);
   const [cart, setCart] = useState(() => {
     if (typeof window !== "undefined") return JSON.parse(localStorage.getItem("cart") || "[]");
     return [];
   });
 
-  // Static product data (mimic what worked before)
-  const products = [
-    { id: 1, name: "Hope Mug", thumbnail: "/images/hope-mug.jpg", category: "accessories", price: 14.99 },
-    { id: 2, name: "Warrior T-Shirt", thumbnail: "/images/warrior-shirt.jpg", category: "warrior", price: 29.99 },
-    { id: 3, name: "Grace Hoodie", thumbnail: "/images/grace-hoodie.jpg", category: "faith", price: 49.99 },
-    { id: 4, name: "Resilient Cap", thumbnail: "/images/resilient-cap.jpg", category: "accessories", price: 19.99 },
-  ];
+  useEffect(() => {
+    // Simulate dynamic loading
+    setProducts(loadProducts());
+  }, []);
 
   const addToCart = (product) => {
     const existingItem = cart.find(item => item.id === product.id);
@@ -63,3 +69,4 @@ export default function ProductGrid({ category }) {
     </div>
   );
 }
+
