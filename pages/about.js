@@ -1,14 +1,13 @@
 import { motion } from "framer-motion";
-import '../styles/about.css'; // Import custom CSS
 
 export default function AboutPage() {
   return (
-    <div className="about-container">
-      <motion.article
+    <main className="main">
+      <motion.section
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="about-article"
+        className="card about-card"
       >
         <h1 className="about-title">About The Resilient Voice</h1>
         <p className="about-text">
@@ -23,9 +22,7 @@ export default function AboutPage() {
           you that you are seen, you are strong, and you are deeply loved.
         </p>
         <blockquote className="about-quote">
-          “You are not alone.
-          You have strength.
-          You are seen.”
+          “You are not alone. You have strength. You are seen.”
         </blockquote>
         <h2 className="about-subtitle">Our Purpose & Impact</h2>
         <p className="about-text">
@@ -49,7 +46,7 @@ export default function AboutPage() {
         <h2 className="about-subtitle">A Community of Faith & Strength</h2>
         <p className="about-text">
           When you wear The Resilient Voice, you’re not just buying apparel —
-          you're becoming part of a movement. You’re spreading messages of hope,
+          you’re becoming part of a movement. You’re spreading messages of hope,
           resilience, and God’s unshakable grace.
         </p>
         <p className="about-text">
@@ -62,7 +59,7 @@ export default function AboutPage() {
           <br />
           Kristine — Founder, The Resilient Voice
         </p>
-      </motion.article>
-    </div>
+      </motion.section>
+    </main>
   );
 }
