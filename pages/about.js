@@ -1,14 +1,7 @@
-import { motion } from "framer-motion";
-
 export default function AboutPage() {
   return (
     <main className="main">
-      <motion.section
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="card about-card"
-      >
+      <section className="card about-card">
         <h1 className="about-title">About The Resilient Voice</h1>
         <p className="about-text">
           The Resilient Voice was born from storms — the kind that shake you,
@@ -59,7 +52,7 @@ export default function AboutPage() {
           <br />
           Kristine — Founder, The Resilient Voice
         </p>
-      </motion.section>
+      </section>
     </main>
   );
 }
