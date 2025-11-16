@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 
-// Dynamic product data
 const loadProducts = () => [
   { id: 1, name: "Hope Mug", thumbnail: "/images/hope-mug.jpg", category: "accessories", price: 14.99 },
   { id: 2, name: "Warrior T-Shirt", thumbnail: "/images/warrior-shirt.jpg", category: "warrior", price: 29.99 },
