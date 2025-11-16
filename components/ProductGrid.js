@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 
-// Dynamic product data (can be moved to a separate file or API later)
+// Dynamic product data
 const loadProducts = () => [
   { id: 1, name: "Hope Mug", thumbnail: "/images/hope-mug.jpg", category: "accessories", price: 14.99 },
   { id: 2, name: "Warrior T-Shirt", thumbnail: "/images/warrior-shirt.jpg", category: "warrior", price: 29.99 },
@@ -9,15 +9,15 @@ const loadProducts = () => [
   { id: 4, name: "Resilient Cap", thumbnail: "/images/resilient-cap.jpg", category: "accessories", price: 19.99 },
 ];
 
-export default function ProductGrid({ category }) {
+export default function ProductGrid({ category: defaultCategory }) {
   const [products, setProducts] = useState([]);
+  const [activeCategory, setActiveCategory] = useState(defaultCategory || "all");
   const [cart, setCart] = useState(() => {
     if (typeof window !== "undefined") return JSON.parse(localStorage.getItem("cart") || "[]");
     return [];
   });
 
   useEffect(() => {
-    // Simulate dynamic loading
     setProducts(loadProducts());
   }, []);
 
@@ -31,17 +31,21 @@ export default function ProductGrid({ category }) {
     alert(`${product.name} added to cart!`);
   };
 
-  const filteredProducts = category === "all"
+  const handleFilter = (category) => {
+    setActiveCategory(category);
+  };
+
+  const filteredProducts = activeCategory === "all"
     ? products
-    : products.filter(p => p.type.toLowerCase() === category.toLowerCase());
+    : products.filter(p => p.category.toLowerCase() === activeCategory.toLowerCase());
 
   return (
     <div className="shop-container">
       <div className="shop-filters">
-        <button className="shop-filter-btn">All</button>
-        <button className="shop-filter-btn">Warrior</button>
-        <button className="shop-filter-btn">Faith</button>
-        <button className="shop-filter-btn">Accessories</button>
+        <button className="shop-filter-btn" onClick={() => handleFilter("all")}>All</button>
+        <button className="shop-filter-btn" onClick={() => handleFilter("warrior")}>Warrior</button>
+        <button className="shop-filter-btn" onClick={() => handleFilter("faith")}>Faith</button>
+        <button className="shop-filter-btn" onClick={() => handleFilter("accessories")}>Accessories</button>
       </div>
       <div className="grid shop-grid">
         {filteredProducts.length === 0 ? (
@@ -69,4 +73,3 @@ export default function ProductGrid({ category }) {
     </div>
   );
 }
-
