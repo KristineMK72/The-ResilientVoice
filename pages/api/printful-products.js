@@ -1,32 +1,38 @@
-// pages/api/printful-products.js
-
+// /pages/api/printful-products.js
 export default async function handler(req, res) {
-  const token = process.env.PRINTFUL_TOKEN;
-  const storeId = process.env.PRINTFUL_STORE_ID;
-
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    ...(storeId && { "X-PF-Store-Id": storeId }),
-  };
-
   try {
-    const response = await fetch(
-      "https://api.printful.com/store/products?limit=100",
-      { headers }
-    );
+    const result = await fetch("https://api.printful.com/sync/products", {
+      headers: {
+        Authorization: `Bearer ${process.env.PRINTFUL_API_KEY}`,
+      },
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Printful API error:", response.status, errorText);
-      return res
-        .status(response.status)
-        .json({ error: "Printful API error", details: errorText });
-    }
+    const json = await result.json();
+    if (!json.result) return res.status(500).json([]);
 
-    const data = await response.json();
-    res.status(200).json(data.result || []);
-  } catch (error) {
-    console.error("Printful fetch error:", error);
-    res.status(500).json({ error: "Failed to fetch products", details: error.message });
+    // Map each product into a clean format
+    const products = json.result.map(p => {
+      const name = p.name || "";
+      const lower = name.toLowerCase();
+
+      // extract the collection from the title after " - "
+      const collection = name.includes(" - ")
+        ? name.split(" - ").pop().replace("collection", "").trim().toLowerCase()
+        : "";
+
+      return {
+        id: p.id,
+        name: p.name,
+        collection, // <-- NEW FIXED FIELD
+        thumbnail: p.thumbnail,
+        sync_variants: p.sync_variants || [],
+      };
+    });
+
+    res.status(200).json(products);
+
+  } catch (err) {
+    console.error("PRINTFUL ERROR:", err);
+    res.status(500).json([]);
   }
 }
