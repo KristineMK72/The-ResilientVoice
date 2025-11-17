@@ -29,12 +29,13 @@ export default async function handler(req, res) {
         : "";
 
       return {
-        id: p.id,
-        name: p.name,
-        collection,                   // "accessories", "resilience", "resilient"
-        thumbnail: p.thumbnail || "",
-        sync_variants: p.sync_variants || [],
-      };
+  id: p.id,
+  name: p.name,
+  collection,
+  thumbnail: p.thumbnail_url,   // ✅ CORRECT
+  sync_variants: p.sync_variants || [],
+};
+
     });
 
     return res.status(200).json(products);
