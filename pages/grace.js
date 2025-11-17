@@ -6,17 +6,13 @@ export default function Grace() {
     <>
       <Head>
         <title>Grace Collection | The Resilient Voice</title>
-        <meta name="description" content="Elegant jewelry born from the storm — beauty rising from chaos." />
-        <meta property="og:title" content="Grace Collection | The Resilient Voice" />
       </Head>
-
-      <main style={{ padding: "4rem 1rem", maxWidth: "1200px", margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: "3rem" }}>
-          <h1 style={{ fontSize: "3rem" }}>Grace Collection</h1>
-          <p style={{ fontSize: "1.4rem", maxWidth: "800px", margin: "1.5rem auto" }}>
-            Elegant pieces that whisper beauty rising from chaos.
-          </p>
-        </div>
+      <main style={{ padding: "6rem 1rem", maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
+        <h1 style={{ fontSize: "3.8rem", marginBottom: "1.5rem" }}>Grace Collection</h1>
+        <p style={{ fontSize: "1.5rem", lineHeight: "1.9", color: "#444", maxWidth: "800px", margin: "0 auto 3rem" }}>
+          Grace isn’t about never falling. It’s about rising with quiet strength — soft, elegant, and unapologetically whole. 
+          These pieces are for the woman who carried the weight of the world and still chose beauty.
+        </p>
         <ProductGrid category="grace" />
       </main>
     </>
