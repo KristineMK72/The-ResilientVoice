@@ -6,17 +6,13 @@ export default function Resilience() {
     <>
       <Head>
         <title>Resilience Collection | The Resilient Voice</title>
-        <meta name="description" content="Wear messages of strength and endurance. Handcrafted jewelry for survivors." />
-        <meta property="og:title" content="Resilience Collection | The Resilient Voice" />
       </Head>
-
-      <main style={{ padding: "4rem 1rem", maxWidth: "1200px", margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: "3rem" }}>
-          <h1 style={{ fontSize: "3rem" }}>Resilience Collection</h1>
-          <p style={{ fontSize: "1.4rem", maxWidth: "800px", margin: "1.5rem auto" }}>
-            Wear messages of strength and endurance. Every piece tells a story of survival.
-          </p>
-        </div>
+      <main style={{ padding: "6rem 1rem", maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
+        <h1 style={{ fontSize: "3.8rem", marginBottom: "1.5rem" }}>Resilience Collection</h1>
+        <p style={{ fontSize: "1.5rem", lineHeight: "1.9", color: "#444", maxWidth: "800px", margin: "0 auto 3rem" }}>
+          This is for the ones who got back up. Who turned scars into stories. Who learned that falling apart is sometimes the first step to becoming unbreakable. 
+          Every piece here is a reminder: <strong>you survived the storm — now wear the proof</strong>.
+        </p>
         <ProductGrid category="resilience" />
       </main>
     </>
