@@ -1,106 +1,85 @@
-// pages/product/[id].js — BULLET-PROOF VERSION (no more errors on click!)
-import Head from "next/head";
+// pages/product/[id].js — FINAL VERSION WITH WORKING ADD TO CART
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function ProductDetail() {
+export default function ProductPage() {
   const router = useRouter();
   const { id } = router.query;
   const [product, setProduct] = useState(null);
+  const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
+  // Load cart
   useEffect(() => {
-    if (!id) {
-      setError("No product ID found.");
-      setLoading(false);
-      return;
-    }
+    const saved = localStorage.getItem("cart");
+    if (saved) setCart(JSON.parse(saved));
+  }, []);
 
+  // Save cart
+  useEffect(() => {
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart]);
+
+  // Fetch single product
+  useEffect(() => {
+    if (!id) return;
     fetch("/api/printful-products")
-      .then(res => {
-        if (!res.ok) throw new Error("API failed.");
-        return res.json();
-      })
+      .then(r => r.json())
       .then(data => {
-        const safeData = Array.isArray(data) ? data : [];
-        const found = safeData.find(p => p.id === parseInt(id));
-        if (!found) {
-          setError("Product not found.");
-        } else {
-          setProduct(found);
-        }
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Product detail error:", err);
-        setError("Failed to load product — try refreshing.");
+        const found = data.find(p => p.id === parseInt(id));
+        setProduct(found);
         setLoading(false);
       });
   }, [id]);
 
-  if (loading) {
-    return <div style={{ textAlign: "center", padding: "6rem" }}><p>Loading product...</p></div>;
-  }
+  const addToCart = () => {
+    if (!product) return;
+    const v = product.sync_variants[0];
+    const price = parseFloat(v.retail_price) || 29.99;
+    const image = v.files?.find(f => f.type === "preview")?.url || v.files?.[0]?.url || "/fallback.jpg";
 
-  if (error || !product) {
-    return (
-      <div style={{ textAlign: "center", padding: "6rem" }}>
-        <h1 style={{ fontSize: "2rem", color: "#666" }}>{error || "Product not found"}</h1>
-        <Link href="/shop" style={{ color: "#9f6baa", textDecoration: "underline" }}>
-          ← Back to Shop
-        </Link>
-      </div>
-    );
-  }
+    setCart(current => {
+      const exists = current.find(i => i.id === product.id);
+      if (exists) {
+        return current.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+      }
+      return [...current, { id: product.id, name: product.name, price, quantity: 1, image }];
+    });
+  };
 
-  // Safe image URL (fallback to generic)
-  const imageUrl = product.thumbnail || "https://files.cdn.printful.com/products/71/71_1723145678.jpg";
+  if (loading) return <p style={{textAlign:"center", padding:"6rem"}}>Loading…</p>;
+  if (!product) return <p style={{textAlign:"center", padding:"6rem"}}>Product not found</p>;
 
-  // Safe price (first valid variant)
-  const price = product.sync_variants?.[0]?.retail_price || "29.99";
+  const v = product.sync_variants[0];
+  const price = v.retail_price || "29.99";
+  const img = v.files?.find(f => f.type === "preview")?.url || v.files?.[0]?.url || "https://files.cdn.printful.com/products/71/71_1723145678.jpg";
+  const itemCount = cart.reduce((s, i) => s + i.quantity, 0);
 
   return (
-    <>
-      <Head>
-        <title>{product.name} | The Resilient Voice</title>
-      </Head>
-      <main style={{ padding: "4rem 2rem", maxWidth: "1000px", margin: "0 auto", display: "grid", gap: "2rem", gridTemplateColumns: "1fr 1fr" }}>
-        <div>
-          <Image
-            src={imageUrl}
-            alt={product.name}
-            width={500}
-            height={500}
-            style={{ width: "100%", height: "auto", objectFit: "cover", borderRadius: "12px" }}
-            onError={(e) => { e.target.src = "https://files.cdn.printful.com/products/71/71_1723145678.jpg"; }}
-          />
-        </div>
-        <div>
-          <h1 style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>{product.name}</h1>
-          <p style={{ fontSize: "1.2rem", color: "#666", marginBottom: "2rem" }}>
-            Handcrafted for survivors. Every piece tells a story of strength.
-          </p>
-          <p style={{ fontSize: "2rem", fontWeight: "bold", color: "#9f6baa", marginBottom: "2rem" }}>
-            ${price}
-          </p>
-          <ul style={{ listStyle: "none", padding: 0, marginBottom: "2rem" }}>
-            {product.sync_variants?.slice(0, 3).map((v, i) => (
-              <li key={i} style={{ marginBottom: "0.5rem", padding: "0.5rem", border: "1px solid #eee", borderRadius: "4px" }}>
-                {v.name} - ${v.retail_price || "TBD"}
-              </li>
-            ))}
-          </ul>
-          <button style={{ width: "100%", padding: "1rem", background: "#9f6baa", color: "white", border: "none", borderRadius: "8px", fontSize: "1.2rem" }}>
-            Add to Cart
-          </button>
-          <Link href="/cart" style={{ display: "block", textAlign: "center", marginTop: "1rem", color: "#9f6baa" }}>
-            View Cart
-          </Link>
-        </div>
-      </main>
-    </>
+    <div style={{maxWidth:"1200px", margin:"4rem auto", padding:"0 2rem", display:"grid", gap:"3rem", gridTemplateColumns:"1fr 1fr"}}>
+      <div>
+        <Image src={img} alt={product.name} width={600} height={600} style={{width:"100%", borderRadius:"16px"}} />
+      </div>
+      <div>
+        <h1 style={{fontSize:"2.8rem", marginBottom:"1rem"}}>{product.name}</h1>
+        <p style={{fontSize:"2rem", fontWeight:"bold", color:"#9f6baa", margin:"1.5rem 0"}}>${price}</p>
+        <p style={{fontSize:"1.2rem", color:"#555", lineHeight:"1.7"}}>
+          Handcrafted for survivors. Every piece tells a story of strength.
+        </p>
+        <button onClick={addToCart}
+          style={{width:"100%", padding:"1.2rem", background:"#9f6baa", color:"white", border:"none", borderRadius:"12px", fontSize:"1.3rem", marginTop:"2rem", cursor:"pointer"}}>
+          Add to Cart
+        </button>
+        {itemCount > 0 && (
+          <div style={{textAlign:"center", marginTop:"1.5rem"}}>
+            <Link href="/cart" style={{color:"#9f6baa", fontSize:"1.2rem", textDecoration:"underline"}}>
+              View Cart ({itemCount} {itemCount === 1 ? "item" : "items"})
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
