@@ -1,4 +1,3 @@
-// components/ProductGrid.js — FINAL WORKING VERSION (real prices + real images)
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -6,62 +5,96 @@ import Link from "next/link";
 export default function ProductGrid({ category }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cart, setCart] = useState([]);
 
+  // Load cart from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("cart");
+    if (saved) setCart(JSON.parse(saved));
+  }, []);
+
+  // Save cart to localStorage
+  useEffect(() => {
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart]);
+
+  // Fetch products
   useEffect(() => {
     fetch("/api/printful-products")
-      .then((r) => r.json())
-      .then((data) => {
+      .then(r => r.json())
+      .then(data => {
         const arr = Array.isArray(data) ? data : [];
-        const filtered = category
-          ? arr.filter((p) =>
-              p?.name?.toLowerCase().includes(category.toLowerCase())
-            )
-          : arr;
-        setProducts(filtered);
+        setProducts(arr);
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [category]);
+      });
+  }, []);
 
-  if (loading) return <p style={{ textAlign: "center", padding: "4rem" }}>Loading…</p>;
+  const addToCart = (product) => {
+    const variant = product.sync_variants[0];
+    const price = variant.retail_price || "29.99";
+    const image = variant.files?.find(f => f.type === "preview")?.url || variant.files?.[0]?.url || "https://files.cdn.printful.com/products/71/71_1723145678.jpg";
+
+    const newItem = {
+      id: product.id,
+      name: product.name,
+      price: parseFloat(price),
+      quantity: 1,
+      image: image
+    };
+
+    setCart(prev => {
+      const existing = prev.find(i => i.id === product.id);
+      if (existing) {
+        return prev.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+      }
+      return [...prev, newItem];
+    });
+  };
+
+  if (loading) return <p style={{textAlign:"center", padding:"4rem"}}>Loading…</p>;
 
   return (
-    <div style={{ display: "grid", gap: "2rem", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", padding: "1rem" }}>
-      {products.map((product) => {
-        // REAL PRICE — Printful stores it in sync_variants[0].retail_price
-        const price = product.sync_variants?.[0]?.retail_price || "29.99";
-
-        // REAL IMAGE — comes from the first file in the first variant
-        const imageUrl = product.sync_variants?.[0]?.files?.[0]?.url ||
+    <div style={{display:"grid", gap:"2.5rem", gridTemplateColumns:"repeat(auto-fit, minmax(300px, 1fr))", padding:"2rem"}}>
+      {products.map(product => {
+        const variant = product.sync_variants?.[0];
+        const price = variant?.retail_price || "29.99";
+        const imageUrl = variant?.files?.find(f => f.type === "preview")?.url || 
+                         variant?.files?.[0]?.url || 
                          "https://files.cdn.printful.com/products/71/71_1723145678.jpg";
 
         return (
-          <Link key={product.id} href={`/product/${product.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-            <div style={{ border: "1px solid #eee", borderRadius: "12px", overflow: "hidden", background: "white", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+          <div key={product.id} style={{border:"1px solid #eee", borderRadius:"16px", overflow:"hidden", background:"white", boxShadow:"0 8px 25px rgba(0,0,0,0.1)"}}>
+            <Link href={`/product/${product.id}`} style={{display:"block"}}>
               <Image
                 src={imageUrl}
                 alt={product.name}
-                width={400}
-                height={400}
-                style={{ width: "100%", height: "auto", objectFit: "cover" }}
-                onError={(e) => (e.target.src = "https://files.cdn.printful.com/products/71/71_1723145678.jpg")}
+                width={500}
+                height={500}
+                style={{width:"100%", height:"350px", objectFit:"cover"}}
               />
-              <div style={{ padding: "1.5rem" }}>
-                <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.3rem" }}>{product.name}</h3>
-                <p style={{ fontSize: "1.6rem", fontWeight: "bold", color: "#9f6baa" }}>${price}</p>
-                <button style={{ width: "100%", padding: "0.9rem", background: "#9f6baa", color: "white", border: "none", borderRadius: "8px" }}>
-                  Add to Cart
-                </button>
-              </div>
+            </Link>
+            <div style={{padding:"1.5rem"}}>
+              <h3 style={{fontSize:"1.4rem", margin:"0 0 0.8rem"}}>{product.name}</h3>
+              <p style={{fontSize:"1.8rem", fontWeight:"bold", color:"#9f6baa", margin:"0.5rem 0"}}>
+                ${price}
+              </p>
+              <button
+                onClick={() => addToCart(product)}
+                style={{width:"100%", padding:"1rem", background:"#9f6baa", color:"white", border:"none", borderRadius:"12px", fontSize:"1.1rem", marginTop:"0.5rem"}}
+              >
+                Add to Cart
+              </button>
+              {cart.length > 0 && (
+                <div style={{textAlign:"center", marginTop:"1rem"}}>
+                  <Link href="/cart" style={{color:"#9f6baa", fontSize:"1rem", textDecoration:"underline"}}>
+                    View Cart ({cart.reduce((sum, i) => sum + i.quantity, 0)} items)
+                  </Link>
+                </div>
+              )}
             </div>
-          </Link>
+          </div>
         );
       })}
-      {products.length === 0 && (
-        <p style={{ gridColumn: "1/-1", textAlign: "center", padding: "4rem" }}>
-          No products yet — more coming soon!
-        </p>
-      )}
     </div>
   );
 }
