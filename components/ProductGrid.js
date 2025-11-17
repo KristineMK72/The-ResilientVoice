@@ -1,4 +1,3 @@
-// components/ProductGrid.js
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -27,7 +26,17 @@ export default function ProductGrid({ category = "" }) {
         const arr = Array.isArray(data) ? data : [];
 
         const filtered = category
-          ? arr.filter(p => p.collection === category.toLowerCase())
+          ? arr.filter(p => {
+              const c = p.collection.toLowerCase();
+              const cat = category.toLowerCase();
+
+              // Make resilience + resilient both match
+              if (cat === "resilience") {
+                return c === "resilience" || c === "resilient";
+              }
+
+              return c === cat;
+            })
           : arr;
 
         setProducts(filtered);
@@ -37,11 +46,11 @@ export default function ProductGrid({ category = "" }) {
 
   const addToCart = (product) => {
     const variant = product.sync_variants[0];
-    const price = parseFloat(variant.retail_price) || 29.99;
+    const price = parseFloat(variant?.retail_price) || 29.99;
 
     const image =
-      variant.files?.find(f => f.type === "preview")?.url ||
-      variant.files?.[0]?.url ||
+      variant?.files?.find(f => f.type === "preview")?.url ||
+      variant?.files?.[0]?.url ||
       product.thumbnail ||
       "https://files.cdn.printful.com/products/71/71_1723145678.jpg";
 
