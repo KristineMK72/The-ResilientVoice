@@ -3,8 +3,14 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'Missing PRINTFUL_API_KEY' });
 
   try {
+    // Printful uses BASIC AUTH (important!)
+    const authHeader = 'Basic ' + Buffer.from(apiKey + ':').toString('base64');
+
     const response = await fetch('https://api.printful.com/store/products', {
-      headers: { Authorization: `Bearer ${apiKey}`, 'X-PF-Store-Id': '17196995' },
+      headers: {
+        Authorization: authHeader,
+        'X-PF-Store-Id': '17196995',
+      },
     });
 
     if (!response.ok) {
@@ -14,11 +20,12 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
+
     const simplified = data.result.map((p) => ({
       id: p.id,
       name: p.name,
       thumbnail: p.thumbnail_url || null,
-      price: p.retail_prices?.[0]?.amount || 14.99, // Fallback price
+      price: p.retail_price || 14.99,
     }));
 
     res.status(200).json(simplified);
