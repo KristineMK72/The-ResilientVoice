@@ -1,115 +1,185 @@
-// pages/cart.js — BEAUTIFUL + FULLY WORKING
-'use client';
+// pages/cart.js
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 
-import { useState, useEffect } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
-import Link from 'next/link';
-import Image from 'next/image';
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-
-export default function Cart() {
+export default function CartPage() {
   const [cart, setCart] = useState([]);
-  const [loading, setLoading] = useState(false);
 
+  // Load cart
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('cart');
-      setCart(saved ? JSON.parse(saved) : []);
-    }
+    const saved = localStorage.getItem("cart");
+    if (saved) setCart(JSON.parse(saved));
   }, []);
 
+  // Save cart
   useEffect(() => {
-    if (typeof window !== 'undefined' && cart.length > 0) {
-      localStorage.setItem('cart', JSON.stringify(cart));
-    }
+    localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
 
-  const removeFromCart = (id) => setCart(cart.filter(item => item.id !== id));
-
-  const updateQuantity = (id, newQty) => {
-    if (newQty === 0) {
-      removeFromCart(id);
-    } else {
-      setCart(cart.map(item => item.id === id ? { ...item, quantity: newQty } : item));
-    }
+  const updateQuantity = (id, amount) => {
+    setCart(current =>
+      current
+        .map(item =>
+          item.id === id
+            ? { ...item, quantity: Math.max(1, item.quantity + amount) }
+            : item
+        )
+        .filter(item => item.quantity > 0)
+    );
   };
 
-  const handleCheckout = async () => {
-    if (cart.length === 0) return;
-    setLoading(true);
-    try {
-      const stripe = await stripePromise;
-      const res = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: cart }),
-      });
-      const { id: sessionId } = await res.json();
-      await stripe.redirectToCheckout({ sessionId });
-    } catch (err) {
-      alert('Checkout failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const removeItem = (id) => {
+    setCart(current => current.filter(item => item.id !== id));
   };
 
-  const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2);
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const total = subtotal.toFixed(2);
 
   if (cart.length === 0) {
     return (
-      <main style={{ padding: "6rem 2rem", textAlign: "center", minHeight: "60vh" }}>
-        <h1 style={{ fontSize: "3rem", marginBottom: "1rem" }}>Your cart is empty</h1>
-        <p style={{ fontSize: "1.4rem", color: "#666", marginBottom: "2rem" }}>
-          But your story is just beginning.
-        </p>
-        <Link href="/shop" style={{ padding: "1rem 2.5rem", background: "#9f6baa", color: "white", borderRadius: "50px", fontSize: "1.3rem", textDecoration: "none" }}>
-          Continue Shopping
+      <div style={{ textAlign: "center", padding: "6rem" }}>
+        <h1 style={{ fontSize: "2.4rem" }}>Your cart is empty 💜</h1>
+        <Link href="/">
+          <button style={{
+            marginTop: "2rem",
+            padding: "1rem 1.8rem",
+            background: "#9f6baa",
+            color: "white",
+            border: "none",
+            borderRadius: "12px",
+            fontSize: "1.2rem",
+            cursor: "pointer"
+          }}>
+            Browse Products
+          </button>
         </Link>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main style={{ padding: "6rem 2rem", maxWidth: "1000px", margin: "0 auto" }}>
-      <h1 style={{ fontSize: "3.5rem", textAlign: "center", marginBottom: "2rem" }}>
-        Your Resilient Pieces
-      </h1>
-      <div style={{ background: "white", borderRadius: "16px", padding: "2rem", boxShadow: "0 10px 30px rgba(159,107,170,0.1)" }}>
+    <div style={{ maxWidth: "1100px", margin: "4rem auto", padding: "0 2rem" }}>
+      <h1 style={{ fontSize: "2.8rem", marginBottom: "2rem" }}>Your Cart</h1>
+
+      <div style={{ display: "grid", gap: "2rem" }}>
         {cart.map(item => (
-          <div key={item.id} style={{ display: "grid", gridTemplateColumns: "100px 1fr 150px", gap: "1.5rem", padding: "1.5rem 0", borderBottom: "1px solid #eee" }}>
-            <Image src={item.image || "https://files.cdn.printful.com/products/71/71_1723145678.jpg"} alt={item.name} width={100} height={100} style={{ borderRadius: "12px", objectFit: "cover" }} />
+          <div
+            key={item.id}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "120px 1fr auto",
+              gap: "1.5rem",
+              alignItems: "center",
+              padding: "1.5rem",
+              borderRadius: "16px",
+              border: "1px solid #eee",
+              boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
+              background: "white"
+            }}
+          >
+            {/* IMAGE */}
+            <Image
+              src={item.image}
+              alt={item.name}
+              width={120}
+              height={120}
+              style={{ borderRadius: "12px", objectFit: "cover" }}
+            />
+
+            {/* DETAILS */}
             <div>
-              <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.4rem" }}>{item.name}</h3>
-              <p style={{ color: "#9f6baa", fontWeight: "bold" }}>${item.price.toFixed(2)} each</p>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                <button onClick={() => updateQuantity(item.id, item.quantity - 1)} style={{ width: "32px", height: "32px", border: "1px solid #ddd", background: "white", borderRadius: "8px" }}>-</button>
-                <span style={{ minWidth: "30px", textAlign: "center", fontWeight: "bold" }}>{item.quantity}</span>
-                <button onClick={() => updateQuantity(item.id, item.quantity + 1)} style={{ width: "32px", height: "32px", border: "1px solid #ddd", background: "white", borderRadius: "8px" }}>+</button>
+              <h2 style={{ fontSize: "1.4rem", marginBottom: ".5rem" }}>
+                {item.name}
+              </h2>
+
+              <p style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#9f6baa" }}>
+                ${item.price}
+              </p>
+
+              {/* QUANTITY BUTTONS */}
+              <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+                <button
+                  onClick={() => updateQuantity(item.id, -1)}
+                  style={qtyBtn}
+                >
+                  -
+                </button>
+                <span style={{ fontSize: "1.2rem", padding: "0 .75rem" }}>
+                  {item.quantity}
+                </span>
+                <button
+                  onClick={() => updateQuantity(item.id, 1)}
+                  style={qtyBtn}
+                >
+                  +
+                </button>
               </div>
-              <button onClick={() => removeFromCart(item.id)} style={{ color: "#c66", fontSize: "0.9rem", background: "none", border: "none", cursor: "pointer" }}>
-                Remove
-              </button>
             </div>
+
+            {/* REMOVE */}
+            <button
+              onClick={() => removeItem(item.id)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#d33",
+                fontSize: "1.1rem",
+                cursor: "pointer"
+              }}
+            >
+              Remove
+            </button>
           </div>
         ))}
-
-        <div style={{ marginTop: "2rem", textAlign: "right", fontSize: "1.8rem", fontWeight: "bold", color: "#9f6baa" }}>
-          Total: ${total}
-        </div>
-
-        <div style={{ textAlign: "center", marginTop: "2rem" }}>
-          <button onClick={handleCheckout} disabled={loading} style={{ padding: "1.2rem 3rem", background: "#9f6baa", color: "white", border: "none", borderRadius: "50px", fontSize: "1.4rem" }}>
-            {loading ? "Processing..." : "Checkout Securely with Stripe"}
-          </button>
-        </div>
-
-        <p style={{ textAlign: "center", marginTop: "2rem", color: "#777" }}>
-          Every purchase carries your story forward.
-        </p>
       </div>
-    </main>
+
+      {/* TOTALS */}
+      <div style={{
+        marginTop: "3rem",
+        padding: "2rem",
+        border: "1px solid #eee",
+        borderRadius: "16px",
+        background: "white",
+        boxShadow: "0 6px 18px rgba(0,0,0,0.05)"
+      }}>
+        <h2 style={{ fontSize: "2rem", marginBottom: "1rem" }}>Order Summary</h2>
+
+        <p style={{ fontSize: "1.2rem", marginBottom: ".5rem" }}>
+          Subtotal: <strong>${total}</strong>
+        </p>
+
+        <p style={{ fontSize: "1rem", color: "#666" }}>
+          Shipping & tax calculated at checkout.
+        </p>
+
+        <button
+          onClick={() => alert("Stripe checkout coming next!")}
+          style={{
+            width: "100%",
+            padding: "1.2rem",
+            background: "#9f6baa",
+            color: "white",
+            border: "none",
+            borderRadius: "12px",
+            fontSize: "1.3rem",
+            marginTop: "2rem",
+            cursor: "pointer"
+          }}
+        >
+          Proceed to Checkout
+        </button>
+      </div>
+    </div>
   );
 }
+
+// STYLE SHARED
+const qtyBtn = {
+  padding: ".5rem .9rem",
+  background: "#eee",
+  border: "none",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontSize: "1.1rem"
+};
