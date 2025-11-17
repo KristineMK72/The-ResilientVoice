@@ -1,21 +1,27 @@
-import Head from 'next/head';
-import ProductGrid from '../components/ProductGrid';
+import Head from "next/head";
+import Link from "next/link";
 
 export default function Home() {
   return (
     <>
       <Head>
-        <title>The Resilient Voice - Home</title>
-        <meta name="description" content="Discover apparel and accessories rooted in faith and resilience." />
-        <meta name="keywords" content="faith, resilience, apparel, accessories, e-commerce" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>The Resilient Voice | Jewelry Born from the Storm</title>
+        <meta name="description" content="Handcrafted storm-narrative jewelry that carries messages of resilience, grace, and unbreakable spirit." />
+        <meta property="og:title" content="The Resilient Voice" />
+        <meta property="og:description" content="Jewelry for survivors. Every piece tells a story of strength." />
+        <meta property="og:type" content="website" />
       </Head>
-      <main className="main">
-        <section className="card">
-          <h1>Welcome to The Resilient Voice</h1>
-          <p>Discover apparel and accessories rooted in faith and resilience.</p>
-          <ProductGrid category="all" />
-        </section>
+
+      <main style={{ padding: "4rem 1rem", textAlign: "center" }}>
+        <h1 style={{ fontSize: "3.5rem", marginBottom: "1rem" }}>The Resilient Voice</h1>
+        <p style={{ fontSize: "1.5rem", maxWidth: "800px", margin: "0 auto 3rem" }}>
+          Jewelry handcrafted for survivors — carrying messages of resilience, grace, and unbreakable spirit.
+        </p>
+        <Link href="/shop">
+          <button style={{ padding: "1rem 2.5rem", fontSize: "1.3rem", background: "#9f6baa", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" }}>
+            Shop All Collections →
+          </button>
+        </Link>
       </main>
     </>
   );
