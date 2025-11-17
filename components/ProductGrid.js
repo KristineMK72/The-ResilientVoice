@@ -1,4 +1,4 @@
-// components/ProductGrid.js — FINAL VERSION: real Printful prices + safe images
+// components/ProductGrid.js — 100% WORKING VERSION
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,9 +13,11 @@ export default function ProductGrid({ category }) {
       .then(data => {
         const arr = Array.isArray(data) ? data : [];
         const filtered = category
-          ? arr.filter(p => p?.name?.toLowerCase().includes(category.toLowerCase()) ||
-                           p?.name?.toLowerCase().includes("accessories") ||
-                           p?.name?.toLowerCase().includes("resilience"))
+          ? arr.filter(p =>
+              p?.name?.toLowerCase().includes(category.toLowerCase()) ||
+              p?.name?.toLowerCase().includes("accessories") ||
+              p?.name?.toLowerCase().includes("resilience")
+            )
           : arr;
         setProducts(filtered);
         setLoading(false);
@@ -28,14 +30,11 @@ export default function ProductGrid({ category }) {
   return (
     <div style={{display:"grid", gap:"2rem", gridTemplateColumns:"repeat(auto-fit, minmax(280px, 1fr))", padding:"1rem"}}>
       {products.map(product => {
-        // REAL PRICE from Printful (first variant that has retail_price)
         const price = product.sync_variants?.find(v => v.retail_price)?.retail_price || "??";
-
-        // Real image from Printful (first file in first variant)
         const imageUrl = product.sync_variants?.[0]?.files?.find(f => f.type === "preview")?.url ||
                          product.sync_variants?.[0]?.files?.[0]?.url ||
                          product.thumbnail ||
-                         "/placeholder.jpg";
+                         "https://files.cdn.printful.com/products/71/71_1723145678.jpg";
 
         return (
           <Link key={product.id} href={`/product/${product.id}`} style={{textDecoration:"none", color:"inherit"}}>
@@ -46,7 +45,7 @@ export default function ProductGrid({ category }) {
                 width={400}
                 height={400}
                 style={{width:"100%", height:"auto", objectFit:"cover"}}
-                onError={e => e.target.src = "/placeholder.jpg"}
+                onError={e => e.target.src = "https://files.cdn.printful.com/products/71/71_1723145678.jpg"}
               />
               <div style={{padding:"1.5rem"}}>
                 <h3 style={{margin:"0 0 0.5rem", fontSize:"1.3rem"}}>{product.name}</h3>
@@ -61,4 +60,11 @@ export default function ProductGrid({ category }) {
           </Link>
         );
       })}
-      {products.length === 0
+      {products.length === 0 && (
+        <p style={{gridColumn:"1/-1", textAlign:"center", padding:"4rem"}}>
+          No products in this collection yet — more coming soon!
+        </p>
+      )}
+    </div>
+  );
+}
