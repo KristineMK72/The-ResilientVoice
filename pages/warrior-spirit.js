@@ -20,7 +20,7 @@ export default function WarriorSpirit() {
         </div>
         
         {/* We use a wide filter term here to catch all shirts */}
-        <ProductGrid category="Warrior" />
+        <ProductGrid category="Warrior Spirit Co." />
       </main>
     </>
   );
