@@ -11,6 +11,15 @@ export default function ProductGrid({ category = "" }) {
     fetch("/api/printful-products")
       .then((r) => r.json())
       .then((data) => {
+        // --- START DEBUG LOGS ---
+        console.log("DEBUG: Category Filter Is:", category);
+        console.log("DEBUG: Total Products Found:", data.length);
+        
+        // Log the names of all fetched products to help debug the filter
+        const allProductNames = data.map(p => p.name);
+        console.log("DEBUG: ALL Product Names (UNFILTERED):", allProductNames);
+        // --- END DEBUG LOGS ---
+
         // Safety check: ensure data is an array
         const arr = Array.isArray(data) ? data : [];
         
@@ -57,8 +66,7 @@ export default function ProductGrid({ category = "" }) {
       padding: "2rem"
     }}>
       {products.map((product) => {
-        // 🔍 SMART IMAGE FINDER (The Fix)
-        // Checks 3 different places for the image so it never fails
+        // 🔍 SMART IMAGE FINDER (Fixes the broken image icons)
         const imageUrl = 
           product.thumbnail_url || 
           product.image || 
@@ -85,7 +93,7 @@ export default function ProductGrid({ category = "" }) {
                     alt={product.name}
                     fill
                     style={{ objectFit: "cover" }}
-                    unoptimized={true} // 👈 Important: Stops Next.js from blocking external images
+                    unoptimized={true}
                   />
                 </div>
 
