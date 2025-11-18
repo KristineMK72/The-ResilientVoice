@@ -8,19 +8,24 @@ export default async function handler(req, res) {
       },
     });
 
-    const json = await result.json();
+    cconst json = await response.json();
 
-    // --- DEBUGGING: Add this line ---
-    // This will print exactly what Printful says to your terminal
-    console.log("PRINTFUL API RESPONSE:", JSON.stringify(json, null, 2)); 
+  // --- START NEW CODE ---
+  // 1. Log the actual response so we can see the error message in the terminal
+  console.log("--- DEBUGGING PRINTFUL RESPONSE ---");
+  console.log(JSON.stringify(json, null, 2));
+  console.log("-----------------------------------");
 
-    // --- SAFETY CHECK: Fix the crash ---
-    // We check if result exists AND if it is actually a list (array)
-    if (!json.result || !Array.isArray(json.result)) {
-      console.error("Printful API Error: Data is not a list.", json);
-      // Return an empty list so the website doesn't crash
-      return res.status(200).json([]); 
-    }
+  // 2. Safety Check: If 'result' isn't a list, stop before crashing
+  if (!json.result || !Array.isArray(json.result)) {
+    console.error("PRINTFUL ERROR: API did not return an array of products.");
+    return res.status(500).json({ error: "Failed to fetch products", details: json });
+  }
+  // --- END NEW CODE ---
+
+  const products = json.result.map((item) => { 
+      // ... your existing mapping code ...
+  });
 
     const products = json.result.map(p => {
       const name = p.name || "";
