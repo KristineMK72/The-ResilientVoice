@@ -18,8 +18,26 @@ export default function WarriorSpirit() {
             For the fighter in you. Limited pieces that refuse to break.
           </p>
         </div>
+        
+        {/* We use a wide filter term here to catch all shirts */}
         <ProductGrid category="Warrior" />
       </main>
     </>
   );
 }
+```
+
+### Next Steps (The Final Debug)
+
+1.  **Save both files.**
+2.  Make sure your server is running (`npm run dev`).
+3.  Go to the **Warrior Spirit Co.** page in your browser.
+4.  **Right-click anywhere** on the page and select **Inspect**.
+5.  Click the **Console** tab.
+
+**Look for the `DEBUG:` messages.** It will show you a list of every product name available, like this:
+
+```
+DEBUG: Category Filter Is: Warrior
+DEBUG: Total Products Found: 8
+DEBUG: ALL Product Names (UNFILTERED): ["Resilient Beanie - Accessories collection", "Warrior Spirit Co. Watchman tee", "Unisex seasonal joy t-shirt - Resilience Collection", ...]
