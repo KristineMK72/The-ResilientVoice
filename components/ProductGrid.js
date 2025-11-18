@@ -6,7 +6,7 @@ export default function ProductGrid({ category = "" }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch products from our fixed API
+  // Fetch products from our API
   useEffect(() => {
     fetch("/api/printful-products")
       .then((r) => r.json())
@@ -17,9 +17,8 @@ export default function ProductGrid({ category = "" }) {
         // Filter by category if one is provided
         const filtered = category
           ? arr.filter((p) => {
-              // We only have the name to guess category right now
-              // You can improve this later with tags
-              const name = p.name.toLowerCase();
+              // Safety check: ensure name exists before lowercase
+              const name = p.name ? p.name.toLowerCase() : "";
               const cat = category.toLowerCase();
               return name.includes(cat);
             })
@@ -42,6 +41,14 @@ export default function ProductGrid({ category = "" }) {
     );
   }
 
+  if (products.length === 0) {
+    return (
+      <p style={{ textAlign: "center", padding: "4rem", fontSize: "1.2rem", color: "#666" }}>
+        No products found for "{category}".
+      </p>
+    );
+  }
+
   return (
     <div style={{
       display: "grid",
@@ -50,12 +57,14 @@ export default function ProductGrid({ category = "" }) {
       padding: "2rem"
     }}>
       {products.map((product) => {
-        // 1. Use the correct image field from our API (thumbnail_url)
-        const img = product.thumbnail_url || "https://files.cdn.printful.com/products/71/71_1723145678.jpg";
-        
-        // 2. Default price because the main list doesn't have it
-        // We will fetch the real price on the Product Detail page
-        const price = "Check Price"; 
+        // 🔍 SMART IMAGE FINDER (The Fix)
+        // Checks 3 different places for the image so it never fails
+        const imageUrl = 
+          product.thumbnail_url || 
+          product.image || 
+          (product.files && product.files.find(f => f.type === "preview")?.url) ||
+          (product.files && product.files[0]?.url) ||
+          "https://via.placeholder.com/400x400?text=No+Image";
 
         return (
           <div key={product.id} style={{
@@ -66,19 +75,19 @@ export default function ProductGrid({ category = "" }) {
             boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
             transition: "transform 0.2s ease"
           }}>
-            {/* CRITICAL LINK FIX:
-               1. Ensure this matches your folder name (product vs products).
-               2. We use the 'id' directly.
-            */}
             <Link href={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div style={{ cursor: "pointer" }}>
-                <Image
-                  src={img}
-                  alt={product.name}
-                  width={600}
-                  height={600}
-                  style={{ width: "100%", height: "360px", objectFit: "cover" }}
-                />
+                
+                {/* Image Container */}
+                <div style={{ position: "relative", height: "360px", width: "100%" }}>
+                  <Image
+                    src={imageUrl}
+                    alt={product.name}
+                    fill
+                    style={{ objectFit: "cover" }}
+                    unoptimized={true} // 👈 Important: Stops Next.js from blocking external images
+                  />
+                </div>
 
                 <div style={{ padding: "1.8rem" }}>
                   <h3 style={{ fontSize: "1.35rem", marginBottom: "0.8rem", minHeight: "60px" }}>
@@ -91,7 +100,7 @@ export default function ProductGrid({ category = "" }) {
                     color: "#9f6baa",
                     margin: "0.6rem 0"
                   }}>
-                    {price}
+                    Check Price
                   </p>
 
                   <div style={{
