@@ -10,15 +10,22 @@ export default async function handler(req, res) {
 
     const json = await result.json();
 
-    if (!json.result) {
-      return res.status(500).json([]);
+    // --- DEBUGGING: Add this line ---
+    // This will print exactly what Printful says to your terminal
+    console.log("PRINTFUL API RESPONSE:", JSON.stringify(json, null, 2)); 
+
+    // --- SAFETY CHECK: Fix the crash ---
+    // We check if result exists AND if it is actually a list (array)
+    if (!json.result || !Array.isArray(json.result)) {
+      console.error("Printful API Error: Data is not a list.", json);
+      // Return an empty list so the website doesn't crash
+      return res.status(200).json([]); 
     }
 
     const products = json.result.map(p => {
       const name = p.name || "";
-      const lower = name.toLowerCase();
-
-      // Extract collection from title
+      
+      // Your custom logic to extract collection from title
       const collection = name.includes(" - ")
         ? name
             .split(" - ")
@@ -29,18 +36,18 @@ export default async function handler(req, res) {
         : "";
 
       return {
-  id: p.id,
-  name: p.name,
-  collection,
-  thumbnail: p.thumbnail_url,   // ✅ CORRECT
-  sync_variants: p.sync_variants || [],
-};
-
+        id: p.id,
+        name: p.name,
+        collection,
+        thumbnail: p.thumbnail_url,
+        sync_variants: p.sync_variants || [],
+      };
     });
 
     return res.status(200).json(products);
+
   } catch (err) {
-    console.error("PRINTFUL ERROR:", err);
+    console.error("PRINTFUL SERVER ERROR:", err);
     return res.status(500).json([]);
   }
 }
