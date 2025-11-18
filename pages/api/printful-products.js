@@ -23,10 +23,17 @@ export default async function handler(req, res) {
   }
   // --- END NEW CODE ---
 
-  const products = json.result.map((item) => { 
-      // ... your existing mapping code ...
-  });
+// --- NEW CODE START ---
+  // 1. Check if Printful actually sent a list. If not, log the error and stop.
+  if (!json.result || !Array.isArray(json.result)) {
+    console.error("🚨 PRINTFUL API ERROR:", JSON.stringify(json, null, 2));
+    // Return an empty list so the website loads (even if empty) instead of crashing
+    return res.status(200).json([]); 
+  }
 
+  // 2. If we get here, the list exists, so we can map it safely.
+  const products = json.result.map((item) => {
+  // --- NEW CODE END ---
     const products = json.result.map(p => {
       const name = p.name || "";
       
