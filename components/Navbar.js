@@ -1,5 +1,7 @@
+// /components/Navbar.js
+
 import Link from 'next/link';
-import { ShoppingCart } from 'react-feather';
+// We are intentionally NOT importing 'react-feather' to prevent the Vercel crash
 import { useState, useEffect } from 'react';
 
 export default function Navbar() {
@@ -12,6 +14,7 @@ export default function Navbar() {
         const savedCart = localStorage.getItem("cart");
         if (savedCart) {
           const cart = JSON.parse(savedCart);
+          // Calculate the total number of items across all variants
           const count = cart.reduce((sum, item) => sum + item.quantity, 0);
           setItemCount(count);
         } else {
@@ -22,15 +25,24 @@ export default function Navbar() {
       }
     };
     
-    // Update immediately and then every second
+    // Update immediately and then every second (1000ms)
     updateCount();
     const interval = setInterval(updateCount, 1000); 
 
     return () => clearInterval(interval);
   }, []);
 
+  // Standard styles for all primary navigation links
   const linkStyle = { color: 'white', textDecoration: 'none', margin: '0 1rem', fontSize: '1.1rem' };
-  const cartIconStyle = { color: 'white', position: 'relative' };
+  
+  // Specific style for the cart link container
+  const cartLinkStyle = { 
+    ...linkStyle, 
+    marginLeft: '2rem', 
+    position: 'relative', 
+    display: 'flex', 
+    alignItems: 'center' 
+  };
 
   return (
     <nav style={{ 
@@ -55,8 +67,13 @@ export default function Navbar() {
         <Link href="/warrior-spirit" style={linkStyle}>Warrior Spirit</Link>
         <Link href="/blog" style={linkStyle}>Blog</Link>
         
-        <Link href="/cart" style={{...linkStyle, marginLeft: '2rem', ...cartIconStyle}}>
-          <ShoppingCart size={24} />
+        {/* Cart Link with stable emoji/text and item count badge */}
+        <Link href="/cart" style={cartLinkStyle}>
+          
+          {/* Replaced the crashing react-feather icon with a stable emoji */}
+          <span style={{ marginRight: '5px', fontSize: '1.2rem' }}>🛒</span>
+          Cart
+          
           {itemCount > 0 && (
             <span style={{
               position: 'absolute',
