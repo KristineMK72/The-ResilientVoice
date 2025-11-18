@@ -1,25 +1,37 @@
 export default async function handler(req, res) {
-  console.log("🌟🌟🌟 NEW CODE IS RUNNING 🌟🌟🌟");
+  console.log("🌟🌟🌟 DEBUGGER STARTING 🌟🌟🌟");
 
   try {
+    // 1. Check for API Key
+    if (!process.env.PRINTFUL_ACCESS_TOKEN) {
+      console.error("❌ ERROR: PRINTFUL_ACCESS_TOKEN is missing in .env file");
+      return res.status(500).json({ error: "Missing API Token" });
+    }
+
+    // 2. Call Printful API
     const response = await fetch('https://api.printful.com/store/products', {
+      method: 'GET',
       headers: {
-        'Authorization': `Bearer ${process.env.PRINTFUL_ACCESS_TOKEN}`
+        'Authorization': `Bearer ${process.env.PRINTFUL_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
       }
     });
 
     const json = await response.json();
 
-    // Debugging: Print what Printful sent us
-    console.log("PRINTFUL SAID:", JSON.stringify(json, null, 2));
+    // 3. LOG THE RESPONSE (This is what we need to see!)
+    console.log("⬇️⬇️⬇️ PRINTFUL SAID ⬇️⬇️⬇️");
+    console.log(JSON.stringify(json, null, 2));
+    console.log("⬆️⬆️⬆️ END MESSAGE ⬆️⬆️⬆️");
 
-    // Safety Check: If 'result' is missing or not a list, stop!
+    // 4. SAFETY CHECK: Did they send a list?
     if (!json.result || !Array.isArray(json.result)) {
-      console.error("❌ STOPPING CRASH: Printful did not return a list.");
-      return res.status(200).json([]); // Return empty list instead of crashing
+      console.error("⚠️ API ERROR: Printful did not return a list of products.");
+      // Return empty list to prevent crash
+      return res.status(200).json([]); 
     }
 
-    // Map the products
+    // 5. Map the products
     const products = json.result.map((item) => ({
       id: item.id,
       name: item.name,
@@ -27,12 +39,6 @@ export default async function handler(req, res) {
     }));
 
     res.status(200).json(products);
-
-  } catch (error) {
-    console.error("Server Error:", error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-}
 
   } catch (err) {
     console.error("PRINTFUL SERVER ERROR:", err);
