@@ -1,46 +1,64 @@
 // pages/api/create-checkout-session.js
 
+// This file runs on the server (safe place for your secret key)
 import Stripe from 'stripe';
 
+// Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-08-16', // latest stable Stripe API
+  apiVersion: '2022-11-15',
 });
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    res.setHeader('Allow', 'POST');
+    return res.status(405).end('Method Not Allowed');
+  }
+
+  // 1. Check for the secret key
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return res.status(500).json({ error: "Stripe Secret Key is missing. Check your Vercel/local environment settings." });
+  }
+
+  // 2. Get the items from the client's request
+  const { cartItems } = req.body;
+
+  if (!cartItems || cartItems.length === 0) {
+    return res.status(400).json({ error: 'Cart is empty.' });
   }
 
   try {
-    const { items } = req.body;
+    // 3. Transform cart items into Stripe line items
+    const line_items = cartItems.map((item) => {
+      // Stripe requires prices in cents/lowest currency unit
+      const unit_amount = Math.round(parseFloat(item.price) * 100); 
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'Cart is empty or invalid' });
-    }
-
-    // Map your cart items to Stripe line items
-    const line_items = items.map((item) => ({
-      price_data: {
-        currency: 'usd',
-        product_data: {
-          name: item.name,
+      return {
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: item.name,
+            images: [item.image].filter(Boolean), // Use the image URL
+          },
+          unit_amount: unit_amount,
         },
-        unit_amount: Math.round(item.price * 100), // Stripe expects cents
-      },
-      quantity: item.quantity,
-    }));
-
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items,
-      mode: 'payment',
-      success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.origin}/cart`,
+        quantity: item.quantity,
+      };
     });
 
-    return res.status(200).json({ id: session.id });
+    // 4. Create the Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: line_items,
+      mode: 'payment',
+      // Redirect back to your site on success or failure
+      success_url: `${req.headers.origin}/?order_status=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.origin}/cart?order_status=canceled`,
+    });
+
+    // 5. Send the Session URL back to the client
+    res.status(200).json({ url: session.url });
   } catch (err) {
-    console.error('Stripe checkout error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('Stripe Checkout Error:', err);
+    res.status(500).json({ error: `Failed to create Stripe checkout session: ${err.message}` });
   }
 }
