@@ -1,31 +1,23 @@
-import "../styles/globals.css";
+import Head from 'next/head';
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-
-
-export default function App({ Component, pageProps }) {
-return (
-<>
-<Header />
-<Component {...pageProps} />
-<Footer />
-</>
-);
-}
-import Head from 'next/head'; // <--- 1. Make sure you import 'Head'
 import '../styles/globals.css';
 
-function MyApp({ Component, pageProps }) {
+export default function App({ Component, pageProps }) {
   return (
     <>
-      {/* 2. Paste the viewport tag here inside Head */}
       <Head>
+        {/* Mobile Viewport Fix */}
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>The Resilient Voice</title>
       </Head>
       
-      <Component {...pageProps} />
+      {/* Your Site Layout */}
+      <Header />
+      <main>
+        <Component {...pageProps} />
+      </main>
+      <Footer />
     </>
   );
 }
-
-export default MyApp;
