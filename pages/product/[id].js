@@ -173,3 +173,62 @@ export default function ProductPage() {
             onChange={(e) => {
               const v = product.variants.find(
                 (v) => v.id === parseInt(e.target.value)
+              );
+              setSelectedVariant(v);
+            }}
+            style={{
+              width: "100%",
+              padding: "10px",
+              fontSize: "1rem",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+            }}
+          >
+            {product.variants.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name} - ${v.retail_price}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <p style={{ fontSize: "1.2rem", color: "#555", lineHeight: "1.7" }}>
+          Crafted for resilience. Every piece supports healing, empowerment, and
+          the journey forward.
+        </p>
+
+        <button
+          onClick={addToCart}
+          style={{
+            width: "100%",
+            padding: "1.2rem",
+            background: "#9f6baa",
+            color: "white",
+            border: "none",
+            borderRadius: "12px",
+            fontSize: "1.3rem",
+            marginTop: "2rem",
+            cursor: "pointer",
+          }}
+        >
+          Add to Cart
+        </button>
+
+        {itemCount > 0 && (
+          <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
+            <Link
+              href="/cart"
+              style={{
+                color: "#9f6baa",
+                fontSize: "1.2rem",
+                textDecoration: "underline",
+              }}
+            >
+              View Cart ({itemCount} {itemCount === 1 ? "item" : "items"})
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
