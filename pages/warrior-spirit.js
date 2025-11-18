@@ -18,7 +18,7 @@ export default function WarriorSpirit() {
             For the fighter in you. Limited pieces that refuse to break.
           </p>
         </div>
-        <ProductGrid category="warrior-spirit" />
+        <ProductGrid category="Warrior" />
       </main>
     </>
   );
