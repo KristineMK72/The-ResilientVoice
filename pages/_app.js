@@ -12,3 +12,20 @@ return (
 </>
 );
 }
+import Head from 'next/head'; // <--- 1. Make sure you import 'Head'
+import '../styles/globals.css';
+
+function MyApp({ Component, pageProps }) {
+  return (
+    <>
+      {/* 2. Paste the viewport tag here inside Head */}
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+      
+      <Component {...pageProps} />
+    </>
+  );
+}
+
+export default MyApp;
