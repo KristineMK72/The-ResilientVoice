@@ -1,8 +1,13 @@
 export default function Blog() {
   return (
-    <main className="main">
-      <section className="card about-card">
-        <h1 className="about-title">About The Resilient Voice</h1>
+    // 1. Apply soft background color directly to the main element
+    //    (e.g., a very light beige or cream color)
+    <main style={{ backgroundColor: '#f9f5f1', minHeight: '100vh' }}>
+      
+      {/* 2. Set the section width and left-align the text */}
+      <section style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 20px', textAlign: 'left' }}>
+        
+        <h1 className="about-title" style={{ textAlign: 'left' }}>About The Resilient Voice</h1>
         <p className="about-text">
           The Resilient Voice was born from storms — the kind that shake you,
           refine you, and push you closer to God’s purpose. Every hardship,
@@ -14,15 +19,15 @@ export default function Blog() {
           faith, and courage. Every design is crafted to speak life — to remind
           you that you are seen, you are strong, and you are deeply loved.
         </p>
-        <blockquote className="about-quote">
+        <blockquote className="about-quote" style={{ borderLeft: '3px solid #ccc', paddingLeft: '15px', fontStyle: 'italic' }}>
           “You are not alone. You have strength. You are seen.”
         </blockquote>
-        <h2 className="about-subtitle">Our Purpose & Impact</h2>
+        <h2 className="about-subtitle" style={{ textAlign: 'left' }}>Our Purpose & Impact</h2>
         <p className="about-text">
-          Part of walking in purpose means giving back. That’s why{" "}
+          Part of walking in purpose means giving back. That’s why{' '}
           <strong className="about-bold">
             10% of all proceeds are donated to nonprofits
-          </strong>{" "}
+          </strong>{' '}
           that support people who need hope the most:
         </p>
         <ul className="about-list">
@@ -36,7 +41,7 @@ export default function Blog() {
           survived — moments when hope felt far away, yet grace showed up through
           a message, a person, or a single act of compassion.
         </p>
-        <h2 className="about-subtitle">A Community of Faith & Strength</h2>
+        <h2 className="about-subtitle" style={{ textAlign: 'left' }}>A Community of Faith & Strength</h2>
         <p className="about-text">
           When you wear The Resilient Voice, you’re not just buying apparel —
           you’re becoming part of a movement. You’re spreading messages of hope,
@@ -47,7 +52,7 @@ export default function Blog() {
           other up, speak life into one another, and walk boldly in their
           purpose.
         </p>
-        <p className="about-signature">
+        <p className="about-signature" style={{ textAlign: 'right', marginTop: '40px' }}>
           🌿 With love, faith, and gratitude,
           <br />
           Kristine — Founder, The Resilient Voice
