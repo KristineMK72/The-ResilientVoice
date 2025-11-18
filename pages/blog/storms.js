@@ -1,80 +1,64 @@
-export default function BlogPage() {
+// /pages/blog/storms.js
+
+export default function Blog() {
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center px-4 py-16">
-      <article className="prose prose-lg md:prose-xl prose-gray max-w-4xl bg-white rounded-2xl shadow-lg p-8 md:p-14">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6">
-          Through the Storms: How God’s Grace Shaped My Mission
-        </h1>
-
-        <p className="text-gray-700 leading-relaxed">
-          Life has a way of testing our strength, humbling our pride, and
-          breaking us open just enough for light to shine through. Every storm
-          I’ve walked through—heartbreak, loss, uncertainty, and the silent
-          battles no one sees—has shaped me. Through it all, God’s grace has
-          been the anchor holding me steady.
+    // Sets the soft background color across the entire page view
+    <main style={{ backgroundColor: '#f9f5f1', minHeight: '100vh', padding: '0 20px' }}>
+      
+      {/* Centers the content block, but keeps the text left-aligned */}
+      <section style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 0', textAlign: 'left' }}>
+        
+        <h1 className="about-title" style={{ textAlign: 'left' }}>About The Resilient Voice</h1>
+        <p className="about-text">
+          The Resilient Voice was born from storms — the kind that shake you,
+          refine you, and push you closer to God’s purpose. Every hardship,
+          heartbreak, and silent battle became a reminder that even when life
+          breaks us open, grace pours in.
         </p>
-
-        <p className="text-gray-700 leading-relaxed">
-          <strong>The Resilient Voice</strong> was born from that place of
-          redemption. It’s more than an apparel line; it’s a mission. Every
-          design carries a message of faith, healing, and resilience—a reminder
-          that even in your darkest valleys, grace is still chasing you.
+        <p className="about-text">
+          This brand is more than apparel. It is a mission rooted in healing,
+          faith, and courage. Every design is crafted to speak life — to remind
+          you that you are seen, you are strong, and you are deeply loved.
         </p>
-
-        <p className="text-gray-700 leading-relaxed">
-          I created this brand for anyone who has ever felt unseen, unheard,
-          or overwhelmed. I wanted each piece to whisper a simple truth:
-        </p>
-
-        <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-800">
-          You are not alone.  
-          You have strength.  
-          You are seen.
+        <blockquote className="about-quote" style={{ borderLeft: '3px solid #ccc', paddingLeft: '15px', fontStyle: 'italic', margin: '20px 0' }}>
+          “You are not alone. You have strength. You are seen.”
         </blockquote>
-
-        <p className="text-gray-700 leading-relaxed">
-          Part of walking in purpose means giving back, which is why{" "}
-          <strong>10% of all proceeds</strong> support nonprofits doing
-          meaningful, life-impacting work:
+        <h2 className="about-subtitle" style={{ textAlign: 'left' }}>Our Purpose & Impact</h2>
+        <p className="about-text">
+          Part of walking in purpose means giving back. That’s why{' '}
+          <strong className="about-bold">
+            10% of all proceeds are donated to nonprofits
+          </strong>{' '}
+          that support people who need hope the most:
         </p>
-
-        <ul className="list-disc pl-6 text-gray-700 space-y-1">
-          <li>🕊️ Suicide prevention & awareness programs</li>
-          <li>💬 Anti-bullying initiatives</li>
+        <ul className="about-list">
+          <li>🕊️ Suicide prevention & awareness</li>
+          <li>💬 Anti-bullying programs</li>
           <li>💚 Mental health support networks</li>
-          <li>🏠 Homelessness relief organizations</li>
+          <li>🏠 Homelessness relief and restoration</li>
         </ul>
-
-        <p className="text-gray-700 leading-relaxed">
-          These causes matter deeply to me because I’ve lived in the spaces where
-          hope feels far away. I know what it means to need just one voice, one
-          message, one act of compassion to keep going.
+        <p className="about-text">
+          These causes resonate deeply because they reflect the storms I’ve
+          survived — moments when hope felt far away, yet grace showed up through
+          a message, a person, or a single act of compassion.
         </p>
-
-        <p className="text-gray-700 leading-relaxed">
-          When you purchase from The Resilient Voice, you’re not just buying
-          apparel—you’re planting hope. You're joining a movement of faith,
-          courage, and redemption.
+        <h2 className="about-subtitle" style={{ textAlign: 'left' }}>A Community of Faith & Strength</h2>
+        <p className="about-text">
+          When you wear The Resilient Voice, you’re not just buying apparel —
+          you’re becoming part of a movement. You’re spreading messages of hope,
+          resilience, and God’s unshakable grace.
         </p>
-
-        <p className="text-gray-700 leading-relaxed">
-          As this mission continues to grow, my prayer is that it becomes a
-          community of people who lift each other up, speak life, and carry God’s
-          grace into the world.
+        <p className="about-text">
+          My prayer is that this becomes a community of people who lift each
+          other up, speak life into one another, and walk boldly in their
+          purpose.
         </p>
-
-        <p className="text-gray-700 leading-relaxed">
-          Thank you for supporting this vision.  
-          Thank you for believing that grace wins, that faith restores, and that
-          purpose can rise from pain.
-        </p>
-
-        <p className="text-gray-800 font-semibold mt-8">
-          🌿 With love and faith,  
+        <p className="about-signature" style={{ textAlign: 'right', marginTop: '40px' }}>
+          🌿 With love, faith, and gratitude,
           <br />
-          Kristine – Founder, The Resilient Voice
+          Kristine — Founder, The Resilient Voice
         </p>
-      </article>
-    </div>
+      </section>
+    </main>
   );
 }
