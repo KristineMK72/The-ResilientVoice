@@ -19,16 +19,16 @@ export default async function handler(req, res) {
 
     const json = await response.json();
 
-    // 3. LOG THE RESPONSE (This is what we need to see!)
+    // 3. LOG THE RESPONSE
     console.log("⬇️⬇️⬇️ PRINTFUL SAID ⬇️⬇️⬇️");
-    console.log(JSON.stringify(json, null, 2));
+    // console.log(JSON.stringify(json, null, 2)); // Uncomment if you need to see full data
+    console.log("Printful result count:", json.result ? json.result.length : "0");
     console.log("⬆️⬆️⬆️ END MESSAGE ⬆️⬆️⬆️");
 
     // 4. SAFETY CHECK: Did they send a list?
     if (!json.result || !Array.isArray(json.result)) {
       console.error("⚠️ API ERROR: Printful did not return a list of products.");
-      // Return empty list to prevent crash
-      return res.status(200).json([]); 
+      return res.status(200).json([]); // Return empty list to prevent crash
     }
 
     // 5. Map the products
