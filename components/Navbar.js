@@ -2,9 +2,13 @@
 
 // ... (Code above the return statement is correct) ...
 
+ // /components/Navbar.js
+
+// ... (Code above the return statement is correct) ...
+
   return (
     <nav style={{ 
-      // ... (Nav styles) ...
+      /* ... (Nav styles) ... */
     }}>
       <Link href="/" style={/* ... */}>
         Resilient Voice
@@ -12,14 +16,19 @@
       
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <Link href="/" style={linkStyle}>Home</Link>
-        {/* ... All other navigation links are here ... */}
+        <Link href="/accessories" style={linkStyle}>Accessories</Link>
+        <Link href="/resilience" style={linkStyle}>Resilience</Link>
+        <Link href="/grace" style={linkStyle}>Grace</Link>
+        <Link href="/warrior-spirit" style={linkStyle}>Warrior Spirit</Link>
         <Link href="/blog" style={linkStyle}>Blog</Link>
         
-        {/* This is the clean, correct Cart Link block ⬇️ */}
+        {/* THIS IS THE CLEANED CART LINK BLOCK */}
         <Link href="/cart" style={cartLinkStyle}>
           
+          {/* Final clean display of the Cart icon and text */}
           <span style={{ marginRight: '5px', fontSize: '1.2rem' }}>🛒 Final Push</span>
-          
+
+          {/* This is the badge that shows the item count */}
           {itemCount > 0 && (
             <span style={{
               position: 'absolute',
@@ -37,7 +46,7 @@
             </span>
           )}
         </Link>
-        {/* End of Cart Link block ⬆️ */}
+        {/* END OF CART LINK BLOCK */}
         
       </div>
     </nav>
