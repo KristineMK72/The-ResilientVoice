@@ -71,8 +71,7 @@ export default function Navbar() {
 <Link href="/cart" style={cartLinkStyle}>
   
  {/* Replaced the crashing react-feather icon with a stable emoji and text */}
-<span style={{ marginRight: '5px', fontSize: '1.2rem' }}>🛒 Shopping Cart</span>
-  
+<span style={{ marginRight: '5px', fontSize: '1.2rem' }}>🛒 Final Push</span>
   {/* TEMPORARY CHANGE TO FORCE PUSH */}
   My Cart 
 
