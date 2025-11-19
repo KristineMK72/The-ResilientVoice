@@ -70,8 +70,8 @@ export default function Navbar() {
         {/* Cart Link with stable emoji/text and item count badge */}
 <Link href="/cart" style={cartLinkStyle}>
   
-  {/* Replaced the crashing react-feather icon with a stable emoji */}
-  <span style={{ marginRight: '5px', fontSize: '1.2rem' }}>🛒</span>
+ {/* Replaced the crashing react-feather icon with a stable emoji and text */}
+<span style={{ marginRight: '5px', fontSize: '1.2rem' }}>🛒 Shopping Cart</span>
   
   {/* TEMPORARY CHANGE TO FORCE PUSH */}
   My Cart 
