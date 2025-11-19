@@ -68,29 +68,31 @@ export default function Navbar() {
         <Link href="/blog" style={linkStyle}>Blog</Link>
         
         {/* Cart Link with stable emoji/text and item count badge */}
-        <Link href="/cart" style={cartLinkStyle}>
-          
-          {/* Replaced the crashing react-feather icon with a stable emoji */}
-          <span style={{ marginRight: '5px', fontSize: '1.2rem' }}>🛒</span>
-          Cart
-          
-          {itemCount > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: '-10px',
-              right: '-10px',
-              background: '#9f6baa',
-              color: 'white',
-              borderRadius: '50%',
-              padding: '2px 7px',
-              fontSize: '0.75rem',
-              fontWeight: 'bold',
-              lineHeight: '1',
-            }}>
-              {itemCount}
-            </span>
-          )}
-        </Link>
+<Link href="/cart" style={cartLinkStyle}>
+  
+  {/* Replaced the crashing react-feather icon with a stable emoji */}
+  <span style={{ marginRight: '5px', fontSize: '1.2rem' }}>🛒</span>
+  
+  {/* TEMPORARY CHANGE TO FORCE PUSH */}
+  My Cart 
+
+  {itemCount > 0 && (
+    <span style={{
+      position: 'absolute',
+      top: '-10px',
+      right: '-10px',
+      background: '#9f6baa',
+      color: 'white',
+      borderRadius: '50%',
+      padding: '2px 7px',
+      fontSize: '0.75rem',
+      fontWeight: 'bold',
+      lineHeight: '1',
+    }}>
+      {itemCount}
+    </span>
+  )}
+</Link>
       </div>
     </nav>
   );
