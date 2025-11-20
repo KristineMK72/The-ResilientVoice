@@ -1,72 +1,124 @@
+/*
+ * This file contains base styles, utility classes, and media queries for responsiveness.
+ * It should be imported once in /pages/_app.js.
+ */
+
+/* ---------------------------------- */
+/* 1. Base Styles and Resets          */
+/* ---------------------------------- */
 body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  background: #fafafa;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #fafafa;
+    line-height: 1.6;
 }
 
+/* Ensure all images scale fluidly */
+img {
+    max-width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+/* ---------------------------------- */
+/* 2. Global Component Styles         */
+/* ---------------------------------- */
+
+/* Header styles applied via className="header" in components/Header.js */
 .header {
-  background: black;
-  color: white;
-  padding: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+    background: black;
+    color: white;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .header nav a {
-  margin-left: 15px;
-  color: white;
-  text-decoration: none;
+    margin-left: 15px;
+    color: white;
+    text-decoration: none;
+    padding: 5px 10px;
 }
 
-main {
-  padding: 20px;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-}
-
-.card {
-  background: white;
-  padding: 10px;
-  border-radius: 8px;
-  text-align: center;
-  border: 1px solid #ddd;
-}
-
+/* Footer styles applied via className="footer" in components/Footer.js */
 .footer {
-  text-align: center;
-  padding: 20px;
-  color: #555;
+    text-align: center;
+    padding: 20px;
+    color: #555;
+    background: #e9e9e9;
 }
 
-/* Add missing styles for ProductGrid */
-.shop-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-.shop-filters { margin-bottom: 1.5rem; text-align: center; }
-.shop-filter-btn { 
-  background: #ddd; 
-  border: none; 
-  padding: 8px 16px; 
-  margin: 0 5px; 
-  cursor: pointer; 
-  border-radius: 4px; 
+/* ---------------------------------- */
+/* 3. Responsive Utility Classes      */
+/* ---------------------------------- */
+
+/* Standard multi-column grid for shopping lists and general content */
+.main-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
-.shop-filter-btn:hover { background: #bbb; }
-.shop-product { padding: 15px; transition: transform 0.2s; }
-.shop-product:hover { transform: scale(1.05); }
-.shop-image { width: 100%; height: auto; object-fit: cover; border-radius: 4px; }
-.shop-name { font-size: 1.2rem; font-weight: bold; margin: 0.5rem 0; }
-.shop-price { font-size: 1rem; margin-bottom: 0.5rem; }
-.shop-add-btn { 
-  background: #333; 
-  color: white; 
-  border: none; 
-  padding: 8px 16px; 
-  border-radius: 4px; 
-  cursor: pointer; 
+
+/* Two-column layout used for Mind Diet list and content blocks */
+.two-col-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
 }
-.shop-add-btn:hover { background: #555; }
+
+/* Button grouping (used on index.js for mobile stacking) */
+.center-on-mobile {
+    display: flex; 
+    justify-content: center; 
+}
+
+
+/* ---------------------------------- */
+/* 4. MEDIA QUERIES (Mobile Adjustments) */
+/* ---------------------------------- */
+
+@media (max-width: 768px) {
+    /* --- HEADER STACKING --- */
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+    }
+    
+    .header nav {
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+    }
+
+    .header nav a {
+        margin: 5px 0;
+        padding: 8px 0;
+        width: 100%;
+        text-align: left;
+    }
+
+    /* --- CONTENT/GRID COLLAPSE --- */
+    
+    /* Collapses shopping lists and main grids to a single column */
+    .main-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    /* Collapses two-column layouts (like the Mind Diet principles) to a single stack */
+    .two-col-layout {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    /* Stacks buttons on top of each other */
+    .center-on-mobile {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
