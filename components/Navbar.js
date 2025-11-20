@@ -1,54 +1,39 @@
-// /components/Navbar.js
+// /components/Navbar.js (Clean, Fixed Code)
+import Link from 'next/link';
+import React from 'react';
 
-// ... (Code above the return statement is correct) ...
-
- // /components/Navbar.js
-
-// ... (Code above the return statement is correct) ...
-
+export default function Navbar() {
   return (
-    <nav style={{ 
-      /* ... (Nav styles) ... */
-    }}>
-      <Link href="/" style={/* ... */}>
-        Resilient Voice
+    <nav className="header">
+      
+      {/* Logo/Site Title Link */}
+      <Link href="/" style={logoStyle}>
+        The Resilient Voice
       </Link>
       
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <Link href="/" style={linkStyle}>Home</Link>
-        <Link href="/accessories" style={linkStyle}>Accessories</Link>
-        <Link href="/resilience" style={linkStyle}>Resilience</Link>
-        <Link href="/grace" style={linkStyle}>Grace</Link>
-        <Link href="/warrior-spirit" style={linkStyle}>Warrior Spirit</Link>
-        <Link href="/blog" style={linkStyle}>Blog</Link>
-        
-        {/* THIS IS THE CLEANED CART LINK BLOCK */}
-        <Link href="/cart" style={cartLinkStyle}>
-          
-          {/* Final clean display of the Cart icon and text */}
-          <span style={{ marginRight: '5px', fontSize: '1.2rem' }}>🛒 Final Push</span>
-
-          {/* This is the badge that shows the item count */}
-          {itemCount > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: '-10px',
-              right: '-10px',
-              background: '#9f6baa',
-              color: 'white',
-              borderRadius: '50%',
-              padding: '2px 7px',
-              fontSize: '0.75rem',
-              fontWeight: 'bold',
-              lineHeight: '1',
-            }}>
-              {itemCount}
-            </span>
-          )}
-        </Link>
-        {/* END OF CART LINK BLOCK */}
-        
-      </div>
+      {/* Navigation Links */}
+      <nav>
+        <Link href="/" style={navLinkStyle}>Home</Link>
+        <Link href="/about" style={navLinkStyle}>About</Link>
+        <Link href="/resilience" style={navLinkStyle}>Resilience</Link>
+        <Link href="/shop" style={navLinkStyle}>Shop</Link>
+        <Link href="/blog" style={navLinkStyle}>Blog</Link>
+      </nav>
+      
     </nav>
   );
 }
+
+const logoStyle = { 
+  color: 'white', 
+  fontSize: '1.5rem', 
+  fontWeight: 'bold',
+  textDecoration: 'none' 
+};
+
+const navLinkStyle = {
+  color: 'white',
+  textDecoration: 'none',
+  fontSize: '1.1rem',
+  padding: '0.5rem 0.75rem',
+};
