@@ -4,10 +4,10 @@
 import Stripe from 'stripe';
 
 // Initialize Stripe with your secret key
+console.log("Stripe key prefix:", process.env.STRIPE_SECRET_KEY?.slice(0, 8)); // ✅ Add this here
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2022-11-15',
 });
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
