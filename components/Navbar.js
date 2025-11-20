@@ -1,4 +1,4 @@
-// /components/Navbar.js (Clean, Fixed Code)
+// /components/Navbar.js (COMPLETE AND FIXED)
 import Link from 'next/link';
 import React from 'react';
 
@@ -13,11 +13,12 @@ export default function Navbar() {
       
       {/* Navigation Links */}
       <nav>
-        <Link href="/" style={navLinkStyle}>Home</Link>
         <Link href="/about" style={navLinkStyle}>About</Link>
+        <Link href="/blog" style={navLinkStyle}>Blog</Link>
+        <Link href="/gallery" style={navLinkStyle}>Gallery</Link> {/* <-- ADDED LINK */}
         <Link href="/resilience" style={navLinkStyle}>Resilience</Link>
         <Link href="/shop" style={navLinkStyle}>Shop</Link>
-        <Link href="/blog" style={navLinkStyle}>Blog</Link>
+        {/* You may want to add 'accessories.js', 'cart.js', 'grace.js', 'warrior-spirit.js' too */}
       </nav>
       
     </nav>
