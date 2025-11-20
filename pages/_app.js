@@ -1,19 +1,19 @@
-// /pages/_app.js (FINAL, CLEAN STRUCTURE)
+// /pages/_app.js (FINAL FIX)
 import React from 'react';
-import Header from '../components/Header'; // Now contains all navigation
-import Footer from '../components/Footer'; // The simple footer component
-import '../styles/global.css'; // Global responsive styles
+import Header from '../components/Header'; // Renders the navigation bar
+import Footer from '../components/Footer'; // Renders the footer
+import '../styles/global.css'; // Loads all responsive styles
 
 function MyApp({ Component, pageProps }) {
   return (
     <>
-      {/* 1. Header and Navbar */}
+      {/* The Header/Navbar is rendered here */}
       <Header /> 
       
-      {/* 2. Main Page Content */}
+      {/* The content of your specific pages (index, shop, blog, etc.) */}
       <Component {...pageProps} /> 
       
-      {/* 3. Footer */}
+      {/* The Footer is rendered here */}
       <Footer />
     </>
   );
