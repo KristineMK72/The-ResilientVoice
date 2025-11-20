@@ -1,12 +1,21 @@
-import Layout from '../components/Layout';
-// NOTE: Assuming you have a styles/globals.css file for basic cleanup
-// import '../styles/globals.css'; 
+// /pages/_app.js (FINAL FIX)
+import React from 'react';
+import Header from '../components/Header'; // Renders the navigation bar
+import Footer from '../components/Footer'; // Renders the footer
+import '../styles/global.css'; // Loads all responsive styles
 
 function MyApp({ Component, pageProps }) {
   return (
-    <Layout>
-      <Component {...pageProps} />
-    </Layout>
+    <>
+      {/* The Header/Navbar is rendered here */}
+      <Header /> 
+      
+      {/* The content of your specific pages (index, shop, blog, etc.) */}
+      <Component {...pageProps} /> 
+      
+      {/* The Footer is rendered here */}
+      <Footer />
+    </>
   );
 }
 
