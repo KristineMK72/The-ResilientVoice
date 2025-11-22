@@ -6,7 +6,6 @@ import { loadStripe } from "@stripe/stripe-js";
 // Load Stripe once outside the component
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
-// Debug log to confirm we’re using the public key
 console.log(
   "Stripe public key prefix:",
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.slice(0, 8)
@@ -16,24 +15,22 @@ export default function CartPage() {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Load cart on mount
+  // Fetch cart from backend on mount
   useEffect(() => {
-    const saved = localStorage.getItem("cart");
-    console.log("Saved cart from localStorage:", saved);
-    if (saved) {
+    async function fetchCart() {
       try {
-        setCart(JSON.parse(saved));
+        const res = await fetch("/api/cart");
+        if (!res.ok) throw new Error("Failed to fetch cart");
+        const data = await res.json();
+        setCart(data.items || []);
       } catch (err) {
-        console.error("Failed to parse cart JSON:", err);
+        console.error("Cart fetch error:", err);
+      } finally {
+        setLoading(false);
       }
     }
-    setLoading(false);
+    fetchCart();
   }, []);
-
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cart));
-  }, [cart]);
 
   const updateQuantity = (id, variantId, delta) => {
     setCart((current) => {
@@ -101,34 +98,6 @@ export default function CartPage() {
     return (
       <p style={{ textAlign: "center", padding: "6rem" }}>Loading Cart...</p>
     );
-
-  // Debug overlay component
-  const DebugOverlay = () => (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        background: "rgba(0,0,0,0.85)",
-        color: "lime",
-        padding: "1rem",
-        fontSize: "0.9rem",
-        maxHeight: "250px",
-        overflowY: "auto",
-        zIndex: 9999,
-        width: "100%",
-      }}
-    >
-      <strong>Cart Debug:</strong>
-      <pre style={{ whiteSpace: "pre-wrap" }}>
-        {JSON.stringify(cart, null, 2)}
-      </pre>
-      <strong>LocalStorage Raw:</strong>
-      <pre style={{ whiteSpace: "pre-wrap" }}>
-        {localStorage.getItem("cart")}
-      </pre>
-    </div>
-  );
 
   return (
     <div style={{ maxWidth: "1000px", margin: "4rem auto", padding: "0 2rem" }}>
@@ -313,4 +282,27 @@ export default function CartPage() {
               }}
             >
               <span>Subtotal:</span>
-              <span>${subtotal.toFixed(
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+            <button
+              onClick={checkout}
+              style={{
+                marginTop: "1.5rem",
+                width: "100%",
+                padding: "1rem",
+                background: "#9f6baa",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "1.2rem",
+                cursor: "pointer",
+              }}
+            >
+              Proceed to Checkout
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
