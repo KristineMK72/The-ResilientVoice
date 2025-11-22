@@ -7,7 +7,7 @@ return (
 <h1>Resilient Voice</h1>
 <nav>
 <Link href="/">Home</Link>
-<Link href="/gallery"> Accessories</Link>
+<Link href="/gallery">Gallery</Link>
 <Link href="/accessories">Accessories</Link>
 <Link href="/resilience">Resilience</Link>
 <Link href="/grace">Grace</Link>
