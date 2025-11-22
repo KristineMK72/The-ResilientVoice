@@ -7,11 +7,13 @@ return (
 <h1>Resilient Voice</h1>
 <nav>
 <Link href="/">Home</Link>
+<Link href="/gallery"> Accessories</Link>
 <Link href="/accessories">Accessories</Link>
 <Link href="/resilience">Resilience</Link>
 <Link href="/grace">Grace</Link>
 <Link href="/warrior-spirit">Warrior Spirit</Link>
 <Link href="/blog">Blog</Link>
+<Link href="/cart">Cart</Link>
 </nav>
 </header>
 );
