@@ -80,4 +80,8 @@ export default function Cart() {
         <p style={{ fontSize: "2rem", margin: "0 0 1.5rem" }}>
           Total: <strong style={{ color: "#6b46c1" }}>${total.toFixed(2)}</strong>
         </p>
-        <CheckoutButton cartItems={cart}
+        <CheckoutButton cartItems={cart} />
+      </div>
+    </main>
+  );
+}
