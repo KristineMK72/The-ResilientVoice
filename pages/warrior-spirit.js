@@ -10,14 +10,10 @@ export default function WarriorSpiritPage() {
           Warrior Spirit Co. is a tribute to the unbroken. This collection celebrates the fighters,
           survivors, and everyday warriors who rise with courage even in the face of storms. Each
           piece is designed as a symbol of strength and endurance — a reminder that resilience is
-          not just about surviving, but about thriving with dignity and hope. Crafted with
-          intention, the Warrior Spirit line carries messages of empowerment and perseverance.
-          Whether worn as a daily affirmation or gifted to someone walking their own path of
-          resilience, these designs embody the spirit of those who refuse to be defined by hardship.
-          Step into the Warrior Spirit Co. collection and carry with you a bold declaration: I am
-          unbroken, I am resilient, I am a warrior.
+          not just about surviving, but about thriving with dignity and hope.
         </p>
       </div>
+      {/* ✅ Only warrior-spirit products will be returned now */}
       <ProductGrid category="warrior-spirit" />
     </main>
   );
