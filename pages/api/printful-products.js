@@ -1,30 +1,38 @@
-// pages/api/printful-products.js
+// pages/api/printful-products.js  ← REPLACE ENTIRE FILE
 export default async function handler(req, res) {
+  if (!process.env.PRINTFUL_ACCESS_TOKEN) {
+    return res.status(500).json({ error: "No Printful token" });
+  }
+
   try {
     const response = await fetch("https://api.printful.com/store/products", {
-  headers: {
-    Authorization: `Bearer ${process.env.PRINTFUL_ACCESS_TOKEN}`, // ✅ correct key name
-  },
-});
-    if (!response.ok) {
-      throw new Error(`Printful API error: ${response.status}`);
-    }
+      headers: {
+        Authorization: `Bearer ${process.env.PRINTFUL_ACCESS_TOKEN}`,
+      },
+    });
 
     const data = await response.json();
 
-    const enrichedProducts = data.result.map((p) => ({
-      id: p.id,
-      name: p.name,
-      description: p.description,
-      thumbnail: p.thumbnail_url,
-      // ✅ Use first variant’s retail price
-      price: p.variants?.[0]?.retail_price || null,
-      variants: p.variants, // keep full variant list for product detail
-    }));
+    if (!data.result) {
+      return res.status(200).json({ result: [] });
+    }
 
-    res.status(200).json(enrichedProducts);
+    // CLEAN AND FLATTEN THE DATA — THIS IS THE FIX
+    const cleaned = data.result.map(item => {
+      const syncProduct = item.sync_product;
+      const firstVariant = item.sync_variants[0] || {};
+
+      return {
+        id: String(syncProduct.id),
+        name: syncProduct.name,
+        image: syncProduct.thumbnail_url || firstVariant.files?.[0]?.preview_url || "/fallback.png",
+        price: firstVariant.retail_price || "29.99",
+      };
+    });
+
+    res.status(200).json({ result: cleaned });
   } catch (err) {
-    console.error("Printful products fetch error:", err);
-    res.status(500).json({ error: "Failed to fetch products" });
+    console.error("Printful API error:", err);
+    res.status(500).json({ result: [] });
   }
 }
