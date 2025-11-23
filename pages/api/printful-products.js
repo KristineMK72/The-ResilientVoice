@@ -2,9 +2,10 @@
 export default async function handler(req, res) {
   try {
     const response = await fetch("https://api.printful.com/store/products", {
-      headers: { Authorization: `Bearer ${process.env.PRINTFUL_API_KEY}` },
-    });
-
+  headers: {
+    Authorization: `Bearer ${process.env.PRINTFUL_ACCESS_TOKEN}`, // ✅ correct key name
+  },
+});
     if (!response.ok) {
       throw new Error(`Printful API error: ${response.status}`);
     }
