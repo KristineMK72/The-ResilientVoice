@@ -168,8 +168,12 @@ export default function CartPage() {
                     marginRight: "1.5rem",
                   }}
                 >
+                  {/* ✅ FIXED IMAGE: use Printful thumbnail */}
                   <Image
-                    src={item.image || "/fallback.png"}
+                    src={
+                      item.thumbnail ||
+                      "https://via.placeholder.com/400?text=No+Image"
+                    }
                     alt={item.name}
                     fill
                     style={{ objectFit: "cover" }}
