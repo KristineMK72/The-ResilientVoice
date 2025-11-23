@@ -12,52 +12,17 @@ export default function ProductDetail() {
     if (!id) return;
 
     async function fetchProduct() {
-      try {
-        const res = await fetch(`/api/printful-product/${id}`);
-        if (!res.ok) throw new Error("Failed to fetch product");
-        const data = await res.json();
-        setProduct(data);
-      } catch (err) {
-        console.error("Product fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
+      const res = await fetch(`/api/printful-product/${id}`);
+      const data = await res.json();
+      setProduct(data);
+      setLoading(false);
     }
 
     fetchProduct();
   }, [id]);
 
-  const addToCart = async () => {
-    try {
-      const res = await fetch("/api/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: product.id,
-          variantId: product.variant_id, // ✅ Printful variant ID
-          name: product.name,
-          price: product.price,
-          thumbnail: product.thumbnail,
-          quantity: 1,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed to add to cart");
-      alert("Added to cart!");
-      router.push("/cart"); // redirect to cart page
-    } catch (err) {
-      console.error("Add to cart error:", err);
-      alert("Could not add to cart. Please try again.");
-    }
-  };
-
-  if (loading) {
-    return <p style={{ textAlign: "center", padding: "4rem" }}>Loading product...</p>;
-  }
-
-  if (!product) {
-    return <p style={{ textAlign: "center", padding: "4rem" }}>Product not found.</p>;
-  }
+  if (loading) return <p style={{ textAlign: "center", padding: "4rem" }}>Loading product...</p>;
+  if (!product) return <p style={{ textAlign: "center", padding: "4rem" }}>Product not found.</p>;
 
   return (
     <main style={{ maxWidth: "900px", margin: "4rem auto", padding: "0 2rem" }}>
@@ -76,11 +41,34 @@ export default function ProductDetail() {
           <p style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>
             {product.description || "No description available."}
           </p>
-          <p style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#9f6baa" }}>
-            ${product.price?.toFixed(2)}
-          </p>
+
+          {/* ✅ Show all variants */}
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            {product.variants?.map((v) => (
+              <li key={v.id} style={{ marginBottom: "0.5rem" }}>
+                {v.name} — <strong>${v.retail_price}</strong>
+              </li>
+            ))}
+          </ul>
+
           <button
-            onClick={addToCart}
+            onClick={() => {
+              // Example: add first variant to cart
+              fetch("/api/cart", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  id: product.id,
+                  variantId: product.variants[0].id,
+                  name: product.name,
+                  price: product.variants[0].retail_price,
+                  thumbnail: product.thumbnail,
+                  quantity: 1,
+                }),
+              });
+              alert("Added to cart!");
+              router.push("/cart");
+            }}
             style={{
               marginTop: "1.5rem",
               padding: "1rem 2rem",
