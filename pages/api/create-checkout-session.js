@@ -12,12 +12,10 @@ export default async function handler(req, res) {
     return res.status(405).end('Method Not Allowed');
   }
 
-  // 1. Check for the secret key
   if (!process.env.STRIPE_SECRET_KEY) {
     return res.status(500).json({ error: "Stripe Secret Key is missing. Check your Vercel/local environment settings." });
   }
 
-  // 2. Get the items from the client's request
   const { cartItems } = req.body;
 
   if (!cartItems || cartItems.length === 0) {
@@ -25,9 +23,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 3. Transform cart items into Stripe line items
     const line_items = cartItems.map((item) => {
-      const unit_amount = Math.round(parseFloat(item.price) * 100); // Stripe requires cents
+      const unit_amount = Math.round(parseFloat(item.price) * 100);
 
       return {
         price_data: {
@@ -42,19 +39,22 @@ export default async function handler(req, res) {
       };
     });
 
-    // 4. Debug log to confirm the success URL
-    console.log("Success URL:", `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`);
+    // ✅ Fallback for origin
+    const origin = req.headers.origin || "https://the-resilient-voice.vercel.app";
+
+    // Debug logs
+    console.log("Origin header:", req.headers.origin);
+    console.log("Success URL:", `${origin}/success?session_id={CHECKOUT_SESSION_ID}`);
 
     // Create the Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items,
       mode: 'payment',
-      success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.origin}/cart?order_status=canceled`,
+      success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/cart?order_status=canceled`,
     });
 
-    // 5. Send the Session ID back to the client
     res.status(200).json({ id: session.id });
   } catch (err) {
     console.error('Stripe Checkout Error:', err);
