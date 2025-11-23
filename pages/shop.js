@@ -1,29 +1,47 @@
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export default function Shop() {
-  // You can later replace these with dynamic API calls if needed
-  const collections = [
-    {
-      slug: "resilience",
-      name: "Resilience Collection",
-      description: "Wear messages of strength and endurance",
-      thumbnail: "https://via.placeholder.com/400x200?text=Resilience", // Replace with Printful CDN URL
-    },
-    {
-      slug: "grace",
-      name: "Grace Collection",
-      description: "Elegance born from the storm",
-      thumbnail: "https://via.placeholder.com/400x200?text=Grace", // Replace with Printful CDN URL
-    },
-    {
-      slug: "warrior-spirit",
-      name: "Warrior Spirit Co.",
-      description: "Unbroken Series — for the fighter in you",
-      thumbnail: "https://via.placeholder.com/400x200?text=Warrior+Spirit", // Replace with Printful CDN URL
-    },
-  ];
+  const [collections, setCollections] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCollections() {
+      try {
+        const res = await fetch("/api/printful-products"); // ✅ Your API route
+        if (!res.ok) throw new Error("Failed to fetch products");
+        const data = await res.json();
+
+        // Transform products into collection cards
+        const grouped = data.map((product) => ({
+          slug: product.slug || product.id, // fallback if slug missing
+          name: product.name,
+          description: product.description || "Explore this collection",
+          thumbnail:
+            product.thumbnail ||
+            "https://via.placeholder.com/400?text=No+Image",
+        }));
+
+        setCollections(grouped);
+      } catch (err) {
+        console.error("Shop fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCollections();
+  }, []);
+
+  if (loading) {
+    return (
+      <p style={{ textAlign: "center", padding: "6rem" }}>
+        Loading Collections...
+      </p>
+    );
+  }
 
   return (
     <>
@@ -63,7 +81,7 @@ export default function Shop() {
           {collections.map((col) => (
             <Link
               key={col.slug}
-              href={`/${col.slug}`}
+              href={`/product/${col.slug}`}
               style={{ textDecoration: "none", color: "inherit" }}
             >
               <div
@@ -85,12 +103,8 @@ export default function Shop() {
                     overflow: "hidden",
                   }}
                 >
-                  {/* ✅ Use Printful thumbnail or fallback */}
                   <Image
-                    src={
-                      col.thumbnail ||
-                      "https://via.placeholder.com/400?text=No+Image"
-                    }
+                    src={col.thumbnail}
                     alt={col.name}
                     fill
                     style={{ objectFit: "cover" }}
