@@ -1,312 +1,83 @@
+// pages/cart.js
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { loadStripe } from "@stripe/stripe-js";
+import CheckoutButton from "../components/CheckoutButton";
 
-// Load Stripe once outside the component
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-
-console.log(
-  "Stripe public key prefix:",
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.slice(0, 8)
-);
-
-export default function CartPage() {
+export default function Cart() {
   const [cart, setCart] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  // Fetch cart from backend on mount
   useEffect(() => {
-    async function fetchCart() {
-      try {
-        const res = await fetch("/api/cart");
-        if (!res.ok) throw new Error("Failed to fetch cart");
-        const data = await res.json();
-        setCart(data.items || []);
-      } catch (err) {
-        console.error("Cart fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
+    // This reads the exact same key we saved in the product page
+    const saved = localStorage.getItem("resilientvoice_cart");
+    if (saved) {
+      setCart(JSON.parse(saved));
     }
-    fetchCart();
   }, []);
 
-  const updateQuantity = (id, variantId, delta) => {
-    setCart((current) => {
-      const updatedCart = current
-        .map((item) => {
-          if (item.id === id && item.variantId === variantId) {
-            const newQuantity = item.quantity + delta;
-            return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
-          }
-          return item;
-        })
-        .filter(Boolean);
-      return updatedCart;
-    });
-  };
-
-  const removeItem = (id, variantId) => {
-    setCart((current) =>
-      current.filter((item) => !(item.id === id && item.variantId === variantId))
-    );
-  };
-
-  // Stripe Checkout Handler
-  const checkout = async () => {
-    if (cart.length === 0) {
-      alert("Cart is empty! Cannot proceed.");
+  const updateQuantity = (index, newQty) => {
+    if (newQty === 0) {
+      removeItem(index);
       return;
     }
-
-    try {
-      const response = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cartItems: cart }),
-      });
-
-      const { id, error } = await response.json();
-
-      if (id) {
-        const stripe = await stripePromise;
-        const { error: stripeError } = await stripe.redirectToCheckout({
-          sessionId: id,
-        });
-        if (stripeError) {
-          console.error("Stripe redirect error:", stripeError);
-          alert(`Checkout failed: ${stripeError.message}`);
-        }
-      } else {
-        console.error("Checkout session error:", error);
-        alert(`Checkout failed: ${error || "Unknown error"}`);
-      }
-    } catch (err) {
-      console.error("Checkout error:", err);
-      alert("Checkout failed. Please try again.");
-    }
+    const updated = [...cart];
+    updated[index].quantity = newQty;
+    setCart(updated);
+    localStorage.setItem("resilientvoice_cart", JSON.stringify(updated));
   };
 
-  const subtotal = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const removeItem = (index) => {
+    const updated = cart.filter((_, i) => i !== index);
+    setCart(updated);
+    localStorage.setItem("resilientvoice_cart", JSON.stringify(updated));
+  };
 
-  if (loading)
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  if (cart.length === 0) {
     return (
-      <p style={{ textAlign: "center", padding: "6rem" }}>Loading Cart...</p>
+      <main style={{ padding: "6rem 1rem", textAlign: "center" }}>
+        <h1 style={{ fontSize: "3rem", marginBottom: "2rem" }}>Your Cart is Empty</h1>
+        <Link href="/shop" style={{ color: "#6b46c1", fontSize: "1.3rem" }}>
+          Continue Shopping
+        </Link>
+      </main>
     );
+  }
 
   return (
-    <div style={{ maxWidth: "1000px", margin: "4rem auto", padding: "0 2rem" }}>
-      <h1
-        style={{
-          fontSize: "3rem",
-          marginBottom: "2rem",
-          borderBottom: "2px solid #eee",
-          paddingBottom: "10px",
-        }}
-      >
-        Your Cart ({totalItems})
-      </h1>
+    <main style={{ maxWidth: "1200px", margin: "4rem auto", padding: "0 1rem" }}>
+      <h1 style={{ fontSize: "3.5rem", textAlign: "center", marginBottom: "3rem" }}>Your Cart</h1>
 
-      {cart.length === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "4rem",
-            border: "1px dashed #ccc",
-            borderRadius: "12px",
-          }}
-        >
-          <p style={{ fontSize: "1.4rem", color: "#555" }}>
-            Your cart is empty.
-          </p>
-          <Link
-            href="/"
-            style={{
-              fontSize: "1.1rem",
-              color: "#9f6baa",
-              textDecoration: "underline",
-              marginTop: "1rem",
-              display: "inline-block",
-            }}
-          >
-            Start Shopping
-          </Link>
-        </div>
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "3fr 1fr",
-            gap: "3rem",
-          }}
-        >
-          {/* Cart Items */}
-          <div>
-            {cart.map((item) => (
-              <div
-                key={`${item.id}-${item.variantId}`}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  borderBottom: "1px solid #eee",
-                  padding: "1.5rem 0",
-                }}
-              >
-                <div
-                  style={{
-                    position: "relative",
-                    width: "80px",
-                    height: "80px",
-                    minWidth: "80px",
-                    borderRadius: "8px",
-                    overflow: "hidden",
-                    marginRight: "1.5rem",
-                  }}
-                >
-                  {/* ✅ FIXED IMAGE: use Printful thumbnail */}
-                  <Image
-                    src={
-                      item.thumbnail ||
-                      "https://via.placeholder.com/400?text=No+Image"
-                    }
-                    alt={item.name}
-                    fill
-                    style={{ objectFit: "cover" }}
-                    unoptimized={true}
-                  />
-                </div>
-
-                <div style={{ flexGrow: 1 }}>
-                  <h3 style={{ fontSize: "1.1rem", marginBottom: "0.2rem" }}>
-                    {item.name}
-                  </h3>
-                  <p style={{ fontWeight: "bold", color: "#9f6baa" }}>
-                    ${item.price.toFixed(2)}
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "1rem",
-                    marginLeft: "2rem",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      border: "1px solid #ccc",
-                      borderRadius: "4px",
-                    }}
-                  >
-                    <button
-                      onClick={() =>
-                        updateQuantity(item.id, item.variantId, -1)
-                      }
-                      style={{
-                        padding: "0.5rem",
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                      }}
-                    >
-                      -
-                    </button>
-                    <span
-                      style={{
-                        padding: "0.5rem 0.75rem",
-                        borderLeft: "1px solid #ccc",
-                        borderRight: "1px solid #ccc",
-                      }}
-                    >
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() =>
-                        updateQuantity(item.id, item.variantId, 1)
-                      }
-                      style={{
-                        padding: "0.5rem",
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                      }}
-                    >
-                      +
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => removeItem(item.id, item.variantId)}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#ff4d4d",
-                      cursor: "pointer",
-                      fontSize: "1rem",
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Summary Sidebar */}
-          <div
-            style={{
-              background: "#f9f9f9",
-              padding: "2rem",
-              borderRadius: "12px",
-              height: "fit-content",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "1.8rem",
-                borderBottom: "1px solid #ddd",
-                paddingBottom: "1rem",
-                marginBottom: "1.5rem",
-              }}
-            >
-              Order Summary
-            </h2>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: "1.1rem",
-                marginBottom: "0.5rem",
-              }}
-            >
-              <span>Subtotal:</span>
-              <span>${subtotal.toFixed(2)}</span>
+      <div style={{ display: "grid", gap: "2rem" }}>
+        {cart.map((item, i) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1fr", gap: "2rem", alignItems: "center", padding: "1.5rem", background: "#f9f5fb", borderRadius: "16px" }}>
+            <div style={{ position: "relative", height: "180px" }}>
+              <Image src={item.image || "/fallback.png"} alt={item.name} fill style={{ objectFit: "contain" }} />
             </div>
-            <button
-              onClick={checkout}
-              style={{
-                marginTop: "1.5rem",
-                width: "100%",
-                padding: "1rem",
-                background: "#9f6baa",
-                color: "#fff",
-                border: "none",
-                borderRadius: "8px",
-                fontSize: "1.2rem",
-                cursor: "pointer",
-              }}
-            >
-              Proceed to Checkout
-            </button>
+
+            <div>
+              <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.4rem" }}>{item.name}</h3>
+              <p style={{ margin: 0, color: "#666" }}>Size: {item.size}</p>
+            </div>
+
+            <div style={{ textAlign: "right" }}>
+              <div style={{ marginBottom: "1rem" }}>
+                <button onClick={() => updateQuantity(i, item.quantity - 1)} style={{ padding: "0.5rem 1rem" }}>-</button>
+                <span style={{ margin: "0 1rem", fontSize: "1.3rem" }}>{item.quantity}</span>
+                <button onClick={() => updateQuantity(i, item.quantity + 1)} style={{ padding: "0.5rem 1rem" }}>+</button>
+              </div>
+              <p style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#6b46c1" }}>
+                ${(item.price * item.quantity).toFixed(2)}
+              </p>
+              <button onClick={() => removeItem(i)} style={{ color: "#c33", fontSize: "0.9rem" }}>Remove</button>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
+        ))}
+      </div>
+
+      <div style={{ textAlign: "right", marginTop: "3rem", padding: "2rem", background: "#f3e8ff", borderRadius: "16px" }}>
+        <p style={{ fontSize: "2rem", margin: "0 0 1.5rem" }}>
+          Total: <strong style={{ color: "#6b46c1" }}>${total.toFixed(2)}</strong>
+        </p>
+        <CheckoutButton cartItems={cart}
