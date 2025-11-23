@@ -1,4 +1,3 @@
-// This file runs on the server (safe place for your secret key)
 import Stripe from 'stripe';
 
 // Initialize Stripe with your secret key
@@ -37,18 +36,21 @@ export default async function handler(req, res) {
             name: item.name,
             images: [item.image].filter(Boolean),
           },
-          unit_amount: unit_amount,
+          unit_amount,
         },
         quantity: item.quantity,
       };
     });
 
-    // 4. Create the Checkout Session
+    // 4. Debug log to confirm the success URL
+    console.log("Success URL:", `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`);
+
+    // Create the Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items,
       mode: 'payment',
-      success_url: `${req.headers.origin}/?order_status=success&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.origin}/cart?order_status=canceled`,
     });
 
