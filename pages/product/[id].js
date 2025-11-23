@@ -55,4 +55,59 @@ export default function ProductPage() {
 
       {/* Details */}
       <div style={{padding:"2rem 0"}}>
-        <h1 style={{fontSize:"3rem", margin:"
+        <h1 style={{fontSize:"3rem", margin:"0 0 1rem", color:"#333", lineHeight:"1.2"}}>
+          {product.name}
+        </h1>
+
+        <p style={{fontSize:"2.2rem", fontWeight:"bold", color:"#6b46c1", margin:"1.5rem 0"}}>
+          ${price}
+        </p>
+
+        {/* Size Selector */}
+        <div style={{margin:"3rem 0"}}>
+          <p style={{fontWeight:"600", marginBottom:"1rem", fontSize:"1.2rem"}}>Choose a size:</p>
+          <div style={{display:"flex", gap:"1rem", flexWrap:"wrap"}}>
+            {product.variants.map(v => (
+              <button
+                key={v.id}
+                disabled={!v.inStock}
+                onClick={() => setSelectedVariant(v)}
+                style={{
+                  padding:"0.9rem 1.6rem",
+                  border: selectedVariant?.id === v.id ? "3px solid #6b46c1" : "2px solid #ccc",
+                  background: selectedVariant?.id === v.id ? "#f3e8ff" : "#fff",
+                  borderRadius:"12px",
+                  fontWeight:"600",
+                  fontSize:"1.1rem",
+                  cursor: v.inStock ? "pointer" : "not-allowed",
+                  opacity: v.inStock ? 1 : 0.4,
+                }}
+              >
+                {v.size}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Add to Cart */}
+        <button style={{
+          marginTop:"2rem",
+          padding:"1.2rem 4rem",
+          background:"#6b46c1",
+          color:"white",
+          border:"none",
+          borderRadius:"14px",
+          fontSize:"1.4rem",
+          fontWeight:"bold",
+          cursor:"pointer",
+        }}>
+          Add to Cart
+        </button>
+
+        <p style={{marginTop:"3rem", color:"#777", fontStyle:"italic"}}>
+          {product.description || "No description available."}
+        </p>
+      </div>
+    </main>
+  );
+}
