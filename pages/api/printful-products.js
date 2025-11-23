@@ -16,9 +16,9 @@ export default async function handler(req, res) {
       name: p.name,
       description: p.description,
       thumbnail: p.thumbnail_url,
-      // ✅ Use first variant’s retail price (most common default)
+      // ✅ Use first variant’s retail price
       price: p.variants?.[0]?.retail_price || null,
-      variants: p.variants, // keep full variant list for product/[id].js
+      variants: p.variants, // keep full variant list for product detail
     }));
 
     res.status(200).json(enrichedProducts);
