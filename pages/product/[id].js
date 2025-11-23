@@ -17,8 +17,7 @@ export default function ProductDetail() {
         const res = await fetch(`/api/printful-product/${id}`);
         const data = await res.json();
         setProduct(data);
-        // ✅ Default to first variant
-        setSelectedVariant(data.variants?.[0] || null);
+        setSelectedVariant(data.variants?.[0] || null); // default to first size
       } catch (err) {
         console.error("Product fetch error:", err);
       } finally {
@@ -31,7 +30,7 @@ export default function ProductDetail() {
 
   const addToCart = async () => {
     if (!selectedVariant) {
-      alert("Please select a variant.");
+      alert("Please select a size.");
       return;
     }
 
@@ -79,9 +78,9 @@ export default function ProductDetail() {
             {product.description || "No description available."}
           </p>
 
-          {/* ✅ Variant selector */}
+          {/* ✅ Size selector */}
           <label style={{ display: "block", marginBottom: "1rem" }}>
-            Choose a variant:
+            Choose a size:
             <select
               value={selectedVariant?.id || ""}
               onChange={(e) =>
