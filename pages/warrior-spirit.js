@@ -7,10 +7,7 @@ export default function WarriorSpirit() {
         Warrior Spirit Co.
       </h1>
       <p style={{ fontSize: "1.5rem", color: "#555", maxWidth: "900px", margin: "0 auto 4rem", lineHeight: "1.8" }}>
-        For the fighters who never tap out.  
-        The ones who stand when their legs shake, speak when their voice trembles, 
-        and love even when it hurts.
-        <br /><br />
+        For the fighters who never tap out.<br /><br />
         This is armor for your soul — bold, unapologetic, and forged in fire.
       </p>
       <ProductGrid category="warrior" />
