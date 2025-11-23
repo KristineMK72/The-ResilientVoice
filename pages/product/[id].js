@@ -4,7 +4,7 @@ import Image from "next/image";
 
 export default function ProductDetail() {
   const router = useRouter();
-  const { id } = router.query; // dynamic slug/id from URL
+  const { id } = router.query;
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,6 +26,30 @@ export default function ProductDetail() {
 
     fetchProduct();
   }, [id]);
+
+  const addToCart = async () => {
+    try {
+      const res = await fetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: product.id,
+          variantId: product.variant_id, // ✅ Printful variant ID
+          name: product.name,
+          price: product.price,
+          thumbnail: product.thumbnail,
+          quantity: 1,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to add to cart");
+      alert("Added to cart!");
+      router.push("/cart"); // redirect to cart page
+    } catch (err) {
+      console.error("Add to cart error:", err);
+      alert("Could not add to cart. Please try again.");
+    }
+  };
 
   if (loading) {
     return <p style={{ textAlign: "center", padding: "4rem" }}>Loading product...</p>;
@@ -56,18 +80,7 @@ export default function ProductDetail() {
             ${product.price?.toFixed(2)}
           </p>
           <button
-            onClick={() => {
-              const cart = JSON.parse(localStorage.getItem("cart")) || [];
-              cart.push({
-                id: product.id,
-                name: product.name,
-                price: product.price,
-                thumbnail: product.thumbnail,
-                quantity: 1,
-              });
-              localStorage.setItem("cart", JSON.stringify(cart));
-              alert("Added to cart!");
-            }}
+            onClick={addToCart}
             style={{
               marginTop: "1.5rem",
               padding: "1rem 2rem",
