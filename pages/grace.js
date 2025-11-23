@@ -7,11 +7,8 @@ export default function Grace() {
         Grace Collection
       </h1>
       <p style={{ fontSize: "1.5rem", color: "#555", maxWidth: "900px", margin: "0 auto 4rem", lineHeight: "1.8" }}>
-        Soft lines. Gentle truths. Unshakable faith.  
-        These pieces were born in the aftermath of storms — 
-        where brokenness met mercy, and beauty rose from ashes.
-        <br /><br />
-        Wear grace. Live grace. Be grace.
+        Soft lines. Gentle truths. Unshakable faith.<br /><br />
+        These pieces were born in the aftermath of storms — where brokenness met mercy, and beauty rose from ashes.
       </p>
       <ProductGrid category="grace" />
     </main>
