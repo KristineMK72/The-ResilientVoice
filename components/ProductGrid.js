@@ -1,135 +1,97 @@
-import { useEffect, useState } from "react";
-import Image from "next/image";
+// components/ProductGrid.js
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
-export default function ProductGrid({ category = "" }) {
+export default function ProductGrid({ category }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch products from our API
   useEffect(() => {
-    fetch("/api/printful-products")
-      .then((r) => r.json())
-      .then((data) => {
-        // --- START DEBUG LOGS ---
-        console.log("DEBUG: Category Filter Is:", category);
-        console.log("DEBUG: Total Products Found:", data.length);
-        
-        // Log the names of all fetched products to help debug the filter
-        const allProductNames = data.map(p => p.name);
-        console.log("DEBUG: ALL Product Names (UNFILTERED):", allProductNames);
-        // --- END DEBUG LOGS ---
+    async function fetchProducts() {
+      try {
+        const res = await fetch("/api/printful-products");
+        const data = await res.json();
 
-        // Safety check: ensure data is an array
-        const arr = Array.isArray(data) ? data : [];
-        
-        // Filter by category if one is provided
+        // THIS IS THE BULLETPROOF PART
+        let list = [];
+        if (data.result && Array.isArray(data.result)) {
+          list = data.result;
+        } else if (Array.isArray(data)) {
+          list = data;
+        }
+
+        // Filter by category if needed (optional – you can remove if you want all)
         const filtered = category
-          ? arr.filter((p) => {
-              // Safety check: ensure name exists before lowercase
-              const name = p.name ? p.name.toLowerCase() : "";
-              const cat = category.toLowerCase();
-              return name.includes(cat);
-            })
-          : arr;
+          ? list.filter((p) =>
+              p.name.toLowerCase().includes(category.toLowerCase())
+            )
+          : list;
 
         setProducts(filtered);
+      } catch (err) {
+        console.error("ProductGrid fetch error:", err);
+        setProducts([]);
+      } finally {
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to load products", err);
-        setLoading(false);
-      });
+      }
+    }
+
+    fetchProducts();
   }, [category]);
 
   if (loading) {
-    return (
-      <p style={{ textAlign: "center", padding: "6rem", fontSize: "1.4rem" }}>
-        Loading your pieces...
-      </p>
-    );
+    return <p style={{ textAlign: "center", padding: "4rem" }}>Loading beautiful things…</p>;
   }
 
   if (products.length === 0) {
-    return (
-      <p style={{ textAlign: "center", padding: "4rem", fontSize: "1.2rem", color: "#666" }}>
-        No products found for "{category}".
-      </p>
-    );
+    return <p style={{ textAlign: "center", padding: "4rem" }}>No products found.</p>;
   }
 
   return (
-    <div style={{
-      display: "grid",
-      gap: "2.5rem",
-      gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-      padding: "2rem"
-    }}>
-      {products.map((product) => {
-        // 🔍 SMART IMAGE FINDER (Fixes the broken image icons)
-        const imageUrl = 
-          product.thumbnail_url || 
-          product.image || 
-          (product.files && product.files.find(f => f.type === "preview")?.url) ||
-          (product.files && product.files[0]?.url) ||
-          "https://via.placeholder.com/400x400?text=No+Image";
-
-        return (
-          <div key={product.id} style={{
-            border: "1px solid #eee",
-            borderRadius: "16px",
-            overflow: "hidden",
-            background: "white",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-            transition: "transform 0.2s ease"
-          }}>
-            <Link href={`/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div style={{ cursor: "pointer" }}>
-                
-                {/* Image Container */}
-                <div style={{ position: "relative", height: "360px", width: "100%" }}>
-                  <Image
-                    src={imageUrl}
-                    alt={product.name}
-                    fill
-                    style={{ objectFit: "cover" }}
-                    unoptimized={true}
-                  />
-                </div>
-
-                <div style={{ padding: "1.8rem" }}>
-                  <h3 style={{ fontSize: "1.35rem", marginBottom: "0.8rem", minHeight: "60px" }}>
-                    {product.name}
-                  </h3>
-
-                  <p style={{
-                    fontSize: "1.2rem",
-                    fontWeight: "bold",
-                    color: "#9f6baa",
-                    margin: "0.6rem 0"
-                  }}>
-                    Check Price
-                  </p>
-
-                  <div style={{
-                    width: "100%",
-                    padding: "1rem",
-                    background: "#9f6baa",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "12px",
-                    fontSize: "1.1rem",
-                    textAlign: "center",
-                    marginTop: "10px"
-                  }}>
-                    View Details
-                  </div>
-                </div>
-              </div>
-            </Link>
+    <div
+      style={{
+        display: "grid",
+        gap: "2rem",
+        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+        padding: "2rem 0",
+      }}
+    >
+      {products.map((product) => (
+        <Link
+          key={product.id}
+          href={`/product/${product.id}`}
+          style={{ textDecoration: "none", color: "inherit" }}
+        >
+          <div
+            style={{
+              borderRadius: "16px",
+              overflow: "hidden",
+              boxShadow: "0 8px 25px rgba(0,0,0,0.1)",
+              background: "#fff",
+              transition: "transform 0.3s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-8px)")}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
+          >
+            <div style={{ position: "relative", height: "320px", background: "#f0e6f2" }}>
+              <Image
+                src={product.image || "/fallback.png"}
+                alt={product.name}
+                fill
+                style={{ objectFit: "contain" }}
+                sizes="(max-width: 768px) 100vw, 33vw"
+              />
+            </div>
+            <div style={{ padding: "1.5rem", textAlign: "center" }}>
+              <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.3rem" }}>{product.name}</h3>
+              <p style={{ margin: 0, fontWeight: "bold", color: "#333" }}>
+                ${product.price.toFixed(2)}
+              </p>
+            </div>
           </div>
-        );
-      })}
+        </Link>
+      ))}
     </div>
   );
 }
