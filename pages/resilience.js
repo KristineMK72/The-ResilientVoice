@@ -7,9 +7,7 @@ export default function Resilience() {
         Resilience Collection
       </h1>
       <p style={{ fontSize: "1.5rem", color: "#555", maxWidth: "900px", margin: "0 auto 4rem", lineHeight: "1.8" }}>
-        For the ones who’ve been knocked down and still choose to rise. 
-        Every design is a declaration: “I bent, I broke open, and I became unbreakable.”
-        <br /><br />
+        For the ones who’ve been knocked down and still choose to rise.<br /><br />
         This is for you — the survivor, the thriver, the everyday warrior wearing your story with pride.
       </p>
       <ProductGrid category="resilience" />
