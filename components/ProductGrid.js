@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export default function ProductGrid({ category }) {
   const [products, setProducts] = useState([]);
@@ -14,24 +15,10 @@ export default function ProductGrid({ category }) {
   }, [category]);
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gap: "2rem",
-        gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-      }}
-    >
+    <div style={{ display: "grid", gap: "2rem", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}>
       {products.map((product) => (
         <Link key={product.id} href={`/product/${product.id}`} style={{ textDecoration: "none" }}>
-          <div
-            style={{
-              border: "1px solid #ddd",
-              borderRadius: "12px",
-              padding: "1rem",
-              textAlign: "center",
-              background: "#fafafa",
-            }}
-          >
+          <div style={{ border: "1px solid #ddd", borderRadius: "12px", padding: "1rem", textAlign: "center" }}>
             <div style={{ position: "relative", width: "100%", height: "200px", marginBottom: "1rem" }}>
               <Image
                 src={product.thumbnail || "/fallback.png"}
@@ -41,8 +28,10 @@ export default function ProductGrid({ category }) {
                 unoptimized={true}
               />
             </div>
-            <h3 style={{ fontSize: "1.2rem", marginBottom: "0.5rem" }}>{product.name}</h3>
-            <p style={{ fontWeight: "bold", color: "#9f6baa" }}>${product.price?.toFixed(2)}</p>
+            <h3>{product.name}</h3>
+            <p style={{ fontWeight: "bold", color: "#9f6baa" }}>
+              ${product.price || "N/A"}
+            </p>
           </div>
         </Link>
       ))}
