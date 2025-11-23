@@ -17,7 +17,7 @@ export default function Blog() {
 
         <h2 style={{ fontSize: '1.8rem', marginTop: '3rem' }}>Giving Back with Purpose</h2>
         <p>
-          At Warrior Spirit Co., we believe in resilience — not just in words, but in action. That’s why we’re committed to donating
+          At Resilient Voice, we believe in resilience — not just in words, but in action. That’s why we’re committed to donating
           <strong> 10% of every sale </strong> to organizations that uplift lives and restore hope. These nonprofits are doing vital work in our community and beyond:
         </p>
 
