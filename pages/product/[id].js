@@ -1,4 +1,4 @@
-// pages/product/[id].js   ← OVERWRITE COMPLETELY
+// pages/product/[id].js  ← REPLACE ENTIRE FILE
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
@@ -12,65 +12,37 @@ export default function ProductPage() {
 
   useEffect(() => {
     if (!id) return;
-
     async function load() {
-      try {
-        const res = await fetch(`/api/printful-product/[id]?id=${id}`);
-        const data = await res.json();
-
-        setProduct(data);
-
-        // Auto-select first available variant
-        if (data?.variants?.length > 0) {
-          setSelectedVariant(data.variants[0]);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+      const res = await fetch(`/api/printful-product/[id]?id=${id}`);
+      const data = await res.json();
+      setProduct(data);
+      if (data?.variants?.length > 0) setSelectedVariant(data.variants[0]);
+      setLoading(false);
     }
     load();
   }, [id]);
 
   if (loading) return <p style={{textAlign:"center", padding:"8rem"}}>Loading…</p>;
-  if (!product) return <p style={{textAlign:"center", padding:"8rem"}}>Product not found.</p>;
-
-  const price = selectedVariant ? Number(selectedVariant.price).toFixed(2) : "0.00";
+  if (!product) return <p style={{textAlign:"center", padding:"8rem"}}>Not found</p>;
 
   return (
-    <main style={{maxWidth:"1200px", margin:"4rem auto", padding:"0 1rem", display:"grid", gridTemplateColumns:"1fr 1fr", gap:"4rem", alignItems:"start"}}>
-      
-      {/* Image */}
-      <div style={{position:"relative", height:"640px", borderRadius:"20px", overflow:"hidden", background:"#f8f5f9"}}>
-        <Image
-          src={product.image || "/fallback.png"}
-          alt={product.name}
-          fill
-          sizes="(max-width: 768px) 100vw, 50vw"
-          style={{objectFit:"contain", padding:"40px"}}
-          priority
-        />
+    <main style={{maxWidth:"1200px", margin:"4rem auto", padding:"0 1rem", display:"grid", gridTemplateColumns:"1fr 1fr", gap:"4rem"}}>
+      <div style={{position:"relative", height:"640px", background:"#f8f5f9", borderRadius:"20px", overflow:"hidden"}}>
+        <Image src={product.image || "/fallback.png"} alt={product.name} fill style={{objectFit:"contain", padding:"50px"}} />
       </div>
 
-      {/* Details */}
       <div style={{padding:"2rem 0"}}>
-        <h1 style={{fontSize:"3rem", margin:"0 0 1rem", color:"#333", lineHeight:"1.2"}}>
-          {product.name}
-        </h1>
-
-        <p style={{fontSize:"2.2rem", fontWeight:"bold", color:"#6b46c1", margin:"1.5rem 0"}}>
-          ${price}
+        <h1 style={{fontSize:"3rem", margin:"0 0 1rem"}}>{product.name}</h1>
+        <p style={{fontSize:"2.2rem", fontWeight:"bold", color:"#6b46c1", margin:"2rem 0"}}>
+          ${selectedVariant ? Number(selectedVariant.price).toFixed(2) : "0.00"}
         </p>
 
-        {/* Size Selector */}
         <div style={{margin:"3rem 0"}}>
-          <p style={{fontWeight:"600", marginBottom:"1rem", fontSize:"1.2rem"}}>Choose a size:</p>
+          <p style={{fontWeight:"600", marginBottom:"1rem"}}>Size:</p>
           <div style={{display:"flex", gap:"1rem", flexWrap:"wrap"}}>
             {product.variants.map(v => (
               <button
                 key={v.id}
-                disabled={!v.inStock}
                 onClick={() => setSelectedVariant(v)}
                 style={{
                   padding:"0.9rem 1.6rem",
@@ -78,9 +50,7 @@ export default function ProductPage() {
                   background: selectedVariant?.id === v.id ? "#f3e8ff" : "#fff",
                   borderRadius:"12px",
                   fontWeight:"600",
-                  fontSize:"1.1rem",
-                  cursor: v.inStock ? "pointer" : "not-allowed",
-                  opacity: v.inStock ? 1 : 0.4,
+                  cursor:"pointer",
                 }}
               >
                 {v.size}
@@ -89,24 +59,39 @@ export default function ProductPage() {
           </div>
         </div>
 
-        {/* Add to Cart */}
-        <button style={{
-          marginTop:"2rem",
-          padding:"1.2rem 4rem",
-          background:"#6b46c1",
-          color:"white",
-          border:"none",
-          borderRadius:"14px",
-          fontSize:"1.4rem",
-          fontWeight:"bold",
-          cursor:"pointer",
-        }}>
+        <button
+          onClick={() => {
+            if (!selectedVariant) return alert("Please select a size");
+            const cart = JSON.parse(localStorage.getItem("resilientvoice_cart") || "[]");
+            const existing = cart.find(i => i.variantId === selectedVariant.id);
+            if (existing) existing.quantity += 1;
+            else cart.push({
+              productId: product.id,
+              variantId: selectedVariant.id,
+              name: product.name,
+              size: selectedVariant.size,
+              price: selectedVariant.price,
+              image: product.image,
+              quantity: 1
+            });
+            localStorage.setItem("resilientvoice_cart", JSON.stringify(cart));
+            alert("Added to cart!");
+          }}
+          style={{
+            marginTop:"3rem",
+            padding:"1.4rem 5rem",
+            background:"#6b46c1",
+            color:"white",
+            border:"none",
+            borderRadius:"16px",
+            fontSize:"1.5rem",
+            fontWeight:"bold",
+            cursor:"pointer",
+            boxShadow:"0 10px 30px rgba(107,70,193,0.3)"
+          }}
+        >
           Add to Cart
         </button>
-
-        <p style={{marginTop:"3rem", color:"#777", fontStyle:"italic"}}>
-          {product.description || "No description available."}
-        </p>
       </div>
     </main>
   );
