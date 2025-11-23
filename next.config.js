@@ -1,3 +1,4 @@
+// next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -11,22 +12,20 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "files.cdn.printful.com",
-        port: "",
         pathname: "/**",
       },
       {
         protocol: "https",
         hostname: "img.printful.com",
-        port: "",
         pathname: "/**",
       },
       {
         protocol: "https",
         hostname: "printful-media.s3.amazonaws.com",
-        port: "",
         pathname: "/**",
-      }
+      },
     ],
+    unoptimized: true,   // ← THIS IS THE KEY LINE
   },
 };
 
