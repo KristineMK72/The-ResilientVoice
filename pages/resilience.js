@@ -1,20 +1,16 @@
-import Head from "next/head";
+// pages/resilience.js  
 import ProductGrid from "../components/ProductGrid";
 
-export default function Resilience() {
+export default function Accessories() {
   return (
-    <>
-      <Head>
-        <title>Resilience Collection | The Resilient Voice</title>
-      </Head>
-      <main style={{ padding: "6rem 1rem", maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
-        <h1 style={{ fontSize: "3.8rem", marginBottom: "1.5rem" }}>Resilience Collection</h1>
-        <p style={{ fontSize: "1.5rem", lineHeight: "1.9", color: "#444", maxWidth: "800px", margin: "0 auto 3rem" }}>
-          This is for the ones who got back up. Who turned scars into stories. Who learned that falling apart is sometimes the first step to becoming unbreakable. 
-          Every piece here is a reminder: <strong>you survived the storm — now wear the proof</strong>.
+    <main style={{ padding: "4rem 1rem", maxWidth: "1400px", margin: "0 auto" }}>
+      <div style={{ textAlign: "center", marginBottom: "3rem" }}>
+        <h1 style={{ fontSize: "3rem", color: "#333" }}>Resilience Collection</h1>
+        <p style={{ fontSize: "1.3rem", color: "#666" }}>
+         This is for the ones who got back up. Who turned scars into stories. Who learned that falling apart is sometimes the first step to becoming unbreakable. Every piece here is a reminder: you survived the storm — now wear the proof..
         </p>
-        <ProductGrid category="resilience" />
-      </main>
-    </>
+      </div>
+      <ProductGrid category="resilience" />
+    </main>
   );
 }
