@@ -60,4 +60,30 @@ export default function ProductGrid({ category = "" }) {
         const img = v?.files?.find(f => f.type === "preview")?.url || v?.files?.[0]?.url || "https://files.cdn.printful.com/products/71/71_1723145678.jpg";
 
         return (
-          <div key={product.id} style={{border:"1px solid #eee", borderRadius:"20px
+          <div key={product.id} style={{border:"1px solid #eee", borderRadius:"20px", overflow:"hidden", background:"white", boxShadow:"0 10px 30px rgba(0,0,0,0.08)"}}>
+            <Link href={`/product/${product.id}`}>
+              <div style={{height:"380px", background:"#f8f5f9", position:"relative"}}>
+                <Image src={img} alt={product.name} fill style={{objectFit:"contain", padding:"40px"}} />
+              </div>
+            </Link>
+            <div style={{padding:"2rem", textAlign:"center"}}>
+              <h3 style={{margin:"0 0 1rem", fontSize:"1.4rem"}}>{product.name}</h3>
+              <p style={{margin:"0.5rem 0", fontSize:"2rem", fontWeight:"bold", color:"#9f6baa"}}>${price}</p>
+              <button onClick={() => addToCart(product)}
+                style={{width:"100%", padding:"1rem", background:"#9f6baa", color:"white", border:"none", borderRadius:"12px", fontSize:"1.1rem", cursor:"pointer", marginTop:"0.5rem"}}>
+                Add to Cart
+              </button>
+              {itemsInCart > 0 && (
+                <div style={{marginTop:"1rem"}}>
+                  <Link href="/cart" style={{color:"#9f6baa", textDecoration:"underline"}}>
+                    View Cart ({itemsInCart} {itemsInCart === 1 ? "item" : "items"})
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
