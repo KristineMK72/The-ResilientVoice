@@ -1,3 +1,10 @@
+export const dynamic = 'force-dynamic';   // ← Add this line
+// OR in older Next.js syntax:
+// export const revalidate = 0;
+
+export default function Shop() {
+  // your existing code stays 100% unchanged
+}
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
