@@ -1,197 +1,88 @@
-// pages/index.js ← FINAL VERSION – points to new categories
+// pages/index.js  ← FINAL EPIC HOME PAGE WITH YOUR IMG_8198.jpeg
+"use client";
+
 import Head from "next/head";
-import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import Link from "next/link";
 
 export default function Home() {
-  const [heroImages, setHeroImages] = useState({
-    savedByGrace: null,
-    success: null,
-    patriot: null,
-    social: null,
-  });
-
-  useEffect(() => {
-    async function loadCollectionPreviews() {
-      try {
-        const res = await fetch("/api/printful-products");
-        if (!res.ok) return;
-        const data = await res.json();
-        const products = Array.isArray(data.result) ? data.result : [];
-
-        const previews = {
-          savedByGrace: null,
-          success: null,
-          patriot: null,
-          social: null,
-        };
-
-        for (const p of products) {
-          const name = p.name.toLowerCase();
-
-          if (!previews.savedByGrace && name.includes("grace")) {
-            previews.savedByGrace = p.image;
-          }
-          if (!previews.success && name.includes("success")) {
-            previews.success = p.image;
-          }
-          if (!previews.patriot && name.includes("patriot")) {
-            previews.patriot = p.image;
-          }
-          if (!previews.social && name.includes("social")) {
-            previews.social = p.image;
-          }
-
-          if (Object.values(previews).every(img => img !== null)) break;
-        }
-
-        setHeroImages(previews);
-      } catch (err) {
-        console.log("Printful preview images skipped (normal on first load)");
-      }
-    }
-
-    loadCollectionPreviews();
-  }, []);
-
-  const collections = [
-    {
-      href: "/saved-by-grace",
-      title: "Saved By Grace",
-      desc: "Explore all collections in one place",
-      img: heroImages.savedByGrace || "/fallback.png",
-    },
-    {
-      href: "/success",
-      title: "Success Stories",
-      desc: "Celebrate victories and milestones",
-      img: heroImages.success || "/fallback.png",
-    },
-    {
-      href: "/patriot",
-      title: "Patriot Collection",
-      desc: "Strength and pride woven together",
-      img: heroImages.patriot || "/fallback.png",
-    },
-    {
-      href: "/social",
-      title: "Social Impact",
-      desc: "Pieces that spark conversation and change",
-      img: heroImages.social || "/fallback.png",
-    },
-  ];
-
   return (
     <>
       <Head>
-        <title>The Resilient Voice | Wear Your Story</title>
-        <meta
-          name="description"
-          content="Apparel born from storms. Faith-fueled messages of resilience, grace, and unbreakable spirit. 10% of proceeds support mental health and suicide prevention."
-        />
+        <title>The Resilient Voice | Patriotic Truth Wear</title>
+        <meta name="description" content="American-made apparel for those who refuse to be silenced." />
       </Head>
 
-      <main style={{ padding: "4rem 1rem", maxWidth: "1400px", margin: "0 auto" }}>
-        {/* Hero */}
-        <div style={{ textAlign: "center", marginBottom: "7rem" }}>
-          <h1 style={{ fontSize: "5rem", marginBottom: "1rem", color: "#333", fontWeight: "300" }}>
-            The Resilient Voice
-          </h1>
-          <p style={{ fontSize: "1.9rem", color: "#555", maxWidth: "900px", margin: "0 auto" }}>
-            Born from the storm. Every piece carries a message of survival, grace, and unbreakable spirit.
-          </p>
+      <div style={{
+        minHeight: "100vh",
+        background: "radial-gradient(circle at center, #0f172a 0%, #000 100%)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        padding: "2rem",
+        color: "white",
+        position: "relative",
+        overflow: "hidden"
+      }}>
+        {/* Subtle animated glow */}
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          background: "conic-gradient(from 180deg at 50% 50%, #ff0000 0deg, #0000ff 120deg, #ff0000 360deg)",
+          opacity: 0.08,
+          animation: "spin 30s linear infinite"
+        }} />
+        <style jsx>{`
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        `}</style>
+
+        {/* YOUR LOGO — USING YOUR EXACT FILENAME */}
+        <div style={{ marginBottom: "2rem", position: "relative", zIndex: 10 }}>
+          <Image
+            src="/IMG_8198.jpeg"   // ← THIS IS YOUR PHOTO
+            alt="The Resilient Voice"
+            width={700}
+            height={700}
+            priority
+            style={{
+              maxWidth: "95vw",
+              height: "auto",
+              filter: "drop-shadow(0 0 50px rgba(255,255,255,0.7))"
+            }}
+          />
         </div>
 
-        {/* Collection Cards */}
-        <div
-          style={{
-            display: "grid",
-            gap: "3.5rem",
-            gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
-            marginBottom: "10rem",
-          }}
-        >
-          {collections.map((c) => (
-            <Link key={c.href} href={c.href} style={{ textDecoration: "none" }}>
-              <div
-                style={{
-                  background: "#fff",
-                  borderRadius: "28px",
-                  overflow: "hidden",
-                  boxShadow: "0 15px 45px rgba(159,107,170,0.2)",
-                  transition: "all 0.4s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-20px)";
-                  e.currentTarget.style.boxShadow = "0 30px 70px rgba(159,107,170,0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 15px 45px rgba(159,107,170,0.2)";
-                }}
-              >
-                <div style={{ position: "relative", height: "420px", background: "#f9f5fa" }}>
-                  <Image
-                    src={c.img}
-                    alt={c.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    style={{ objectFit: "contain", padding: "50px" }}
-                    priority
-                  />
-                </div>
-                <div style={{ padding: "2.8rem 2rem", textAlign: "center" }}>
-                  <h2 style={{ fontSize: "2.3rem", margin: "0 0 1rem", color: "#333", fontWeight: "500" }}>
-                    {c.title}
-                  </h2>
-                  <p style={{ color: "#666", fontSize: "1.3rem", lineHeight: "1.7" }}>{c.desc}</p>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <h1 style={{
+          fontSize: "4.8rem",
+          fontWeight: "900",
+          background: "linear-gradient(90deg, #ff4444, #ffffff, #4444ff)",
+          WebkitBackgroundClip: "text",
+          backgroundClip: "text",
+          color: "transparent",
+          margin: "1rem 0 2rem",
+          letterSpacing: "0.08em"
+        }}>
+          RESILIENT VOICE
+        </h1>
 
-        {/* About Section (unchanged) */}
-        <section style={{ maxWidth: "900px", margin: "0 auto 6rem", textAlign: "center" }}>
-          <h2 style={{ fontSize: "3.2rem", marginBottom: "2.5rem", color: "#333" }}>
-            About The Resilient Voice
-          </h2>
-          <div style={{ fontSize: "1.35rem", lineHeight: "1.9", color: "#444", textAlign: "left" }}>
-            <p style={{ marginBottom: "1.8rem" }}>
-              The Resilient Voice was born from storms — the kind that shake you, refine you, and push you closer to God’s purpose.
-              Every hardship, heartbreak, and silent battle became a reminder that even when life breaks us open, grace pours in.
-            </p>
-            <p style={{ marginBottom: "1.8rem" }}>
-              This brand is more than apparel. It is a mission rooted in healing, faith, and courage. Every design is crafted to speak life —
-              to remind you that you are seen, you are strong, and you are deeply loved.
-            </p>
-            <p
-              style={{
-                fontWeight: "600",
-                fontSize: "1.6rem",
-                margin: "3rem 0",
-                color: "#333",
-                textAlign: "center",
-              }}
-            >
-              “You are not alone. You have strength. You are seen.”
-            </p>
-            <p
-              style={{
-                fontSize: "1.4rem",
-                fontStyle: "italic",
-                color: "#555",
-                textAlign: "center",
-                marginTop: "4rem",
-              }}
-            >
-              With love, faith, and gratitude,<br />
-              <strong>Kristine — The Resilient Voice</strong>
-            </p>
-          </div>
-        </section>
-      </main>
-    </>
-  );
-}
+        <p style={{ fontSize: "1.9rem", maxWidth: "800px", margin: "0 auto 3rem", opacity: 0.9 }}>
+          We don’t whisper. We roar.<br />
+          American-made truth wear for patriots who refuse to be silenced.
+        </p>
+
+        <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", justifyContent: "center" }}>
+          <Link href="/saved-by-grace">
+            <button style={{
+              padding: "1.5rem 3.5rem",
+              fontSize: "1.6rem",
+              fontWeight: "bold",
+              background: "linear-gradient(45deg, #cc0000, #ff4444)",
+              color: "white",
+              border: "none",
+              borderRadius: "50px",
+              cursor: "pointer",
+              boxShadow: "0 15px 40px rgba(255,0,0,0.5)"
+            }}>
+              SHOP GRACE COLLECTION
