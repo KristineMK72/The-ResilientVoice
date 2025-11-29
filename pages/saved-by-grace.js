@@ -1,11 +1,12 @@
 // pages/saved-by-grace.js
-"use client";                           // ← Makes it a Client Component
-export const revalidate = 0;            // ← Forces fresh data on every visit (pages router)
+"use client";
+export const revalidate = 0;
 
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { getAllProducts } from "@/data/products"; // ← Correct import at top
 
 const COLLECTION_STORIES = {
   grace: {
@@ -37,48 +38,21 @@ const COLLECTION_STORIES = {
 export default function SavedByGrace() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function fetchProducts() {
+    async function loadProducts() {
       try {
-      import { getAllProducts } from '@/data/products';
+        const allProducts = await getAllProducts(); // ← Uses your data/products.js
 
-// Then inside useEffect:
-const rawProducts = await getAllProducts();
-const filtered = rawProducts.filter(p => 
-  p.tags.includes("grace") || 
-  p.tags.includes("resilience") || 
-  p.tags.includes("warrior spirit") || 
-  p.tags.includes("accessories")
-);
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`Failed to fetch products: ${res.status} – ${text}`);
-        }
-
-        const raw = await res.json();
-        const data = raw.products || raw.result || raw || [];
-
-        if (!Array.isArray(data)) {
-          console.warn("Printful API returned unexpected format:", raw);
-          setProducts([]);
-          return;
-        }
-
-        const filtered = data.filter((product) => {
-          const tags = (product.tags || "").toLowerCase();
-          return (
-            tags.includes("grace") ||
-            tags.includes("resilience") ||
-            tags.includes("warrior spirit") ||
-            tags.includes("accessories")
-          );
-        });
+        const filtered = allProducts.filter((p) =>
+          p.tags?.includes("grace") ||
+          p.tags?.includes("resilience") ||
+          p.tags?.includes("warrior spirit") ||
+          p.tags?.includes("accessories")
+        );
 
         const withStories = filtered.map((p) => {
-          const tags = (p.tags || "").toLowerCase();
+          const tags = p.tags || "";
           let storyKey = "accessories";
           if (tags.includes("grace")) storyKey = "grace";
           else if (tags.includes("resilience")) storyKey = "resilience";
@@ -89,41 +63,31 @@ const filtered = rawProducts.filter(p =>
 
         setProducts(withStories);
       } catch (err) {
-        console.error(err);
-        setError(err.message);
+        console.error("Failed to load products:", err);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchProducts();
+    loadProducts();
   }, []);
-
-  // ────────────────────────── RENDER ──────────────────────────
 
   if (loading) {
     return (
-      <p style={{ textAlign: "center", padding: "10rem 1rem", fontSize: "1.6rem", color: "#d4a5e0" }}>
+      <p style={{ textAlign: "center", padding: "10rem 1rem", fontSize: "1.8rem", color: "#d4a5e0" }}>
         Loading your collections…
       </p>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{ textAlign: "center", padding: "6rem 1rem" }}>
-        <p style={{ color: "#ff6b6b", fontSize: "1.6rem" }}>Unable to load products right now.</p>
-        <p style={{ color: "#aaa", marginTop: "1rem" }}>{error}</p>
-      </div>
     );
   }
 
   if (products.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: "8rem 1rem" }}>
-        <p style={{ fontSize: "1.8rem", color: "#d4a5e0" }}>No products found yet</p>
-        <p style={{ color: "#aaa", maxWidth: "600px", margin: "2rem auto" }}>
-          Make sure your Printful products are tagged with “grace”, “resilience”, “warrior spirit”, or “accessories”.
+        <p style={{ fontSize: "2rem", color: "#d4a5e0" }}>No products found yet</p>
+        <p style={{ color: "#ccc", maxWidth: "700px", margin: "2rem auto" }}>
+          Your real Printful products will appear here automatically when published and tagged with{" "}
+          <strong>grace</strong>, <strong>resilience</strong>, <strong>warrior spirit</strong>, or{" "}
+          <strong>accessories</strong>.
         </p>
       </div>
     );
@@ -154,7 +118,7 @@ const filtered = rawProducts.filter(p =>
             <section key={title} style={{ marginBottom: "9rem" }}>
               <h1
                 style={{
-                  fontSize: "4.2rem",
+                  fontSize: "4.5rem",
                   textAlign: "center",
                   marginBottom: "1.5rem",
                   color: "#d4a5e0",
@@ -165,10 +129,10 @@ const filtered = rawProducts.filter(p =>
               </h1>
               <p
                 style={{
-                  fontSize: "1.7rem",
+                  fontSize: "1.8rem",
                   textAlign: "center",
                   maxWidth: "900px",
-                  margin: "0 auto 4.5rem",
+                  margin: "0 auto 5rem",
                   color: "#eee",
                   lineHeight: "1.6",
                 }}
@@ -179,39 +143,39 @@ const filtered = rawProducts.filter(p =>
               <div
                 style={{
                   display: "grid",
-                  gap: "3rem",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                  gap: "3.5rem",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
                 }}
               >
                 {items.map((product) => (
                   <Link key={product.id} href={`/product/${product.id}`} style={{ textDecoration: "none" }}>
                     <div
                       style={{
-                        borderRadius: "20px",
+                        borderRadius: "22px",
                         overflow: "hidden",
                         background: "#fff",
-                        boxShadow: "0 16px 50px rgba(0,0,0,0.3)",
-                        transition: "transform 0.4s ease",
+                        boxShadow: "0 18px 60px rgba(0,0,0,0.35)",
+                        transition: "all 0.4s ease",
                         cursor: "pointer",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-16px)")}
+                      onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-18px)")}
                       onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
                     >
-                      <div style={{ position: "relative", height: "380px" }}>
+                      <div style={{ position: "relative", height: "400px" }}>
                         <Image
-                          src={product.thumbnail_url || "/images/placeholder.jpg"}
+                          src={product.image || "/images/placeholder.jpg"}
                           alt={product.name}
                           fill
                           style={{ objectFit: "cover" }}
                           unoptimized
                         />
                       </div>
-                      <div style={{ padding: "2rem", textAlign: "center", background: "#fff" }}>
-                        <h3 style={{ margin: "0 0 0.8rem", fontSize: "1.6rem", color: "#333" }}>
+                      <div style={{ padding: "2.2rem", textAlign: "center", background: "#fff" }}>
+                        <h3 style={{ margin: "0 0 0.8rem", fontSize: "1.7rem", color: "#333" }}>
                           {product.name}
                         </h3>
-                        <p style={{ color: "#d4a5e0", fontWeight: "bold", fontSize: "1.5rem", margin: 0 }}>
-                          ${product.variants?.[0]?.retail_price?.toFixed(2) || "View"}
+                        <p style={{ color: "#d4a5e0", fontWeight: "bold", fontSize: "1.6rem", margin: 0 }}>
+                          ${product.price?.toFixed(2) || "View"}
                         </p>
                       </div>
                     </div>
