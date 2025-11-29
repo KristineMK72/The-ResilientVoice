@@ -8,6 +8,7 @@ export default function Header() {
         <Link href="/">Home</Link>
         <Link href="/saved-by-grace">Saved By Grace</Link>
         <Link href="/Patriot">Patriots</Link>
+        <Link href="/Social">Social Justice</Link>
         <Link href="/blog">Blog</Link>
         <Link href="/about">About</Link>
         <Link href="/cart">Cart</Link>
