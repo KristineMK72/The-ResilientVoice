@@ -1,4 +1,4 @@
-// pages/index.js  ← FINAL VERSION – NO FAKE URLs, 100% PRINTFUL
+// pages/index.js ← FINAL VERSION – points to new categories
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
@@ -6,10 +6,10 @@ import { useState, useEffect } from "react";
 
 export default function Home() {
   const [heroImages, setHeroImages] = useState({
-    resilience: null,
-    grace: null,
-    warrior: null,
-    accessories: null,
+    savedByGrace: null,
+    success: null,
+    patriot: null,
+    social: null,
   });
 
   useEffect(() => {
@@ -21,30 +21,28 @@ export default function Home() {
         const products = Array.isArray(data.result) ? data.result : [];
 
         const previews = {
-          resilience: null,
-          grace: null,
-          warrior: null,
-          accessories: null,
+          savedByGrace: null,
+          success: null,
+          patriot: null,
+          social: null,
         };
 
-        // Grab the first matching product image for each collection
         for (const p of products) {
           const name = p.name.toLowerCase();
 
-          if (!previews.grace && name.includes("grace")) {
-            previews.grace = p.image;
+          if (!previews.savedByGrace && name.includes("grace")) {
+            previews.savedByGrace = p.image;
           }
-          if (!previews.resilience && (name.includes("resilien") || name.includes("joy"))) {
-            previews.resilience = p.image;
+          if (!previews.success && name.includes("success")) {
+            previews.success = p.image;
           }
-          if (!previews.warrior && (name.includes("warrior") || name.includes("power") || name.includes("coura") || name.includes("unbroken"))) {
-            previews.warrior = p.image;
+          if (!previews.patriot && name.includes("patriot")) {
+            previews.patriot = p.image;
           }
-          if (!previews.accessories && (name.includes("mug") || name.includes("beanie") || name.includes("tote"))) {
-            previews.accessories = p.image;
+          if (!previews.social && name.includes("social")) {
+            previews.social = p.image;
           }
 
-          // Stop early once we have all 4
           if (Object.values(previews).every(img => img !== null)) break;
         }
 
@@ -59,28 +57,28 @@ export default function Home() {
 
   const collections = [
     {
-      href: "/resilience",
-      title: "Resilience Collection",
-      desc: "Wear messages of strength and endurance",
-      img: heroImages.resilience || "/fallback.png",
+      href: "/saved-by-grace",
+      title: "Saved By Grace",
+      desc: "Explore all collections in one place",
+      img: heroImages.savedByGrace || "/fallback.png",
     },
     {
-      href: "/grace",
-      title: "Grace Collection",
-      desc: "Elegance born from the storm",
-      img: heroImages.grace || "/fallback.png",
+      href: "/success",
+      title: "Success Stories",
+      desc: "Celebrate victories and milestones",
+      img: heroImages.success || "/fallback.png",
     },
     {
-      href: "/warrior-spirit",
-      title: "Warrior Spirit",
-      desc: "Unbroken Series — for the fighter in you",
-      img: heroImages.warrior || "/fallback.png",
+      href: "/patriot",
+      title: "Patriot Collection",
+      desc: "Strength and pride woven together",
+      img: heroImages.patriot || "/fallback.png",
     },
     {
-      href: "/accessories",
-      title: "Accessories",
-      desc: "Carry your resilience everywhere",
-      img: heroImages.accessories || "/fallback.png",
+      href: "/social",
+      title: "Social Impact",
+      desc: "Pieces that spark conversation and change",
+      img: heroImages.social || "/fallback.png",
     },
   ];
 
@@ -88,7 +86,10 @@ export default function Home() {
     <>
       <Head>
         <title>The Resilient Voice | Wear Your Story</title>
-        <meta name="description" content="Apparel born from storms. Faith-fueled messages of resilience, grace, and unbreakable spirit. 10% of proceeds support mental health and suicide prevention." />
+        <meta
+          name="description"
+          content="Apparel born from storms. Faith-fueled messages of resilience, grace, and unbreakable spirit. 10% of proceeds support mental health and suicide prevention."
+        />
       </Head>
 
       <main style={{ padding: "4rem 1rem", maxWidth: "1400px", margin: "0 auto" }}>
@@ -102,8 +103,15 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Collection Cards — REAL PRINTFUL IMAGES */}
-        <div style={{ display: "grid", gap: "3.5rem", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", marginBottom: "10rem" }}>
+        {/* Collection Cards */}
+        <div
+          style={{
+            display: "grid",
+            gap: "3.5rem",
+            gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+            marginBottom: "10rem",
+          }}
+        >
           {collections.map((c) => (
             <Link key={c.href} href={c.href} style={{ textDecoration: "none" }}>
               <div
@@ -137,34 +145,47 @@ export default function Home() {
                   <h2 style={{ fontSize: "2.3rem", margin: "0 0 1rem", color: "#333", fontWeight: "500" }}>
                     {c.title}
                   </h2>
-                  <p style={{ color: "#666", fontSize: "1.3rem", lineHeight: "1.7" }}>
-                    {c.desc}
-                  </p>
+                  <p style={{ color: "#666", fontSize: "1.3rem", lineHeight: "1.7" }}>{c.desc}</p>
                 </div>
               </div>
             </Link>
           ))}
         </div>
 
-        {/* Your beautiful About section (unchanged) */}
+        {/* About Section (unchanged) */}
         <section style={{ maxWidth: "900px", margin: "0 auto 6rem", textAlign: "center" }}>
           <h2 style={{ fontSize: "3.2rem", marginBottom: "2.5rem", color: "#333" }}>
             About The Resilient Voice
           </h2>
           <div style={{ fontSize: "1.35rem", lineHeight: "1.9", color: "#444", textAlign: "left" }}>
             <p style={{ marginBottom: "1.8rem" }}>
-              The Resilient Voice was born from storms — the kind that shake you, refine you, and push you closer to God’s purpose. 
+              The Resilient Voice was born from storms — the kind that shake you, refine you, and push you closer to God’s purpose.
               Every hardship, heartbreak, and silent battle became a reminder that even when life breaks us open, grace pours in.
             </p>
             <p style={{ marginBottom: "1.8rem" }}>
               This brand is more than apparel. It is a mission rooted in healing, faith, and courage. Every design is crafted to speak life —
               to remind you that you are seen, you are strong, and you are deeply loved.
             </p>
-            <p style={{ fontWeight: "600", fontSize: "1.6rem", margin: "3rem 0", color: "#333", textAlign: "center" }}>
+            <p
+              style={{
+                fontWeight: "600",
+                fontSize: "1.6rem",
+                margin: "3rem 0",
+                color: "#333",
+                textAlign: "center",
+              }}
+            >
               “You are not alone. You have strength. You are seen.”
             </p>
-            {/* Keep the rest of your beautiful mission text */}
-            <p style={{ fontSize: "1.4rem", fontStyle: "italic", color: "#555", textAlign: "center", marginTop: "4rem" }}>
+            <p
+              style={{
+                fontSize: "1.4rem",
+                fontStyle: "italic",
+                color: "#555",
+                textAlign: "center",
+                marginTop: "4rem",
+              }}
+            >
               With love, faith, and gratitude,<br />
               <strong>Kristine — The Resilient Voice</strong>
             </p>
