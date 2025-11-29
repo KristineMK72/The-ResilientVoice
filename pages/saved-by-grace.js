@@ -1,5 +1,6 @@
-// pages/gallery.js  ←  paste this directly over your current gallery.js
-export const dynamic = 'force-dynamic';
+// pages/saved-by-grace.js
+export const dynamic = 'force-dynamic';     // fresh data on every visit
+// export const revalidate = 60;            // ← alternative: ISR every 60s (uncomment if you prefer)
 
 import Head from "next/head";
 import Link from "next/link";
@@ -36,14 +37,21 @@ const COLLECTION_STORIES = {
 export default function SavedByGrace() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     async function fetchProducts() {
       try {
         const res = await fetch("/api/printful-products");
-        if (!res.ok) throw new Error("Failed");
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`HTTP ${res.status} – ${text || res.statusText}`);
+        }
+
         const data = await res.json();
 
+        // Filter by the tags you use in Printful
         const filtered = data.filter((product) => {
           const tags = (product.tags || "").toLowerCase();
           return (
@@ -54,28 +62,86 @@ export default function SavedByGrace() {
           );
         });
 
+        // Attach the correct story block based on priority
         const withStories = filtered.map((p) => {
           const tags = (p.tags || "").toLowerCase();
           let storyKey = "accessories";
           if (tags.includes("grace")) storyKey = "grace";
           else if (tags.includes("resilience")) storyKey = "resilience";
           else if (tags.includes("warrior spirit")) storyKey = "warrior spirit";
+
           return { ...p, story: COLLECTION_STORIES[storyKey] };
         });
 
         setProducts(withStories);
       } catch (err) {
-        console.error(err);
+        console.error("Failed to load products:", err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     }
+
     fetchProducts();
   }, []);
 
-  if (loading)
-    return <p style={{ textAlign: "center", padding: "6rem" }}>Loading Saved By Grace...</p>;
+  // ──────────────────────────────────────────────
+  // Render states
+  // ──────────────────────────────────────────────
 
+  if (loading) {
+    return (
+      <p
+        style={{
+          textAlign: "center",
+          padding: "8rem 1rem",
+          fontSize: "1.4rem",
+          color: "#d4a5e0",
+        }}
+      >
+        Loading your collections…
+      </p>
+    );
+  }
+
+  if (error) {
+    return (
+      <p
+        style={{
+          textAlign: "center",
+          padding: "8rem 1rem",
+          color: "#ff6b6b",
+          background: "rgba(255,107,107,0.1)",
+          borderRadius: "12px",
+          maxWidth: "800px",
+          margin: "4rem auto",
+        }}
+      >
+        Unable to load products right now.<br />
+        <small style={{ color: "#aaa" }}>{error}</small>
+      </p>
+    );
+  }
+
+  if (products.length === 0) {
+    return (
+      <p
+        style={{
+          textAlign: "center",
+          padding: "10rem 1rem",
+          fontSize: "1.6rem",
+          color: "#aaa",
+        }}
+      >
+        No products found with the current tags.<br />
+        <small>
+          Make sure your Printful products are tagged with “grace”, “resilience”, “warrior spirit”, or “accessories”.
+        </small>
+      </p>
+    );
+  }
+
+  // Group by collection title
   const grouped = products.reduce((acc, product) => {
     const key = product.story.title;
     if (!acc[key]) acc[key] = [];
@@ -87,37 +153,120 @@ export default function SavedByGrace() {
     <>
       <Head>
         <title>Saved By Grace Collection | The Resilient Voice</title>
-        <meta name="description" content="Jewelry and everyday armor for survivors — Saved By Grace, Resilience, and Warrior Spirit" />
+        <meta
+          name="description"
+          content="Jewelry and everyday armor for survivors — Saved By Grace, Resilience Rising, Warrior Spirit, and Everyday Armor collections."
+        />
       </Head>
 
-      <main style={{ padding: "4rem 1rem", maxWidth: "1300px", margin: "0 auto" }}>
+      <main
+        style={{
+          padding: "4rem 1rem",
+          maxWidth: "1400px",
+          margin: "0 auto",
+          minHeight: "80vh",
+        }}
+      >
         {Object.entries(grouped).map(([title, items]) => {
           const story = items[0].story;
+
           return (
-            <section key={title} style={{ marginBottom: "7rem" }}>
-              <h1 style={{ fontSize: "3.8rem", textAlign: "center", marginBottom: "1rem", color: "#d4a5e0" }}>
+            <section key={title} style={{ marginBottom: "8rem" }}>
+              {/* Collection Header */}
+              <h1
+                style={{
+                  fontSize: "4rem",
+                  textAlign: "center",
+                  marginBottom: "1rem",
+                  color: "#d4a5e0",
+                  fontWeight: "700",
+                }}
+              >
                 {story.title}
               </h1>
-              <p style={{ fontSize: "1.5rem", textAlign: "center", maxWidth: "900px", margin: "0 auto 3.5rem", color: "#eee" }}>
+              <p
+                style={{
+                  fontSize: "1.6rem",
+                  textAlign: "center",
+                  maxWidth: "900px",
+                  margin: "0 auto 4rem",
+                  color: "#eee",
+                  lineHeight: "1.5",
+                }}
+              >
                 <strong>{story.hero}</strong> {story.description}
               </p>
 
-              <div style={{ display: "grid", gap: "2.5rem", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
+              {/* Product Grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gap: "2.8rem",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                }}
+              >
                 {items.map((product) => (
-                  <Link key={product.id} href={`/product/${product.id}`} style={{ textDecoration: "none" }}>
-                    <div style={{
-                      borderRadius: "16px", overflow: "hidden", background: "#fff",
-                      boxShadow: "0 12px 35px rgba(0,0,0,0.2)", transition: "all 0.3s"
-                    }}
-                      onMouseEnter={e => e.currentTarget.style.transform = "translateY(-12px)"}
-                      onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}>
-                      <div style={{ position: "relative", height: "340px" }}>
-                        <Image src={product.thumbnail_url || "/images/placeholder.jpg"} alt={product.name} fill style={{ objectFit: "cover" }} unoptimized />
+                  <Link
+                    key={product.id}
+                    href={`/product/${product.id}`}
+                    style={{ textDecoration: "none" }}
+                  >
+                    <div
+                      style={{
+                        borderRadius: "18px",
+                        overflow: "hidden",
+                        background: "#fff",
+                        boxShadow: "0 14px 40px rgba(0,0,0,0.25)",
+                        transition: "all 0.35s ease",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.transform = "translateY(-14px)")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.transform = "translateY(0)")
+                      }
+                    >
+                      <div style={{ position: "relative", height: "360px" }}>
+                        <Image
+                          src={
+                            product.thumbnail_url ||
+                            "/images/placeholder.jpg"
+                          }
+                          alt={product.name}
+                          fill
+                          style={{ objectFit: "cover" }}
+                          unoptimized
+                        />
                       </div>
-                      <div style={{ padding: "1.6rem", textAlign: "center" }}>
-                        <h3 style={{ margin: "0 0 0.6rem", fontSize: "1.4rem" }}>{product.name}</h3>
-                        <p style={{ color: "#d4a5e0", fontWeight: "bold", fontSize: "1.3rem" }}>
-                          ${product.variants?.[0]?.retail_price || "View"}
+
+                      <div
+                        style={{
+                          padding: "1.8rem",
+                          textAlign: "center",
+                          background: "#fff",
+                        }}
+                      >
+                        <h3
+                          style={{
+                            margin: "0 0 0.6rem",
+                            fontSize: "1.5rem",
+                            color: "#333",
+                          }}
+                        >
+                          {product.name}
+                        </h3>
+                        <p
+                          style={{
+                            color: "#d4a5e0",
+                            fontWeight: "bold",
+                            fontSize: "1.4rem",
+                            margin: 0,
+                          }}
+                        >
+                          $
+                          {product.variants?.[0]?.retail_price?.toFixed(2) ||
+                            "View"}
                         </p>
                       </div>
                     </div>
