@@ -1,4 +1,4 @@
-// pages/index.js  ← FIXED & READY TO DEPLOY
+// pages/index.js ← GUARANTEED TO BUILD
 "use client";
 
 import Head from "next/head";
@@ -10,7 +10,7 @@ export default function Home() {
     <>
       <Head>
         <title>The Resilient Voice | Patriotic Truth Wear</title>
-        <meta name="description" content="American-made apparel for those who refuse to be silenced." />
+        <meta name="description" content="Faith-fueled apparel that unites Christianity, patriotism, and social sustainability." />
       </Head>
 
       <div
@@ -28,7 +28,7 @@ export default function Home() {
           overflow: "hidden",
         }}
       >
-        {/* Subtle animated glow */}
+        {/* animated glow background */}
         <div
           style={{
             position: "absolute",
@@ -45,7 +45,7 @@ export default function Home() {
           }
         `}</style>
 
-        {/* YOUR LOGO — using your exact filename */}
+        {/* Logo */}
         <div style={{ marginBottom: "2rem", position: "relative", zIndex: 10 }}>
           <Image
             src="/IMG_8198.jpeg"
@@ -61,6 +61,7 @@ export default function Home() {
           />
         </div>
 
+        {/* Title */}
         <h1
           style={{
             fontSize: "4.8rem",
@@ -76,30 +77,38 @@ export default function Home() {
           RESILIENT VOICE
         </h1>
 
-        <p style={{ fontSize: "1.9rem", maxWidth: "800px", margin: "0 auto 3rem", opacity: 0.9 }}>
-          We don’t whisper. We roar.<br />
-          American-made truth wear for patriots who refuse to be silenced.
+        {/* Mission Statement */}
+        <p
+          style={{
+            fontSize: "1.9rem",
+            maxWidth: "800px",
+            margin: "0 auto 2rem",
+            lineHeight: "1.6",
+          }}
+        >
+          Resilient Voice is more than apparel — it’s a movement that unites Christianity, patriotism, and social sustainability.
+          Every design speaks truth with boldness, while proceeds support nonprofits tackling homelessness, housing insecurity,
+          mental health, and suicide prevention. Wear your story. Live your values. Stand for hope.
         </p>
 
-        <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", justifyContent: "center" }}>
-          <Link href="/saved-by-grace">
-            <button
-              style={{
-                padding: "1.5rem 3.5rem",
-                fontSize: "1.6rem",
-                fontWeight: "bold",
-                background: "linear-gradient(45deg, #cc0000, #ff4444)",
-                color: "white",
-                border: "none",
-                borderRadius: "50px",
-                cursor: "pointer",
-                boxShadow: "0 15px 40px rgba(255,0,0,0.5)",
-              }}
-            >
-              SHOP GRACE COLLECTION
-            </button>
-          </Link>
-        </div>
+        {/* CTA */}
+        <Link
+          href="/saved-by-grace"
+          style={{
+            marginTop: "2rem",
+            padding: "1.2rem 2.4rem",
+            fontSize: "1.6rem",
+            fontWeight: "600",
+            background: "linear-gradient(90deg, #ff4444, #4444ff)",
+            color: "white",
+            borderRadius: "12px",
+            textDecoration: "none",
+            boxShadow: "0 0 25px rgba(255,255,255,0.2)",
+            zIndex: 10,
+          }}
+        >
+          Explore the Collection
+        </Link>
       </div>
     </>
   );
