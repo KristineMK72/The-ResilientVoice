@@ -1,4 +1,3 @@
-// pages/saved-by-grace.js  ← FINAL: FETCHES YOUR 3 PRODUCTS VIA SINGLE API
 "use client";
 
 import Head from "next/head";
@@ -89,16 +88,17 @@ export default function SavedByGrace() {
     <>
       <Head>
         <title>Saved By Grace Collection | The Resilient Voice</title>
-        <meta name="description" content="Delicate pieces for the days you need to remember you are still whole." />
+        <meta name="description" content="Faith-fueled designs that speak truth, strength, and softness — all while giving back." />
       </Head>
 
-      <div style={{ background: "linear-gradient(135deg, #f8f5fa 0%, #fff 100%)", minHeight: "100vh" }}>
+      <div style={{ background: "linear-gradient(135deg, #fdf7ff 0%, #f8f5fa 100%)", minHeight: "100vh" }}>
         <div style={{ textAlign: "center", padding: "6rem 1rem 4rem" }}>
           <h1 style={{ fontSize: "5.5rem", fontWeight: "800", color: "#9f6baa", margin: "0 0 1.5rem" }}>
             Saved By Grace
           </h1>
-          <p style={{ fontSize: "2rem", color: "#666", maxWidth: "900px", margin: "0 auto", lineHeight: "1.6" }}>
-            Strength wrapped in softness. Delicate pieces for the days you need to remember you are still whole.
+          <p style={{ fontSize: "2rem", color: "#555", maxWidth: "900px", margin: "0 auto", lineHeight: "1.6" }}>
+            Apparel born from storms. These pieces carry messages of faith, resilience, and healing — while supporting nonprofits
+            focused on housing, homelessness, mental health, and suicide prevention. Wear your story. Give with purpose.
           </p>
         </div>
 
@@ -144,8 +144,8 @@ export default function SavedByGrace() {
           ))}
         </div>
 
-        <div style={{ textAlign: "center", padding: "6rem 1rem", color: "#aaa", fontSize: "1.1rem" }}>
-          More pieces coming every week · Hand-designed with love
+        <div style={{ textAlign: "center", padding: "6rem 1rem", color: "#888", fontSize: "1.2rem" }}>
+          More pieces coming every week · Designed with love · Powered by purpose
         </div>
       </div>
     </>
