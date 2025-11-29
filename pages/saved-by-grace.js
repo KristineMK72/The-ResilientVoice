@@ -42,7 +42,16 @@ export default function SavedByGrace() {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const res = await fetch("/api/printful-products", { cache: "no-store" });
+      import { getAllProducts } from '@/data/products';
+
+// Then inside useEffect:
+const rawProducts = await getAllProducts();
+const filtered = rawProducts.filter(p => 
+  p.tags.includes("grace") || 
+  p.tags.includes("resilience") || 
+  p.tags.includes("warrior spirit") || 
+  p.tags.includes("accessories")
+);
 
         if (!res.ok) {
           const text = await res.text();
