@@ -1,16 +1,26 @@
-// pages/index.js ← GUARANTEED TO BUILD
+// pages/index.js  ← YOUR CODE + PRODUCT TEASER BELOW LOGO
 "use client";
 
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";  // ← Added for fetch (one line)
 
 export default function Home() {
+  const [featuredProduct, setFeaturedProduct] = useState(null);  // ← For product data
+
+  useEffect(() => {
+    fetch("/api/printful-product/402034024")  // ← Your product ID
+      .then(res => res.ok ? res.json() : null)
+      .then(data => setFeaturedProduct(data))
+      .catch(() => {});  // Silent fail if needed
+  }, []);
+
   return (
     <>
       <Head>
         <title>The Resilient Voice | Patriotic Truth Wear</title>
-        <meta name="description" content="Faith-fueled apparel that unites Christianity, patriotism, and social sustainability." />
+        <meta name="description" content="American-made apparel for those who refuse to be silenced." />
       </Head>
 
       <div
@@ -61,6 +71,26 @@ export default function Home() {
           />
         </div>
 
+        {/* NEW: PRODUCT TEASER BELOW LOGO — fetches real data */}
+        {featuredProduct && (
+          <div style={{ marginBottom: "2rem", padding: "1.5rem", background: "rgba(255,255,255,0.1)", borderRadius: "16px", maxWidth: "400px" }}>
+            <Image
+              src={featuredProduct.image}
+              alt={featuredProduct.name}
+              width={300}
+              height={300}
+              style={{ borderRadius: "12px", marginBottom: "1rem" }}
+            />
+            <h3 style={{ fontSize: "1.4rem", margin: "0 0 0.5rem", color: "#fff" }}>{featuredProduct.name}</h3>
+            <p style={{ fontSize: "1.6rem", fontWeight: "bold", color: "#ff6b6b", margin: "0 0 1rem" }}>${featuredProduct.variants?.[0]?.price?.toFixed(2)}</p>
+            <Link href={`/product/402034024`}>
+              <button style={{ padding: "0.8rem 1.5rem", background: "#ff6b6b", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" }}>
+                View Product
+              </button>
+            </Link>
+          </div>
+        )}
+
         {/* Title */}
         <h1
           style={{
@@ -86,7 +116,7 @@ export default function Home() {
             lineHeight: "1.6",
           }}
         >
-          Resilient Voice is more than apparel — it’s a movement that unites Christianity, patriotism, and social sustainability.
+          Resilient Voice is more than apparel — it's a movement that unites Christianity, patriotism, and social sustainability.
           Every design speaks truth with boldness, while proceeds support nonprofits tackling homelessness, housing insecurity,
           mental health, and suicide prevention. Wear your story. Live your values. Stand for hope.
         </p>
