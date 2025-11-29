@@ -5,7 +5,20 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
-const YOUR_PRODUCT_IDS = ["403602928", "403602685", "402034024"]; // ← YOUR 3 REAL IDS
+const YOUR_PRODUCT_IDS = [
+  "402037152",
+  "402181003",
+  "402181469",
+  "402034024",
+  "403261853",
+  "403262072",
+  "403262589",
+  "403264720",
+  "403600962",
+  "403601375",
+  "403602081",
+  "403602399"
+];
 
 export default function SavedByGrace() {
   const [products, setProducts] = useState([]);
