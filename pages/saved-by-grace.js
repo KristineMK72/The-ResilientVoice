@@ -1,5 +1,6 @@
 // pages/saved-by-grace.js
-export const dynamic = 'force-dynamic';
+"use client";                           // ← Makes it a Client Component
+export const revalidate = 0;            // ← Forces fresh data on every visit (pages router)
 
 import Head from "next/head";
 import Link from "next/link";
@@ -41,24 +42,19 @@ export default function SavedByGrace() {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const res = await fetch("/api/printful-products");
+        const res = await fetch("/api/printful-products", { cache: "no-store" });
 
         if (!res.ok) {
           const text = await res.text();
-          throw new Error(`HTTP ${res.status} – ${text || res.statusText}`);
+          throw new Error(`Failed to fetch products: ${res.status} – ${text}`);
         }
 
         const raw = await res.json();
-
-        // THIS IS THE KEY FIX
-        // Printful returns { products: [...] } or sometimes { result: [...] }
         const data = raw.products || raw.result || raw || [];
 
-        // Make sure we always have an array before calling .filter
         if (!Array.isArray(data)) {
-          console.warn("Unexpected API response:", raw);
+          console.warn("Printful API returned unexpected format:", raw);
           setProducts([]);
-          setLoading(false);
           return;
         }
 
@@ -84,7 +80,7 @@ export default function SavedByGrace() {
 
         setProducts(withStories);
       } catch (err) {
-        console.error("Failed to load products:", err);
+        console.error(err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -94,10 +90,11 @@ export default function SavedByGrace() {
     fetchProducts();
   }, []);
 
-  // Render states (unchanged – beautiful as before)
+  // ────────────────────────── RENDER ──────────────────────────
+
   if (loading) {
     return (
-      <p style={{ textAlign: "center", padding: "8rem 1rem", fontSize: "1.4rem", color: "#d4a5e0" }}>
+      <p style={{ textAlign: "center", padding: "10rem 1rem", fontSize: "1.6rem", color: "#d4a5e0" }}>
         Loading your collections…
       </p>
     );
@@ -105,21 +102,21 @@ export default function SavedByGrace() {
 
   if (error) {
     return (
-      <p style={{ textAlign: "center", padding: "8rem 1rem", color: "#ff6b6b" }}>
-        Unable to load products right now.<br />
-        <small style={{ color: "#aaa" }}>{error}</small>
-      </p>
+      <div style={{ textAlign: "center", padding: "6rem 1rem" }}>
+        <p style={{ color: "#ff6b6b", fontSize: "1.6rem" }}>Unable to load products right now.</p>
+        <p style={{ color: "#aaa", marginTop: "1rem" }}>{error}</p>
+      </div>
     );
   }
 
   if (products.length === 0) {
     return (
-      <p style={{ textAlign: "center", padding: "10rem 1rem", fontSize: "1.6rem", color: "#aaa" }}>
-        No products found with the current tags.<br />
-        <small>
+      <div style={{ textAlign: "center", padding: "8rem 1rem" }}>
+        <p style={{ fontSize: "1.8rem", color: "#d4a5e0" }}>No products found yet</p>
+        <p style={{ color: "#aaa", maxWidth: "600px", margin: "2rem auto" }}>
           Make sure your Printful products are tagged with “grace”, “resilience”, “warrior spirit”, or “accessories”.
-        </small>
-      </p>
+        </p>
+      </div>
     );
   }
 
@@ -134,37 +131,64 @@ export default function SavedByGrace() {
     <>
       <Head>
         <title>Saved By Grace Collection | The Resilient Voice</title>
-        <meta name="description" content="Jewelry and everyday armor for survivors — Saved By Grace, Resilience Rising, Warrior Spirit, and Everyday Armor collections." />
+        <meta
+          name="description"
+          content="Jewelry and everyday armor for survivors — Saved By Grace, Resilience Rising, Warrior Spirit, and Everyday Armor."
+        />
       </Head>
 
-      <main style={{ padding: "4rem 1rem", maxWidth: "1400px", margin: "0 auto", minHeight: "80vh" }}>
+      <main style={{ padding: "5rem 1rem", maxWidth: "1400px", margin: "0 auto", minHeight: "100vh" }}>
         {Object.entries(grouped).map(([title, items]) => {
           const story = items[0].story;
+
           return (
-            <section key={title} style={{ marginBottom: "8rem" }}>
-              <h1 style={{ fontSize: "4rem", textAlign: "center", marginBottom: "1rem", color: "#d4a5e0", fontWeight: "700" }}>
+            <section key={title} style={{ marginBottom: "9rem" }}>
+              <h1
+                style={{
+                  fontSize: "4.2rem",
+                  textAlign: "center",
+                  marginBottom: "1.5rem",
+                  color: "#d4a5e0",
+                  fontWeight: "700",
+                }}
+              >
                 {story.title}
               </h1>
-              <p style={{ fontSize: "1.6rem", textAlign: "center", maxWidth: "900px", margin: "0 auto 4rem", color: "#eee", lineHeight: "1.5" }}>
+              <p
+                style={{
+                  fontSize: "1.7rem",
+                  textAlign: "center",
+                  maxWidth: "900px",
+                  margin: "0 auto 4.5rem",
+                  color: "#eee",
+                  lineHeight: "1.6",
+                }}
+              >
                 <strong>{story.hero}</strong> {story.description}
               </p>
 
-              <div style={{ display: "grid", gap: "2.8rem", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gap: "3rem",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                }}
+              >
                 {items.map((product) => (
                   <Link key={product.id} href={`/product/${product.id}`} style={{ textDecoration: "none" }}>
                     <div
                       style={{
-                        borderRadius: "18px",
+                        borderRadius: "20px",
                         overflow: "hidden",
                         background: "#fff",
-                        boxShadow: "0 14px 40px rgba(0,0,0,0.25)",
-                        transition: "all 0.35s ease",
+                        boxShadow: "0 16px 50px rgba(0,0,0,0.3)",
+                        transition: "transform 0.4s ease",
                         cursor: "pointer",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-14px)")}
+                      onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-16px)")}
                       onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
                     >
-                      <div style={{ position: "relative", height: "360px" }}>
+                      <div style={{ position: "relative", height: "380px" }}>
                         <Image
                           src={product.thumbnail_url || "/images/placeholder.jpg"}
                           alt={product.name}
@@ -173,11 +197,11 @@ export default function SavedByGrace() {
                           unoptimized
                         />
                       </div>
-                      <div style={{ padding: "1.8rem", textAlign: "center", background: "#fff" }}>
-                        <h3 style={{ margin: "0 0 0.6rem", fontSize: "1.5rem", color: "#333" }}>
+                      <div style={{ padding: "2rem", textAlign: "center", background: "#fff" }}>
+                        <h3 style={{ margin: "0 0 0.8rem", fontSize: "1.6rem", color: "#333" }}>
                           {product.name}
                         </h3>
-                        <p style={{ color: "#d4a5e0", fontWeight: "bold", fontSize: "1.4rem", margin: 0 }}>
+                        <p style={{ color: "#d4a5e0", fontWeight: "bold", fontSize: "1.5rem", margin: 0 }}>
                           ${product.variants?.[0]?.retail_price?.toFixed(2) || "View"}
                         </p>
                       </div>
