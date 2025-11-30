@@ -1,4 +1,4 @@
-// pages/api/printful-product/[id].js   ← ONLY THIS CODE (NO JSX!)
+// pages/api/printful-product/[id].js
 export default async function handler(req, res) {
   const { id } = req.query;
 
@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(`https://api.printful.com/products/${id}`, {
+    const response = await fetch(`https://api.printful.com/sync/products/${id}`, {
       headers: {
         Authorization: `Bearer ${process.env.PRINTFUL_API_KEY}`,
       },
