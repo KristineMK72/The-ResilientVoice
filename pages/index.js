@@ -71,7 +71,7 @@ export default function Home() {
           />
         </div>
 
-        {/* NEW: PRODUCT TEASER BELOW LOGO — fetches real data */}
+        {/* FIXED PRODUCT TEASER + WORKING BUTTON */}
         {featuredProduct && (
           <div style={{ marginBottom: "2rem", padding: "1.5rem", background: "rgba(255,255,255,0.1)", borderRadius: "16px", maxWidth: "400px" }}>
             <Image
@@ -82,11 +82,23 @@ export default function Home() {
               style={{ borderRadius: "12px", marginBottom: "1rem" }}
             />
             <h3 style={{ fontSize: "1.4rem", margin: "0 0 0.5rem", color: "#fff" }}>{featuredProduct.name}</h3>
-            <p style={{ fontSize: "1.6rem", fontWeight: "bold", color: "#ff6b6b", margin: "0 0 1rem" }}>${featuredProduct.variants?.[0]?.price?.toFixed(2)}</p>
-            <Link href={`/product/402034024`}>
-              <button style={{ padding: "0.8rem 1.5rem", background: "#ff6b6b", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" }}>
+            <p style={{ fontSize: "1.6rem", fontWeight: "bold", color: "#ff6b6b", margin: "0 0 1rem" }}>
+              ${featuredProduct.variants?.[0]?.price}
+            </p>
+
+            {/* THIS IS THE WORKING BUTTON */}
+            <Link href="/product/402034024" legacyBehavior>
+              <a style={{ 
+                display: "inline-block", 
+                padding: "0.8rem 1.5rem", 
+                background: "#ff6b6b", 
+                color: "white", 
+                borderRadius: "8px", 
+                textDecoration: "none",
+                fontWeight: "600"
+              }}>
                 View Product
-              </button>
+              </a>
             </Link>
           </div>
         )}
