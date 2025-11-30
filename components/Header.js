@@ -46,7 +46,7 @@ export default function Header() {
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: "14px", textDecoration: "none" }}>
             <div style={{ width: "56px", height: "56px", background: "url(/IMG_8198.jpeg) center/cover", borderRadius: "14px", boxShadow: "0 0 25px rgba(255,255,255,0.6)" }} />
             <span style={{ fontSize: "2rem", fontWeight: "900", background: "linear-gradient(90deg,#ff4444,#ffffff,#4444ff)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
-              RESILIENT VOICE
+              GRIT & GRACE
             </span>
           </Link>
 
