@@ -1,18 +1,18 @@
+// pages/api/printful-product/[id].js
 export default async function handler(req, res) {
   const { id } = req.query;
 
   try {
-    if (!process.env.PRINTFUL_ACCESS_TOKEN) {
+    const token = process.env.PRINTFUL_API_KEY || process.env.PRINTFUL_ACCESS_TOKEN;
+    if (!token) {
       return res.status(500).json({ error: "Missing API Token" });
     }
 
     const response = await fetch(
-      // This is the line that uses the Printful API
-      `https://api.printful.com/store/products/${id}`,
+      `https://api.printful.com/sync/products/${id}`,
       {
         headers: {
-          // THIS IS WHERE YOUR TOKEN IS USED
-          Authorization: `Bearer ${process.env.PRINTFUL_ACCESS_TOKEN}`,
+          Authorization: `Bearer ${token}`,
         },
       }
     );
@@ -20,12 +20,31 @@ export default async function handler(req, res) {
     const json = await response.json();
 
     if (!response.ok || !json.result) {
-      // If Printful fails or the product isn't found, return 404
       return res.status(404).json({ error: "Product not found from Printful" });
     }
 
-    res.status(200).json(json.result);
+    const product = json.result.sync_product;
+    const variants = json.result.sync_variants || [];
+    const firstVariant = variants[0] || {};
 
+    const bestImage =
+      firstVariant.files?.find(f => f.type === "preview")?.preview_url ||
+      firstVariant.files?.[0]?.preview_url ||
+      product.thumbnail_url ||
+      "https://files.cdn.printful.com/o/upload/missing-image/800x800.jpg";
+
+    res.status(200).json({
+      id: String(product.id),
+      name: product.name,
+      description: product.description || "",
+      thumbnail_url: bestImage,
+      variants: variants.map(v => ({
+        id: v.id,
+        name: v.name,
+        price: v.retail_price,
+        files: v.files,
+      })),
+    });
   } catch (err) {
     console.error("API ERROR:", err);
     res.status(500).json({ error: "Server error during fetch" });
