@@ -1,37 +1,35 @@
-//create-checkout-session.js
-import Stripe from 'stripe';
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
-
-  const { cartItems } = req.body;
-  if (!cartItems?.length) return res.status(400).json({ error: 'Cart empty' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
   try {
-    const line_items = cartItems.map(item => ({
-      price_data: {
-        currency: 'usd',
-        product_data: {
-          name: item.name,
-          images: item.image ? [item.image] : [],
-        },
-        unit_amount: Math.round(item.price * 100),
-      },
-      quantity: item.quantity ?? 1,
-    }));
-
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'payment',
-      line_items,
-      success_url: 'https://the-resilient-voice.vercel.app/success?session_id={CHECKOUT_SESSION_ID}',
-      cancel_url: 'https://the-resilient-voice.vercel.app/cart?status=canceled',
+      payment_method_types: ["card"],
+      line_items: req.body.cart.map(item => ({
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: item.name,
+            images: [item.image],
+          },
+          unit_amount: Math.round(Number(item.price) * 100),
+        },
+        quantity: item.quantity,
+      })),
+      mode: "payment",
+      success_url: `${req.headers.origin}/success`,
+      cancel_url: `${req.headers.origin}/cart`,
     });
 
-    res.json({ id: session.id });
+    // ✅ Return the session URL
+    res.status(200).json({ url: session.url });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    console.error("Stripe error:", err);
+    res.status(500).json({ error: "Failed to create session" });
   }
 }
