@@ -122,37 +122,23 @@ export default function ProductGrid() {
               ${product.price.toFixed(2)}
             </p>
 
-            {/* Size selector */}
-            <select
-              style={{
-                width: "100%",
-                padding: "0.8rem",
-                margin: "1rem 0",
-                borderRadius: "12px",
-                border: "1px solid #9f6baa",
-                background: "#111",
-                color: "#fff",
-              }}
-            >
-              {product.variants.map(v => (
-                <option key={v.size} value={v.size}>
-                  {v.size} {v.retail_price !== product.price ? `(+$${v.retail_price - product.price})` : ""}
-                </option>
-              ))}
-            </select>
+  {/* In ProductGrid.js, this is the cleaned-up block: */}
+
+          <div style={{ padding: "1.5rem" }}>
+            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.4rem", color: "#fff" }}>
+              {product.name}
+            </h3>
+
+            <p style={{ fontSize: "1.8rem", fontWeight: "bold", color: "#9f6baa", margin: "0.5rem 0" }}>
+              ${product.price.toFixed(2)}
+            </p>
+
+            {/* The Size Selector is removed to simplify the logic. */}
 
             <button
               onClick={() => addToCart(product)}
               style={{
-                width: "100%",
-                padding: "1rem",
-                background: "#9f6baa",
-                color: "white",
-                border: "none",
-                borderRadius: "12px",
-                fontSize: "1.2rem",
-                fontWeight: "bold",
-                cursor: "pointer",
+                // ... button styles ...
               }}
             >
               Add to Cart
