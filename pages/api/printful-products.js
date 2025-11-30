@@ -1,11 +1,10 @@
-// pages/api/printful-products.js   ← FINAL VERSION
+// pages/api/printful-products.js
 export default async function handler(req, res) {
-  // Use the correct env var name (you probably have PRINTFUL_API_KEY, not ACCESS_TOKEN)
   const token = process.env.PRINTFUL_API_KEY || process.env.PRINTFUL_ACCESS_TOKEN;
   if (!token) return res.status(500).json({ error: "Missing Printful token" });
 
   try {
-    const response = await fetch("https://api.printful.com/store/products", {
+    const response = await fetch("https://api.printful.com/sync/products", {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -19,11 +18,8 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-
-    // Printful returns: { result: [ { sync_product: {...}, sync_variants: [...] }, ... ] }
     const products = data.result || [];
 
-    // Clean & enrich each product so your frontend loves it
     const cleaned = products.map(item => {
       const syncProduct = item.sync_product;
       const variants = item.sync_variants || [];
@@ -36,11 +32,11 @@ export default async function handler(req, res) {
         "https://files.cdn.printful.com/o/upload/missing-image/800x800.jpg";
 
       return {
-        id: String(syncProduct.id),           // e.g. "403602928"
+        id: String(syncProduct.id),
         name: syncProduct.name,
         image: bestImage,
         price: parseFloat(firstVariant.retail_price || 29.99),
-        tags: (syncProduct.tags || "").toLowerCase(), // ← crucial for filtering later
+        tags: (syncProduct.tags || "").toLowerCase(),
         thumbnail_url: bestImage,
         sync_variants: variants,
       };
