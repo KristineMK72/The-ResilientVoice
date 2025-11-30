@@ -98,17 +98,35 @@ export default function Header() {
       <div style={{ height: "90px" }} />
 
       <style jsx>{`
-        @media (max-width: 940px) {
-          header > div > nav { display: none; }
-          header > div > button { display: block !important; }
-          header > div > a > span { font-size: 1.65rem !important; }
-          header > div > a > div { width: 48px !important; height: 48px !important; }
-        }
-        @media (max-width: 480px) {
-          header > div > a > span { font-size: 1.45rem !important; }
-          header > div > a > div { width: 44px !important; height: 44px !important; }
-        }
-      `}</style>
+  @media (max-width: 1024px) {
+    /* Hide the desktop nav completely on tablets & phones */
+    header > div > nav {
+      display: none !important;
+    }
+    /* Force-show the hamburger */
+    header > div > button {
+      display: block !important;
+    }
+    /* Slightly smaller brand text */
+    header > div > a > span {
+      font-size: 1.7rem !important;
+    }
+    header > div > a > div {
+      width: 48px !important;
+      height: 48px !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+    header > div > a > span {
+      font-size: 1.45rem !important;
+    }
+    header > div > a > div {
+      width: 44px !important;
+      height: 44px !important;
+    }
+  }
+`}</style>
     </>
   );
 }
