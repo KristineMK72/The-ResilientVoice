@@ -10,8 +10,8 @@ export default function Header() {
   const navLinks = [
     { href: "/", label: "Home", color: "#ffffff" },
     { href: "/saved-by-grace", label: "Saved By Grace", color: "#ff6666" },
-    { href: "/patriot", label: "Patriot", color: "#ff0000" },
-    { href: "/social", label: "Social", color: "#4488ff" },
+    { href: "/Patriot", label: "Patriot", color: "#ff0000" },
+    { href: "/Social", label: "Social", color: "#4488ff" },
     { href: "/blog", label: "Blog", color: "#ffaa00" },
     { href: "/about", label: "About", color: "#00ddff" },
     { href: "/cart", label: "Cart", color: "#ffcc00" },
