@@ -8,14 +8,11 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Missing API Token" });
     }
 
-    const response = await fetch(
-      `https://api.printful.com/sync/products/${id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await fetch(`https://api.printful.com/sync/products/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
     const json = await response.json();
 
@@ -27,12 +24,14 @@ export default async function handler(req, res) {
     const variants = json.result.sync_variants || [];
     const firstVariant = variants[0] || {};
 
+    // Pick the best preview image available
     const bestImage =
       firstVariant.files?.find(f => f.type === "preview")?.preview_url ||
       firstVariant.files?.[0]?.preview_url ||
       product.thumbnail_url ||
       "https://files.cdn.printful.com/o/upload/missing-image/800x800.jpg";
 
+    // ✅ Return product + all variants (sizes, colors, prices)
     res.status(200).json({
       id: String(product.id),
       name: product.name,
@@ -40,9 +39,9 @@ export default async function handler(req, res) {
       thumbnail_url: bestImage,
       variants: variants.map(v => ({
         id: v.id,
-        name: v.name,
-        price: v.retail_price,
-        files: v.files,
+        name: v.name,            // usually "Black / M" or "White / XL"
+        price: v.retail_price,   // string from Printful, safe to parseFloat later
+        files: v.files,          // includes preview images
       })),
     });
   } catch (err) {
