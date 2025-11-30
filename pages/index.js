@@ -19,7 +19,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>The Resilient Voice | Patriotic Truth Wear</title>
+        <title>Grit & Grace | Patriotic Truth Wear</title>
         <meta name="description" content="American-made apparel for those who refuse to be silenced." />
       </Head>
 
@@ -116,7 +116,7 @@ export default function Home() {
             letterSpacing: "0.08em",
           }}
         >
-          RESILIENT VOICE
+          GRIT & GRACE
         </h1>
 
         {/* Mission Statement */}
@@ -128,7 +128,7 @@ export default function Home() {
             lineHeight: "1.6",
           }}
         >
-          Resilient Voice is more than apparel — it's a movement that unites Christianity, patriotism, and social sustainability.
+          GRIT & GRACE by Resilient Voice is more than apparel — it's a movement that unites Christianity, patriotism, and social sustainability.
           Every design speaks truth with boldness, while proceeds support nonprofits tackling homelessness, housing insecurity,
           mental health, and suicide prevention. Wear your story. Live your values. Stand for hope.
         </p>
