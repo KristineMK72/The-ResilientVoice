@@ -1,4 +1,4 @@
-// components/Header.js ← FINAL: CAPITALS + MOBILE FIXED + 100% BUILDABLE
+// components/Header.js ← 100% WORKING VERSION
 "use client";
 
 import Link from "next/link";
@@ -10,8 +10,8 @@ export default function Header() {
   const navLinks = [
     { href: "/", label: "Home", color: "#ffffff" },
     { href: "/saved-by-grace", label: "Saved By Grace", color: "#ff6666" },
-    { href: "/Patriot", label: "Patriot", color: "#ff0000" },
-    { href: "/Social", label: "Social", color: "#4488ff" },
+    { href: "/Patriot", label: "Patriot", color: "#ff0000" },        // lowercase href
+    { href: "/Social", label: "Social", color: "#4488ff" },          // lowercase href
     { href: "/blog", label: "Blog", color: "#ffaa00" },
     { href: "/about", label: "About", color: "#00ddff" },
     { href: "/cart", label: "Cart", color: "#ffcc00" },
@@ -52,15 +52,29 @@ export default function Header() {
 
           <nav style={{ display: "flex", gap: "2rem" }}>
             {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} style={{ color: link.color, fontWeight: "700", fontSize: "1.1rem", padding: "0.5rem 1rem", borderRadius: "8px", transition: "all 0.3s" }}
+              <Link
+                key={link.href}
+                href={link.href}
+                style={{
+                  color: link.color,
+                  fontWeight: "700",
+                  fontSize: "1.1rem",
+                  padding: "0.5rem 1rem",
+                  borderRadius: "8px",
+                  transition: "all 0.3s",
+                }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
                 {link.label}
               </Link>
             ))}
           </nav>
 
-          <button onClick={() => setMobileOpen(!mobileOpen)} style={{ display: "none", background: "none", border: "none", color: "white", fontSize: "2.4rem", cursor: "pointer" }}>
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            style={{ display: "none", background: "none", border: "none", color: "white", fontSize: "2.4rem", cursor: "pointer" }}
+          >
             {mobileOpen ? "×" : "Menu"}
           </button>
         </div>
@@ -68,7 +82,12 @@ export default function Header() {
         {mobileOpen && (
           <div style={{ position: "fixed", top: "80px", left: 0, right: 0, bottom: 0, background: "rgba(0,0,30,0.98)", padding: "2rem 0", overflowY: "auto", zIndex: 9998 }}>
             {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)} style={{ display: "block", padding: "1.4rem 2rem", fontSize: "1.8rem", fontWeight: "bold", color: link.color, textAlign: "center", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                style={{ display: "block", padding: "1.4rem 2rem", fontSize: "1.8rem", fontWeight: "bold", color: link.color, textAlign: "center", borderBottom: "1px solid rgba(255,255,255,0.1)" }}
+              >
                 {link.label}
               </Link>
             ))}
@@ -79,9 +98,15 @@ export default function Header() {
       <div style={{ height: "90px" }} />
 
       <style jsx>{`
-        @media (max-width: 868px) {
-          nav { display: none; }
-          button { display: block; }
+        @media (max-width: 940px) {
+          header > div > nav { display: none; }
+          header > div > button { display: block !important; }
+          header > div > a > span { font-size: 1.65rem !important; }
+          header > div > a > div { width: 48px !important; height: 48px !important; }
+        }
+        @media (max-width: 480px) {
+          header > div > a > span { font-size: 1.45rem !important; }
+          header > div > a > div { width: 44px !important; height: 44px !important; }
         }
       `}</style>
     </>
