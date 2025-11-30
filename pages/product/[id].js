@@ -5,32 +5,58 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
+// 🏆 THE REWRITTEN AND FIXED PRODUCT PAGE COMPONENT 🏆
 export default function ProductPage() {
   const router = useRouter();
   const { id } = router.query;
   const [product, setProduct] = useState(null);
   const [added, setAdded] = useState(false);
+  
+  // 🟢 NEW: State to track the ID of the selected variant
+  const [selectedVariantId, setSelectedVariantId] = useState(null); 
 
   useEffect(() => {
     if (!id) return;
 
     fetch(`/api/printful-product/${id}`)
       .then((res) => res.json())
-      .then((data) => setProduct(data))
+      .then((data) => {
+        setProduct(data);
+        // 🟢 FIX 1: Set the default selected variant (the first one) when data loads
+        if (data.variants && data.variants.length > 0) {
+          setSelectedVariantId(data.variants[0].id); 
+        }
+      })
       .catch((err) => console.error("Product fetch error:", err));
   }, [id]);
 
+  // 🟢 FIX 2: Updated Cart Handler to use the selected variant ID
   const handleAddToCart = () => {
+    if (!selectedVariantId) {
+      alert("Please select a size first!");
+      return;
+    }
+
+    // Find the full data object for the selected size/variant
+    const variantToAdd = product.variants.find((v) => v.id === selectedVariantId);
+
+    if (!variantToAdd) {
+      alert("Error: Could not find variant details.");
+      return;
+    }
+
+    // Construct the cart item using the selected variant's details
     const cartItem = {
-      id: product.variants[0].id,
-      productId: product.id,
-      name: product.name,
-      price: product.variants[0].price,
-      image: product.image,
+      id: selectedVariantId, // CRITICAL: Use the unique VARIANT ID for cart tracking
+      productId: product.id, 
+      name: variantToAdd.name, // The full variant name (e.g., "T-Shirt / M")
+      price: variantToAdd.price, 
+      image: product.thumbnail_url,
       quantity: 1,
     };
 
     const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
+    // Find item based on its unique variant ID
     const exists = existingCart.find((item) => item.id === cartItem.id);
 
     if (exists) {
@@ -43,13 +69,17 @@ export default function ProductPage() {
     setAdded(true);
     setTimeout(() => setAdded(false), 3000);
   };
-
+  
+  // Display loading screen if product is null
   if (!product)
     return (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "white", fontSize: "1.5rem" }}>
         Loading...
       </div>
     );
+
+  // Find the price of the currently selected variant (defaults to 0 if none is selected)
+  const currentPrice = product.variants.find(v => v.id === selectedVariantId)?.price || product.variants?.[0]?.price || 0;
 
   return (
     <div
@@ -61,12 +91,12 @@ export default function ProductPage() {
         textAlign: "center",
       }}
     >
-      {/* Backdrop glow */}
+      {/* Backdrop glow (using a neutral glow for safety) */}
       <div
         style={{
           position: "fixed",
           inset: 0,
-          background: "conic-gradient(from 180deg at 50% 50%, #ff0000 0deg, #0000ff 120deg, #ff0000 360deg)",
+          background: "conic-gradient(from 180deg at 50% 50%, #4f46e5 0deg, #be185d 120deg, #4f46e5 360deg)",
           opacity: 0.08,
           animation: "spin 40s linear infinite",
           pointerEvents: "none",
@@ -82,7 +112,7 @@ export default function ProductPage() {
       {/* Product Image */}
       <div style={{ maxWidth: "500px", margin: "0 auto 2rem" }}>
         <Image
-          src={product.image}
+          src={product.thumbnail_url || product.image || "/Logo.jpeg"} 
           alt={product.name}
           width={600}
           height={600}
@@ -100,11 +130,51 @@ export default function ProductPage() {
           {product.description}
         </p>
       )}
+      
+      {/* Display Price (uses the price of the currently selected variant) */}
       <p style={{ fontSize: "2.4rem", fontWeight: "bold", color: "#ff6b6b", margin: "1.5rem 0" }}>
-        ${product.variants?.[0]?.price}
+        ${parseFloat(currentPrice).toFixed(2)}
       </p>
 
-      {/* Add to Cart Button – Fully Fixed & Beautiful */}
+      {/* 🟢 FIX 3: Variant Selection UI */}
+      {product.variants?.length > 0 && (
+        <div className="size-selector" style={{ margin: "2rem auto 2.5rem", maxWidth: "400px" }}>
+          <h3 style={{ fontSize: "1.4rem", marginBottom: "1rem", fontWeight: "600" }}>
+            Choose Your Size:
+          </h3>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "center" }}>
+            {product.variants.map((variant) => {
+              // Extracts the size label (e.g., "S") from the full name string
+              const sizeName = variant.name.split('/').pop().trim();
+              const isSelected = variant.id === selectedVariantId;
+
+              return (
+                <button
+                  key={variant.id}
+                  onClick={() => setSelectedVariantId(variant.id)}
+                  style={{
+                    padding: "10px 20px",
+                    border: isSelected ? "3px solid #ff4444" : "1px solid #475569",
+                    backgroundColor: isSelected ? "#ff444420" : "transparent",
+                    color: isSelected ? "#ff4444" : "white",
+                    borderRadius: "8px",
+                    fontSize: "1rem",
+                    fontWeight: "500",
+                    cursor: "pointer",
+                    transition: "all 0.1s",
+                  }}
+                >
+                  {sizeName}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {/* End Variant Selection UI */}
+
+
+      {/* Add to Cart Button */}
       {!added ? (
         <button
           onClick={handleAddToCart}
