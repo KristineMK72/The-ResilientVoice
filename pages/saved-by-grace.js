@@ -56,6 +56,9 @@ export default function SavedByGrace() {
   const addToCart = (product) => {
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
     const existing = cart.find(item => item.id === product.id);
+
+    const productImage = product.thumbnail_url || product.preview_url;
+
     if (existing) {
       existing.quantity += 1;
     } else {
@@ -63,7 +66,7 @@ export default function SavedByGrace() {
         id: product.id,
         name: product.name,
         price: product.variants?.[0]?.price || 29.99,
-        image: product.image,
+        image: productImage,
         quantity: 1,
       });
     }
@@ -121,7 +124,7 @@ export default function SavedByGrace() {
               <Link href={`/product/${product.id}`}>
                 <div style={{ height: "460px", position: "relative", background: "#f8f5fa" }}>
                   <Image
-                    src={product.image}
+                    src={product.thumbnail_url || product.preview_url}
                     alt={product.name}
                     fill
                     style={{ objectFit: "contain", padding: "40px" }}
