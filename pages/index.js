@@ -58,7 +58,7 @@ export default function Home() {
         {/* Logo */}
         <div style={{ marginBottom: "2rem", position: "relative", zIndex: 10 }}>
           <Image
-            src="/IMG_8198.jpeg"
+            src="/Logo.jpeg"
             alt="The Resilient Voice"
             width={700}
             height={700}
