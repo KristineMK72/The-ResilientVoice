@@ -121,7 +121,7 @@ export default function Patriot() {
         >
           <div style={{ marginBottom: "2rem" }}>
             <Image
-              src="/IMG_8198.jpeg"
+              src="/gritngrlogo.png"
               alt="Patriot Collection"
               width={600}
               height={600}
