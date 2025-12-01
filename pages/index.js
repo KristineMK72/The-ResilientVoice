@@ -1,25 +1,45 @@
-// pages/index.js  ← YOUR CODE + PRODUCT TEASER BELOW LOGO
 "use client";
 
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";  // ← Added for fetch (one line)
+import { useEffect, useState } from "react";
+
+// *** NEW: List of IDs to feature on the homepage ***
+const FEATURED_PRODUCT_IDS = [
+  "402034024", // Example ID for Saved By Grace (original shirt)
+  "405190886", // Patriot shirt ID (your new shirt)
+];
+// ****************************************************
 
 export default function Home() {
-  const [featuredProduct, setFeaturedProduct] = useState(null);  // ← For product data
-
+  const [featuredProducts, setFeaturedProducts] = useState([]); // Changed to an array
+  
   useEffect(() => {
-    fetch("/api/printful-product/402034024")  // ← Your product ID
-      .then(res => res.ok ? res.json() : null)
-      .then(data => setFeaturedProduct(data))
-      .catch(() => {});  // Silent fail if needed
+    async function loadFeaturedProducts() {
+      const loaded = [];
+      for (const id of FEATURED_PRODUCT_IDS) {
+        try {
+          const res = await fetch(`/api/printful-product/${id}`);
+          if (res.ok) {
+            const data = await res.json();
+            // Assign a collection key for linking buttons
+            data.collection = (id === "405190886") ? "Patriot" : "Saved By Grace";
+            loaded.push(data);
+          }
+        } catch (err) {
+          console.error(`Error loading featured product ${id}:`, err);
+        }
+      }
+      setFeaturedProducts(loaded);
+    }
+    loadFeaturedProducts();
   }, []);
 
   return (
     <>
       <Head>
-        <title>Grit & Grace | Patriotic Truth Wear</title>
+        <title>Grit & Grace: A Resilient Voice Brand | Patriotic Truth Wear</title>
         <meta name="description" content="American-made apparel for those who refuse to be silenced." />
       </Head>
 
@@ -59,7 +79,7 @@ export default function Home() {
         <div style={{ marginBottom: "2rem", position: "relative", zIndex: 10 }}>
           <Image
             src="/Logo.jpeg"
-            alt="The Resilient Voice"
+            alt="Grit & Grace"
             width={700}
             height={700}
             priority
@@ -71,38 +91,54 @@ export default function Home() {
           />
         </div>
 
-        {/* FIXED PRODUCT TEASER + WORKING BUTTON */}
-        {featuredProduct && (
-          <div style={{ marginBottom: "2rem", padding: "1.5rem", background: "rgba(255,255,255,0.1)", borderRadius: "16px", maxWidth: "400px" }}>
-            <Image
-              src={featuredProduct.image}
-              alt={featuredProduct.name}
-              width={300}
-              height={300}
-              style={{ borderRadius: "12px", marginBottom: "1rem" }}
-            />
-            <h3 style={{ fontSize: "1.4rem", margin: "0 0 0.5rem", color: "#fff" }}>{featuredProduct.name}</h3>
-            <p style={{ fontSize: "1.6rem", fontWeight: "bold", color: "#ff6b6b", margin: "0 0 1rem" }}>
-              ${featuredProduct.variants?.[0]?.price}
-            </p>
+        {/* *** UPDATED: FEATURED PRODUCT TEASERS *** */}
+        <div 
+          style={{ 
+            display: 'flex', 
+            gap: '30px', 
+            justifyContent: 'center', 
+            flexWrap: 'wrap', 
+            marginBottom: "2rem", 
+            position: 'relative', 
+            zIndex: 10 
+          }}
+        >
+          {featuredProducts.map((product) => (
+            <div 
+              key={product.id}
+              style={{ padding: "1.5rem", background: "rgba(255,255,255,0.1)", borderRadius: "16px", maxWidth: "350px" }}
+            >
+              <h4 style={{ color: '#fff', fontSize: '1.2rem', margin: '0 0 1rem' }}>{product.collection} Featured</h4>
+              <Image
+                src={product.image || product.thumbnail_url}
+                alt={product.name}
+                width={300}
+                height={300}
+                style={{ borderRadius: "12px", marginBottom: "1rem" }}
+              />
+              <h3 style={{ fontSize: "1.4rem", margin: "0 0 0.5rem", color: "#fff" }}>{product.name}</h3>
+              <p style={{ fontSize: "1.6rem", fontWeight: "bold", color: "#ff6b6b", margin: "0 0 1rem" }}>
+                ${product.variants?.[0]?.price}
+              </p>
 
-            {/* THIS IS THE WORKING BUTTON */}
-            <Link href="/product/402034024" legacyBehavior>
-              <a style={{ 
-                display: "inline-block", 
-                padding: "0.8rem 1.5rem", 
-                background: "#ff6b6b", 
-                color: "white", 
-                borderRadius: "8px", 
-                textDecoration: "none",
-                fontWeight: "600"
-              }}>
-                View Product
-              </a>
-            </Link>
-          </div>
-        )}
-
+              <Link href={`/product/${product.id}`} legacyBehavior>
+                <a style={{ 
+                  display: "inline-block", 
+                  padding: "0.8rem 1.5rem", 
+                  background: "#ff6b6b", 
+                  color: "white", 
+                  borderRadius: "8px", 
+                  textDecoration: "none",
+                  fontWeight: "600"
+                }}>
+                  View Product
+                </a>
+              </Link>
+            </div>
+          ))}
+        </div>
+        {/* *** END FEATURED PRODUCT TEASERS *** */}
+        
         {/* Title */}
         <h1
           style={{
@@ -128,29 +164,49 @@ export default function Home() {
             lineHeight: "1.6",
           }}
         >
-          GRIT & GRACE by Resilient Voice is more than apparel — it's a movement that unites Christianity, patriotism, and social sustainability.
+          Grit & Grace is more than apparel — it's the retail movement founded by **The Resilient Voice** to unite Christianity, patriotism, and social sustainability.
           Every design speaks truth with boldness, while proceeds support nonprofits tackling homelessness, housing insecurity,
           mental health, and suicide prevention. Wear your story. Live your values. Stand for hope.
         </p>
 
-        {/* CTA */}
-        <Link
-          href="/saved-by-grace"
-          style={{
-            marginTop: "2rem",
-            padding: "1.2rem 2.4rem",
-            fontSize: "1.6rem",
-            fontWeight: "600",
-            background: "linear-gradient(90deg, #ff4444, #4444ff)",
-            color: "white",
-            borderRadius: "12px",
-            textDecoration: "none",
-            boxShadow: "0 0 25px rgba(255,255,255,0.2)",
-            zIndex: 10,
-          }}
-        >
-          Explore the Collection
-        </Link>
+        {/* *** NEW: COLLECTION CALL-TO-ACTION BUTTONS *** */}
+        <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', zIndex: 10 }}>
+            {/* Saved By Grace Button */}
+            <Link
+              href="/saved-by-grace"
+              style={{
+                marginTop: "2rem",
+                padding: "1.2rem 2.4rem",
+                fontSize: "1.6rem",
+                fontWeight: "600",
+                background: "linear-gradient(90deg, #ff4444, #4444ff)",
+                color: "white",
+                borderRadius: "12px",
+                textDecoration: "none",
+                boxShadow: "0 0 25px rgba(255,255,255,0.2)",
+              }}
+            >
+              Shop Saved By Grace
+            </Link>
+             {/* Patriot Button */}
+             <Link
+              href="/Patriot"
+              style={{
+                marginTop: "2rem",
+                padding: "1.2rem 2.4rem",
+                fontSize: "1.6rem",
+                fontWeight: "600",
+                background: "#00bfa5", // A different color for differentiation
+                color: "white",
+                borderRadius: "12px",
+                textDecoration: "none",
+                boxShadow: "0 0 25px rgba(255,255,255,0.2)",
+              }}
+            >
+              Shop Patriot
+            </Link>
+        </div>
+        {/* *** END CALL-TO-ACTION BUTTONS *** */}
       </div>
     </>
   );
