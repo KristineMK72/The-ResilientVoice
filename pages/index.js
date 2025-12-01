@@ -78,7 +78,7 @@ export default function Home() {
         {/* Logo */}
         <div style={{ marginBottom: "2rem", position: "relative", zIndex: 10 }}>
           <Image
-  src="/gritgrace1.jpg"   // ✅ new logo file in /public
+  src="/gritngrlogo.png"   // ✅ new logo file in /public
   alt="Grit & Grace Logo"
   width={700}
   height={700}
