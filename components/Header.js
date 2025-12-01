@@ -15,7 +15,7 @@ export default function Header() {
     { href: "/blog", label: "Blog", color: "#ffaa00" },
     { href: "/about", label: "About", color: "#00ddff" },
     { href: "/cart", label: "Cart", color: "#ffcc00" },
-    { href: "/Legal", label: "Legal",  oolor: #ff0000" },
+    { href: "/Legal", label: "Legal",  oolor: "#ff0000" },
   ];
 
   return (
