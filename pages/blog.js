@@ -173,7 +173,7 @@ export default function Blog() {
         >
           🌿 With love, faith, and gratitude,
           <br />
-          Kristine — Founder, The Resilient Voice & Grit & Grace
+          Kristine — The Resilient Voice & Grit & Grace
         </p>
       </section>
     </main>
