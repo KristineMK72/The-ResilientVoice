@@ -78,17 +78,17 @@ export default function Home() {
         {/* Logo */}
         <div style={{ marginBottom: "2rem", position: "relative", zIndex: 10 }}>
           <Image
-            src="/Logo.jpeg"
-            alt="Grit & Grace"
-            width={700}
-            height={700}
-            priority
-            style={{
-              maxWidth: "95vw",
-              height: "auto",
-              filter: "drop-shadow(0 0 50px rgba(255,255,255,0.7))",
-            }}
-          />
+  src="/gritgrace1.jpg"   // ✅ new logo file in /public
+  alt="Grit & Grace Logo"
+  width={700}
+  height={700}
+  priority
+  style={{
+    maxWidth: "95vw",
+    height: "auto",
+    filter: "drop-shadow(0 0 50px rgba(255,255,255,0.7))",
+  }}
+/>
         </div>
 
         {/* *** UPDATED: FEATURED PRODUCT TEASERS *** */}
