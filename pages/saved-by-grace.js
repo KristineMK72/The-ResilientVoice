@@ -210,26 +210,28 @@ export default function SavedByGrace() {
                 >
                   {formatPrice(product.variants?.[0]?.price)}
                 </p>
-                <button
-                  onClick={() => addToCart(product)}
-                  style={{
-                    width: "100%",
-                    padding: "1.4rem",
-                    background: "#9f6baa",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "16px",
-                    fontSize: "1.3rem",
-                    fontWeight: "bold",
-                    cursor: "pointer",
-                  }}
-                >
-                  Add to Cart
-                </button>
+                
               </div>
             </div>
           ))}
         </div>
+            <Link href={`/product/${product.id}`}>
+  <a
+    style={{
+      display: "inline-block",
+      width: "100%",
+      padding: "1.4rem",
+      background: "#9f6baa",
+      color: "white",
+      borderRadius: "16px",
+      fontSize: "1.3rem",
+      fontWeight: "bold",
+      textDecoration: "none",
+    }}
+  >
+    View Details →
+  </a>
+</Link>
 
         <div
           style={{
