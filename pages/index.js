@@ -189,22 +189,40 @@ export default function Home() {
               Shop Saved By Grace
             </Link>
              {/* Patriot Button */}
-             <Link
-              href="/Patriot"
-              style={{
-                marginTop: "2rem",
-                padding: "1.2rem 2.4rem",
-                fontSize: "1.6rem",
-                fontWeight: "600",
-                background: "#00bfa5", // A different color for differentiation
-                color: "white",
-                borderRadius: "12px",
-                textDecoration: "none",
-                boxShadow: "0 0 25px rgba(255,255,255,0.2)",
-              }}
-            >
-              Shop Patriot
-            </Link>
+<Link
+  href="/Patriot"
+  style={{
+    marginTop: "2rem",
+    padding: "1.2rem 2.4rem",
+    fontSize: "1.6rem",
+    fontWeight: "600",
+    background: "#00bfa5",
+    color: "white",
+    borderRadius: "12px",
+    textDecoration: "none",
+    boxShadow: "0 0 25px rgba(255,255,255,0.2)",
+  }}
+>
+  Shop Patriot
+</Link>
+
+{/* Social Button */}
+<Link
+  href="/Social"
+  style={{
+    marginTop: "2rem",
+    padding: "1.2rem 2.4rem",
+    fontSize: "1.6rem",
+    fontWeight: "600",
+    background: "#ff6b6b",
+    color: "white",
+    borderRadius: "12px",
+    textDecoration: "none",
+    boxShadow: "0 0 25px rgba(255,255,255,0.2)",
+  }}
+>
+  Shop Social
+</Link>
         </div>
         {/* *** END CALL-TO-ACTION BUTTONS *** */}
       </div>
