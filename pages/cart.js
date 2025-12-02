@@ -41,6 +41,13 @@ export default function CartPage() {
     );
   }
 
+  // Helper to build mockup paths
+  const getMockupPaths = (id) => [
+    `/${id}_1.png`,
+    `/${id}_2.png`,
+    `/${id}_3.png`,
+  ];
+
   return (
     <div style={{ padding: "4rem", maxWidth: "900px", margin: "0 auto" }}>
       <h1 style={{ fontSize: "3rem", marginBottom: "2rem" }}>Your Cart</h1>
@@ -49,37 +56,87 @@ export default function CartPage() {
           <li
             key={item.id}
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "1.5rem",
+              marginBottom: "2rem",
               borderBottom: "1px solid #ddd",
-              paddingBottom: "1rem",
+              paddingBottom: "1.5rem",
             }}
           >
-            <div>
-              <strong>{item.name}</strong>
-              <div style={{ fontSize: "1.2rem", color: "#555" }}>
-                {item.quantity} × {formatPrice(item.price)}
-              </div>
-            </div>
-            <button
-              onClick={() => removeFromCart(item.id)}
+            {/* Product info row */}
+            <div
               style={{
-                background: "transparent",
-                border: "1px solid #9f6baa",
-                color: "#9f6baa",
-                padding: "0.5rem 1rem",
-                borderRadius: "8px",
-                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
             >
-              Remove
-            </button>
+              <div style={{ flex: 1 }}>
+                <strong>{item.name}</strong>
+                <div style={{ fontSize: "1.2rem", color: "#555" }}>
+                  {item.quantity} × {formatPrice(item.price)}
+                </div>
+              </div>
+              <button
+                onClick={() => removeFromCart(item.id)}
+                style={{
+                  background: "transparent",
+                  border: "1px solid #9f6baa",
+                  color: "#9f6baa",
+                  padding: "0.5rem 1rem",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                }}
+              >
+                Remove
+              </button>
+            </div>
+
+            {/* Main product image */}
+            <div style={{ marginTop: "1rem" }}>
+              <img
+                src={item.image}
+                alt={item.name}
+                style={{
+                  width: "120px",
+                  height: "120px",
+                  objectFit: "contain",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                }}
+              />
+            </div>
+
+            {/* Additional mockups */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "12px",
+                marginTop: "1rem",
+              }}
+            >
+              {getMockupPaths(item.productId || item.id).map((path, index) => (
+                <img
+                  key={index}
+                  src={path}
+                  alt={`${item.name} mockup ${index + 1}`}
+                  style={{
+                    width: "100px",
+                    height: "100px",
+                    objectFit: "contain",
+                    borderRadius: "8px",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none"; // hide if file doesn’t exist
+                  }}
+                />
+              ))}
+            </div>
           </li>
         ))}
       </ul>
 
+      {/* Subtotal */}
       <div
         style={{
           textAlign: "right",
@@ -91,6 +148,21 @@ export default function CartPage() {
         Subtotal: {formatPrice(subtotal)}
       </div>
 
+      {/* Thank you message */}
+      <div
+        style={{
+          textAlign: "center",
+          marginTop: "2rem",
+          fontSize: "1.4rem",
+          color: "#444",
+          fontWeight: "500",
+        }}
+      >
+        ❤️ Thank you for shopping and supporting non‑profits.  
+        Your purchase helps us give back!
+      </div>
+
+      {/* Checkout button */}
       <div style={{ textAlign: "center", marginTop: "3rem" }}>
         <button
           onClick={checkout}
