@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-// 🏆 THE REWRITTEN PRODUCT PAGE WITH MOCKUP GALLERY 🏆
+// 🏆 PRODUCT PAGE WITH SCROLLABLE MOCKUP GALLERY 🏆
 export default function ProductPage() {
   const router = useRouter();
   const { id } = router.query;
@@ -105,19 +105,30 @@ export default function ProductPage() {
         />
       </div>
 
-      {/* Additional Mockups */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", justifyContent: "center", marginTop: "2rem" }}>
+      {/* Scrollable Mockup Gallery */}
+      <div
+        style={{
+          display: "flex",
+          overflowX: "auto",
+          gap: "16px",
+          padding: "1rem",
+          marginTop: "2rem",
+          scrollSnapType: "x mandatory",
+        }}
+      >
         {getMockupPaths(product.id).map((path, index) => (
           <img
             key={index}
             src={path}
             alt={`${product.name} mockup ${index + 1}`}
             style={{
-              width: "200px",
-              height: "200px",
+              flex: "0 0 auto",
+              width: "250px",
+              height: "250px",
               objectFit: "contain",
               borderRadius: "12px",
               boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+              scrollSnapAlign: "center",
             }}
             onError={(e) => {
               e.currentTarget.style.display = "none"; // hide if file doesn’t exist
