@@ -8,7 +8,13 @@ import { useEffect, useState } from "react";
 import { formatPrice } from "../lib/formatPrice";
 
 const PATRIOT_PRODUCT_IDS = [
-  "405190886", // 👈 your newest shirt
+  "405190886",
+  "405370119",
+  "405370052",
+  "405369860",
+  "405368640",
+  "405370509",
+  // 👈 your newest shirt
   // add other Patriot product IDs here
 ];
 
