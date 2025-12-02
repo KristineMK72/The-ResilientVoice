@@ -15,6 +15,7 @@ const PATRIOT_PRODUCT_IDS = [
   "405368640",
   "405370509",
   "405508342",
+  "405510593",
   // 👈 your newest shirt
   // add other Patriot product IDs here
 ];
