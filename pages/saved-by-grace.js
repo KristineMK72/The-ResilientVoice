@@ -57,28 +57,6 @@ export default function SavedByGrace() {
     loadProducts();
   }, []);
 
-  const addToCart = (product) => {
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const existing = cart.find((item) => item.id === product.id);
-
-    const productImage = product.thumbnail_url || product.preview_url;
-
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      cart.push({
-        id: product.id,
-        name: product.name,
-        price: Number(product.variants?.[0]?.price) || 29.99,
-        image: productImage,
-        quantity: 1,
-      });
-    }
-
-    localStorage.setItem("cart", JSON.stringify(cart));
-    alert(`${product.name} added to cart!`);
-  };
-
   if (loading) {
     return (
       <div style={{ textAlign: "center", padding: "12rem 1rem" }}>
@@ -125,6 +103,7 @@ export default function SavedByGrace() {
           minHeight: "100vh",
         }}
       >
+        {/* Hero */}
         <div style={{ textAlign: "center", padding: "6rem 1rem 4rem" }}>
           <h1
             style={{
@@ -152,6 +131,7 @@ export default function SavedByGrace() {
           </p>
         </div>
 
+        {/* Product grid */}
         <div
           style={{
             padding: "2rem 1rem 6rem",
@@ -210,28 +190,27 @@ export default function SavedByGrace() {
                 >
                   {formatPrice(product.variants?.[0]?.price)}
                 </p>
-                
+                <Link href={`/product/${product.id}`}>
+                  <a
+                    style={{
+                      display: "inline-block",
+                      width: "100%",
+                      padding: "1.4rem",
+                      background: "#9f6baa",
+                      color: "white",
+                      borderRadius: "16px",
+                      fontSize: "1.3rem",
+                      fontWeight: "bold",
+                      textDecoration: "none",
+                    }}
+                  >
+                    View Details →
+                  </a>
+                </Link>
               </div>
             </div>
           ))}
         </div>
-            <Link href={`/product/${product.id}`}>
-  <a
-    style={{
-      display: "inline-block",
-      width: "100%",
-      padding: "1.4rem",
-      background: "#9f6baa",
-      color: "white",
-      borderRadius: "16px",
-      fontSize: "1.3rem",
-      fontWeight: "bold",
-      textDecoration: "none",
-    }}
-  >
-    View Details →
-  </a>
-</Link>
 
         <div
           style={{
