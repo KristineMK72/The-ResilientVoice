@@ -220,24 +220,22 @@ export default function ProductPage() {
       )}
 
       {/* Back to Collection */}
-      <div style={{ marginTop: "3rem" }}>
-        <Link href="/saved-by-grace">
-          <a
-            style={{
-              padding: "1rem 2rem",
-              background: "linear-gradient(90deg, #ff4444, #4444ff)",
-              color: "white",
-              borderRadius: "12px",
-              textDecoration: "none",
-              fontWeight: "600",
-              fontSize: "1.2rem",
-              display: "inline-block",
-            }}
-          >
-            ← Explore Full Collection
-          </a>
-        </Link>
-      </div>
+     <div style={{ marginTop: "3rem" }}>
+  <button
+    onClick={() => router.back()}
+    style={{
+      padding: "1rem 2rem",
+      background: "linear-gradient(90deg, #ff4444, #4444ff)",
+      color: "white",
+      borderRadius: "12px",
+      fontWeight: "600",
+      fontSize: "1.2rem",
+      cursor: "pointer",
+    }}
+  >
+    ← Keep Shopping
+  </button>
+</div>
     </div>
   );
 }
