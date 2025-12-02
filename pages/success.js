@@ -35,11 +35,15 @@ export default function SuccessPage() {
 
   return (
     <div style={{ textAlign: "center", padding: "2rem" }}>
-      <h1>🎉 Thank you for your order!</h1>
+      <h1>🎉 ❤️ Thank you for shopping and supporting non‑profits.  
+  Your purchase helps us give back!
+
+</h1>
       <p>Your payment was successful.</p>
       <p><strong>Order ID:</strong> {session.id}</p>
       <p><strong>Email:</strong> {session.customer_details?.email}</p>
       <p>We’ll send you updates as your items ship.</p>
+      
     </div>
   );
 }
