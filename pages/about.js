@@ -1,103 +1,181 @@
-// This is the updated code for your About page file (e.g., pages/about.js)
-
 export default function AboutPage() {
+  // Define common styles for a clean, consistent look
+  const paragraphStyle = {
+    fontSize: "1.2rem",
+    lineHeight: "1.6",
+    marginBottom: "1.5rem",
+  };
+
+  const linkStyle = {
+    color: "#ffc0cb", // Light pink for contrast
+    textDecoration: "underline",
+    fontWeight: "bold",
+  };
+
   return (
     <main
-      // *** AMAZING BACKGROUND STYLING ADDED HERE ***
+      // Main container uses the deep, resilient indigo-to-purple gradient
       style={{
         minHeight: "100vh",
         padding: "1rem 0",
-        // A deep, resilient indigo-to-purple gradient
-        background: "linear-gradient(145deg, #181d33 0%, #30264a 100%)", 
-        color: "#ffffff",
+        background: "linear-gradient(145deg, #181d33 0%, #30264a 100%)",
         display: "flex",
         justifyContent: "center",
       }}
     >
       <section
-        className="card about-card"
-        // Added inline styles to the card for a clean, floating look
+        // The main card uses semi-transparent glassmorphism styling
         style={{
           maxWidth: "900px",
           width: "90%",
           padding: "4rem 3rem",
           margin: "80px 0",
           borderRadius: "16px",
-          background: "rgba(255, 255, 255, 0.05)", // Semi-transparent white overlay
+          background: "rgba(255, 255, 255, 0.05)",
           boxShadow: "0 20px 40px rgba(0, 0, 0, 0.4)",
-          backdropFilter: "blur(8px)", // Blurs the background behind the card
+          backdropFilter: "blur(8px)",
           border: "1px solid rgba(255, 255, 255, 0.1)",
+          color: "#ffffff",
         }}
       >
+        {/* === SECTION 1: MISSION & VOICE === */}
         <h1
-          className="about-title"
-          // Updated title to the new brand name
-          style={{ 
-            fontSize: "3.2rem", 
-            fontWeight: "900", 
+          style={{
+            fontSize: "3.2rem",
+            fontWeight: "900",
             marginBottom: "1.5rem",
-            color: "#b0c4de" // Light, subtle color
+            color: "#b0c4de",
+            textAlign: "center",
           }}
         >
-          Our Mission: The Resilient Voice behind Grit & Grace
+          Our Mission: The Resilient Voice & Grit & Grace
         </h1>
-        <p className="about-text" style={{ fontSize: "1.2rem", lineHeight: "1.6" }}>
+
+        <p style={paragraphStyle}>
           The **Grit & Grace** store is the retail voice born from storms — the kind that shake you,
-          refine you, and push you closer to God’s purpose. Every hardship,
-          heartbreak, and silent battle became a reminder that even when life
-          breaks us open, grace pours in.
+          refine you, and push you closer to God’s purpose. Every hardship and silent battle became a
+          reminder that even when life breaks us open, **God’s grace** pours in.
         </p>
-        <p className="about-text" style={{ fontSize: "1.2rem", lineHeight: "1.6" }}>
-          This brand is more than apparel. It is a mission rooted in healing,
-          faith, and courage. Every design is crafted to speak life — to remind
-          you that you are seen, you are strong, and you are deeply loved.
+
+        <p style={paragraphStyle}>
+          This brand is more than apparel. It is a ministry rooted in healing, faith, and courage. Every
+          design is crafted to speak life — to remind you that you are seen, you are strong, and you are
+          **deeply loved** by God.
         </p>
-        <blockquote 
-          className="about-quote"
-          style={{ 
-            fontSize: "1.5rem", 
-            fontStyle: "italic", 
-            margin: "2rem 0", 
+
+        <blockquote
+          style={{
+            fontSize: "1.5rem",
+            fontStyle: "italic",
+            margin: "2rem 0",
             paddingLeft: "1.5rem",
-            borderLeft: "4px solid #f8f8f8" // Subtle quote highlight
+            borderLeft: "4px solid #b0c4de",
+            color: "#b0c4de",
           }}
         >
           “You are not alone. You have strength. You are seen.”
         </blockquote>
-        <h2 className="about-subtitle" style={{ fontSize: "2rem", marginTop: "2rem", color: "#87cefa" }}>Our Purpose & Impact</h2>
-        <p className="about-text" style={{ fontSize: "1.2rem", lineHeight: "1.6" }}>
-          Part of walking in purpose means giving back. That’s why{" "}
-          <strong className="about-bold" style={{ color: "#ffc0cb" }}>
-            10% of all proceeds are donated to nonprofits
-          </strong>{" "}
-          that support people who need hope the most:
-        </p>
-        <ul className="about-list" style={{ listStyle: "none", paddingLeft: "0", fontSize: "1.2rem" }}>
-          <li style={{ marginBottom: "0.5rem" }}>🕊️ Suicide prevention & awareness</li>
-          <li style={{ marginBottom: "0.5rem" }}>💬 Anti-bullying programs</li>
-          <li style={{ marginBottom: "0.5rem" }}>💚 Mental health support networks</li>
-          <li style={{ marginBottom: "0.5rem" }}>🏠 Homelessness relief and restoration</li>
-        </ul>
-        <p className="about-text" style={{ fontSize: "1.2rem", lineHeight: "1.6" }}>
-          These causes resonate deeply because they reflect the storms I’ve
-          survived — moments when hope felt far away, yet grace showed up through
-          a message, a person, or a single act of compassion.
-        </p>
-        <h2 className="about-subtitle" style={{ fontSize: "2rem", marginTop: "2rem", color: "#87cefa" }}>A Community of Faith & Strength</h2>
-        <p className="about-text" style={{ fontSize: "1.2rem", lineHeight: "1.6" }}>
-          When you wear **Grit & Grace**, you’re not just buying apparel —
-          you’re becoming part of a movement. You’re spreading messages of hope,
-          resilience, and God’s unshakable grace.
-        </p>
-        <p className="about-text" style={{ fontSize: "1.2rem", lineHeight: "1.6" }}>
-          My prayer is that this becomes a community of people who lift each
-          other up, speak life into one another, and walk boldly in their
-          purpose.
-        </p>
-        <p className="about-signature" style={{ marginTop: "2rem", fontStyle: "italic", color: "#ffc0cb" }}>
+
+        <hr style={{ border: "0", borderTop: "1px solid rgba(255, 255, 255, 0.1)", margin: "3rem 0" }} />
+
+        {/* === SECTION 2: IMPACT & CAUSES === */}
+        <div style={{ padding: "0 0" }}>
+          <h2
+            style={{
+              fontSize: "2.5rem",
+              marginBottom: "1.5rem",
+              color: "#ffc0cb",
+              textAlign: "center",
+            }}
+          >
+            Giving Back: Our Commitment to Impact
+          </h2>
+          <p style={paragraphStyle}>
+            Part of walking in God’s purpose means giving back in abundance. That’s why, through every
+            purchase from our Grit & Grace apparel line, we're committed to donating{" "}
+            <strong style={{ color: "#ffc0cb" }}>10% of every sale</strong> to organizations that uplift
+            lives and restore hope in our communities.
+          </p>
+
+          <h3
+            style={{
+              fontSize: "1.5rem",
+              marginTop: "2rem",
+              marginBottom: "1rem",
+              color: "#b0c4de",
+            }}
+          >
+            Our Supported Causes
+          </h3>
+          <ul style={{ listStyle: "none", paddingLeft: "0", fontSize: "1.1rem" }}>
+            <li style={{ marginBottom: "0.8rem" }}>
+              🏠 <strong>Homelessness Support:</strong>{" "}
+              <a
+                href="https://www.bridgesofhopemn.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={linkStyle}
+              >
+                Bridges of Hope
+              </a>{" "}
+              — Providing shelter, food, and crisis support in Central Minnesota.
+            </li>
+            <li style={{ marginBottom: "0.8rem" }}>
+              💚 <strong>Mental Health Advocacy:</strong>{" "}
+              <a
+                href="https://mnwitw.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={linkStyle}
+              >
+                Wellness in the Woods
+              </a>{" "}
+              — Offering 24/7 peer support and recovery programs across rural communities.
+            </li>
+            <li style={{ marginBottom: "0.8rem" }}>
+              💙 <strong>Suicide Prevention:</strong>{" "}
+              <a
+                href="https://www.smilesforjake.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={linkStyle}
+              >
+                Smiles for Jake
+              </a>{" "}
+              — A Brainerd Lakes movement spreading hope through connection and education.
+            </li>
+            <li style={{ marginBottom: "0.8rem" }}>
+              🛠️ <strong>Affordable Housing:</strong>{" "}
+              <a
+                href="https://lakesareahabitat.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={linkStyle}
+              >
+                Lakes Area Habitat for Humanity
+              </a>{" "}
+              — Building homes and hope across Cass, Crow Wing, Hubbard, and Wadena counties.
+            </li>
+          </ul>
+
+          <p style={{ ...paragraphStyle, marginTop: "2rem" }}>
+            Your support directly funds these efforts, turning a simple piece of apparel into an{" "}
+            <strong style={{ color: "#ffc0cb" }}>active investment in hope and restoration.</strong>
+          </p>
+        </div>
+
+        {/* --- SIGNATURE --- */}
+        <p
+          style={{
+            textAlign: "right",
+            marginTop: "40px",
+            fontStyle: "italic",
+            color: "#b0c4de",
+          }}
+        >
           🌿 With love, faith, and gratitude,
           <br />
-          Kristine — Founder, Grit & Grace (The Resilient Voice)
+          Kristine — The Resilient Voice & Grit & Grace
         </p>
       </section>
     </main>
