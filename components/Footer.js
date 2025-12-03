@@ -32,7 +32,7 @@ export default function Footer() {
           <Link href="/legal">Legal</Link>
         </nav>
         <p style={{ opacity: 0.6 }}>
-          © {new Date().getFullYear()} Resilient Voice — Built to inspire courage, connection, and conversation.
+          © {new Date().getFullYear()} Grit & Grace/Resilient Voice — Built to inspire courage, connection, and conversation.
         </p>
       </div>
     </footer>
