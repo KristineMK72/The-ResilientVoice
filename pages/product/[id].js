@@ -116,25 +116,27 @@ export default function ProductPage() {
           scrollSnapType: "x mandatory",
         }}
       >
-        {getMockupPaths(product.id).map((path, index) => (
-          <img
-            key={index}
-            src={path}
-            alt={`${product.name} mockup ${index + 1}`}
-            style={{
-              flex: "0 0 auto",
-              width: "250px",
-              height: "250px",
-              objectFit: "contain",
-              borderRadius: "12px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-              scrollSnapAlign: "center",
-            }}
-            onError={(e) => {
-              e.currentTarget.style.display = "none"; // hide if file doesn’t exist
-            }}
-          />
-        ))}
+{getMockupPaths(product.id).map((path, index) => (
+  <img
+    key={index}
+    src={path}
+    alt={`${product.name} mockup ${index + 1}`}
+    style={{
+      flex: "0 0 auto",
+      width: "480px",           // ← BIGGER = BETTER
+      height: "480px",
+      objectFit: "contain",
+      borderRadius: "20px",
+      boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
+      scrollSnapAlign: "center",
+      border: index === 1 ? "5px solid #ff6b6b" : "3px solid rgba(255,255,255,0.1)", // highlights back mockup
+      transition: "all 0.3s ease",
+    }}
+    onError={(e) => {
+      e.currentTarget.style.display = "none";
+    }}
+  />
+))}
       </div>
 
       {/* Product Details */}
