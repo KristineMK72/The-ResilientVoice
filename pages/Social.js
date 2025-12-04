@@ -7,7 +7,7 @@ export default function Social() {
   return (
     <>
       <Head>
-        <title>Social Impact | The Resilient Voice</title>
+        <title>Social Impact | Grit & Grace </title>
         <meta
           name="description"
           content="Faith-fueled apparel with a mission: supporting mental health, housing, and social sustainability."
