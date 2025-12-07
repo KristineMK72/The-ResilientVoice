@@ -167,9 +167,11 @@ export default function Patriot() {
               color: "#ccc",
             }}
           >
-            For those who stand unapologetically for faith, freedom, and country.
-            This collection is a tribute to bold voices, sacred values, and the
-            American spirit. Designed to speak truth — and built to give back.
+            For those who stand unapologetically for faith, freedom, and country — and for those who serve to protect it.
+            This collection is a tribute to bold voices, sacred values, and the American spirit.
+            We honor veterans, active-duty military, law enforcement, and EMS — the everyday heroes who carry the weight of our safety and liberty.
+            Every purchase helps us give back to organizations that support their service, sacrifice, and recovery.
+            Designed to speak truth. Built to give back.
           </p>
         </div>
 
