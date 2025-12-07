@@ -30,6 +30,7 @@ export default function Footer() {
           <Link href="/cart">Cart</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/legal">Legal</Link>
+          <Link href="/giving">GivingBack</Link>
         </nav>
         <p style={{ opacity: 0.6 }}>
           © {new Date().getFullYear()} Grit & Grace/Resilient Voice — Built to inspire courage, connection, and conversation.
