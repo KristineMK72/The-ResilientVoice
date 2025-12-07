@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 export default function AboutPage() {
   // Define common styles for a clean, consistent look
   const paragraphStyle = {
@@ -222,3 +223,6 @@ export default function AboutPage() {
     </main>
   );
 }
+=======
+export default function About() { return <div>About Us</div>; }
+>>>>>>> ce489d8 (Install mongodb package)
