@@ -12,6 +12,7 @@ const SOCIAL_PRODUCT_IDS = [
   "406331944",
   "406332650",
   "406370294",
+  "406371194",
   // add more Social Impact product IDs here
 ];
 
