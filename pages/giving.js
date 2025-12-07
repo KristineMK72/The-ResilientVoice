@@ -33,15 +33,12 @@ export default function GivingDashboard() {
     },
   ];
 
-  // Fetch real giving data from backend
   useEffect(() => {
     async function fetchSummary() {
       try {
         setLoading(true);
         const res = await fetch("/api/giving/summary");
-        if (!res.ok) {
-          throw new Error("Failed to load giving summary");
-        }
+        if (!res.ok) throw new Error("Failed to load giving summary");
         const data = await res.json();
         setSummary(data);
       } catch (err) {
@@ -81,7 +78,6 @@ export default function GivingDashboard() {
           color: "#ffffff",
         }}
       >
-        {/* TITLE */}
         <h1
           style={{
             fontSize: "3rem",
@@ -129,7 +125,6 @@ export default function GivingDashboard() {
           </h2>
 
           {loading && <p>Loading live giving totals…</p>}
-
           {error && <p style={{ color: "#ff9999" }}>{error}</p>}
 
           {summary && !loading && !error && (
@@ -216,10 +211,10 @@ export default function GivingDashboard() {
 
           <h3
             style={{
-              fontSize: "1.6rem",
-              marginBottom: "0.5rem",
-              color: "#b0c4de",
-              textAlign: "center",
+            fontSize: "1.6rem",
+            marginBottom: "0.5rem",
+            color: "#b0c4de",
+            textAlign: "center",
             }}
           >
             If sales are: ${salesInput || "0.00"}
