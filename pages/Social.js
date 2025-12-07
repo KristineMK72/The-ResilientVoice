@@ -9,6 +9,7 @@ import { formatPrice } from "../lib/formatPrice";
 const SOCIAL_PRODUCT_IDS = [
   "405949039",
   "405945273",
+  "406331944",
   // add more Social Impact product IDs here
 ];
 
