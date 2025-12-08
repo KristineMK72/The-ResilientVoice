@@ -67,7 +67,7 @@ export default function LegalPage() {
             <li>We strive for accuracy but cannot guarantee error-free descriptions</li>
             <li>We reserve the right to refuse orders for suspected fraud or incorrect info</li>
             <li>We use Printful (fulfillment) and Stripe/PayPal (payments)</li>
-            <li>All designs and content belong to The Resilient Voice</li>
+            <li>All designs and content belong to Grit & Grace</li>
           </ul>
           <p>Questions? Email <a href="mailto:info@gritandgrace.buzz" style={{ color: "#ffc0cb" }}>legal@theresilientvoice.com</a></p>
         </section>
