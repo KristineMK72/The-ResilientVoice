@@ -35,7 +35,7 @@ export default function LegalPage() {
         </h1>
 
         <p style={{ fontSize: "1.2rem", lineHeight: "1.6", marginBottom: "3rem" }}>
-          Transparency is key to Grit and Grace aka The Resilient Voice. Below you will find all the necessary information regarding how we operate, process orders, and protect your privacy.
+          Transparency is key to Grit and Grace. Below you will find all the necessary information regarding how we operate, process orders, and protect your privacy.
         </p>
 
         {/* 🚚 Shipping Policy */}
