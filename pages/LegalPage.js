@@ -54,7 +54,7 @@ export default function LegalPage() {
         <section style={{ marginBottom: "3rem" }}>
           <h2 style={{ color: "#87cefa" }}>🔄 Refund & Return Policy</h2>
           <p>Because each item is custom made, we do not accept returns for buyer’s remorse or wrong size ordered. We will replace or refund items that arrive damaged, misprinted, defective, or incorrect.</p>
-          <p>To request a replacement, contact <a href="mailto:gritandgrace@theresilientvoice.com" style={{ color: "#ffc0cb" }}>support@theresilientvoice.com</a> within 14 days of delivery with your order number, photos, and description of the issue.</p>
+          <p>To request a replacement, contact <a href="mailto:info@gritandgrace.buzz" style={{ color: "#ffc0cb" }}>support@theresilientvoice.com</a> within 14 days of delivery with your order number, photos, and description of the issue.</p>
           <p>Sale items, gift cards, and customer-damaged products are non-returnable.</p>
         </section>
 
@@ -69,7 +69,7 @@ export default function LegalPage() {
             <li>We use Printful (fulfillment) and Stripe/PayPal (payments)</li>
             <li>All designs and content belong to The Resilient Voice</li>
           </ul>
-          <p>Questions? Email <a href="mailto:gritandgrace@theresilientvoice.com" style={{ color: "#ffc0cb" }}>legal@theresilientvoice.com</a></p>
+          <p>Questions? Email <a href="mailto:info@gritandgrace.buzz" style={{ color: "#ffc0cb" }}>legal@theresilientvoice.com</a></p>
         </section>
 
         {/* 🔒 Privacy Policy */}
@@ -78,7 +78,7 @@ export default function LegalPage() {
           <p>We collect only what we need to serve you well: name, email, shipping address, payment info (securely handled), order details, and site usage data.</p>
           <p>We use this info to process orders, communicate with you, improve our site, and prevent fraud. We never sell your data.</p>
           <p>Your data may be shared with Printful, Stripe/PayPal, and analytics tools. SSL encryption and secure systems protect your information.</p>
-          <p>Privacy questions? Email <a href="mailto:gritandgrace@theresilientvoice.com" style={{ color: "#ffc0cb" }}>privacy@theresilientvoice.com</a></p>
+          <p>Privacy questions? Email <a href="mailto:info@gritandgrace.buzz" style={{ color: "#ffc0cb" }}>privacy@theresilientvoice.com</a></p>
         </section>
 
         {/* ❓ FAQ */}
@@ -94,7 +94,7 @@ export default function LegalPage() {
         </section>
 
         <p style={{ fontSize: "1rem", lineHeight: "1.6", marginTop: "4rem", paddingTop: "1.5rem", borderTop: "1px solid rgba(255, 255, 255, 0.1)" }}>
-          For specific legal inquiries, please contact us at <a href="mailto:legal@theresilientvoice.com" style={{ color: "#ffc0cb", textDecoration: "none" }}>legal@theresilientvoice.com</a>.
+          For specific legal inquiries, please contact us at <a href="mailto:info@gritandgrace.buzz" style={{ color: "#ffc0cb", textDecoration: "none" }}>legal@theresilientvoice.com</a>.
         </p>
       </section>
     </main>
