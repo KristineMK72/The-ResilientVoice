@@ -29,7 +29,7 @@ export default function Footer() {
           <Link href="/blog">Blog</Link>
           <Link href="/cart">Cart</Link>
           <Link href="/contact">Contact</Link>
-          <Link href="/LegalPages">Legal</Link>
+          <Link href="/LegalPage">Legal</Link>
           <Link href="/giving">GivingBack</Link>
         </nav>
         <p style={{ opacity: 0.6 }}>
