@@ -24,6 +24,7 @@ export default function Footer() {
           <Link href="/">Home</Link>
           <Link href="/SavedByGrace">Saved By Grace</Link>
           <Link href="/Patriot">Patriot</Link>
+          <Link href="Social">Social</Link>
           <Link href="/accessories">Accessories</Link>
           <Link href="/about">About</Link>
           <Link href="/blog">Blog</Link>
