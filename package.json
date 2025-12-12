@@ -11,6 +11,7 @@
     "@stripe/stripe-js": "^8.4.0",
     "mongodb": "^7.0.0",
     "next": "^14.2.33",
+    "node-fetch": "^3.0.0",  // <--- ADD THIS LINE AND THE COMMA ABOVE IT
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-feather": "^2.0.10",
