@@ -8,6 +8,7 @@ import { formatPrice } from "../lib/formatPrice";
 
 const YOUR_PRODUCT_IDS = [
   "402037152",
+  "407452483",
   "402181003",
   "402034024",
   "403261853",
