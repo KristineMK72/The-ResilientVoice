@@ -9,7 +9,6 @@ import { formatPrice } from "../lib/formatPrice";
 const YOUR_PRODUCT_IDS = [
   "402037152",
   "402181003",
-  "402181469",
   "402034024",
   "403261853",
   "403262072",
@@ -29,6 +28,22 @@ export default function SavedByGrace() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Scripture rotation
+  const scriptures = [
+    "“My grace is sufficient for you.” — 2 Corinthians 12:9",
+    "“He restores my soul.” — Psalm 23:3",
+    "“You are chosen, holy, and dearly loved.” — Colossians 3:12",
+    "“Fear not, for I have redeemed you.” — Isaiah 43:1",
+  ];
+  const [currentScripture, setCurrentScripture] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentScripture((prev) => (prev + 1) % scriptures.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     async function loadProducts() {
@@ -79,17 +94,6 @@ export default function SavedByGrace() {
     );
   }
 
-  if (products.length === 0) {
-    return (
-      <div style={{ textAlign: "center", padding: "10rem 1rem" }}>
-        <p style={{ fontSize: "2rem", color: "#aaa" }}>No products loaded yet</p>
-        <p style={{ color: "#ccc", fontSize: "1.1rem" }}>
-          Try refreshing or check if products are published in Printful.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <>
       <Head>
@@ -102,12 +106,42 @@ export default function SavedByGrace() {
 
       <div
         style={{
-          background: "linear-gradient(135deg, #fdf7ff 0%, #f8f5fa 100%)",
+          background: "linear-gradient(135deg, #fff8f2 0%, #fdf3e7 100%)",
           minHeight: "100vh",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
+        {/* Soft glow accents */}
+        <div
+          style={{
+            position: "absolute",
+            top: "-200px",
+            left: "-200px",
+            width: "600px",
+            height: "600px",
+            background: "rgba(159,107,170,0.18)",
+            filter: "blur(140px)",
+            borderRadius: "50%",
+            zIndex: 0,
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            bottom: "-200px",
+            right: "-200px",
+            width: "600px",
+            height: "600px",
+            background: "rgba(255,182,193,0.18)",
+            filter: "blur(140px)",
+            borderRadius: "50%",
+            zIndex: 0,
+          }}
+        />
+
         {/* Hero */}
-        <div style={{ textAlign: "center", padding: "6rem 1rem 4rem" }}>
+        <div style={{ textAlign: "center", padding: "7rem 1rem 4rem", position: "relative", zIndex: 2 }}>
           <h1
             style={{
               fontSize: "5.5rem",
@@ -118,23 +152,93 @@ export default function SavedByGrace() {
           >
             Saved By Grace
           </h1>
+
           <p
             style={{
               fontSize: "2rem",
-              color: "#555",
+              color: "#444",
               maxWidth: "900px",
               margin: "0 auto",
               lineHeight: "1.6",
             }}
           >
-            Apparel born from storms. These pieces carry messages of faith,
-            resilience, and healing — while supporting nonprofits focused on
-            housing, homelessness, mental health, and suicide prevention. Wear
-            your story. Give with purpose.
+            A collection shaped by grace. These pieces speak life through words
+            like <strong>Redeemed</strong>, <strong>Chosen</strong>,{" "}
+            <strong>Strength</strong>, and <strong>Hope</strong> — echoing the
+            scriptures that uplift weary hearts and remind us of God’s
+            unshakable love. Every item carries a message of faith and
+            restoration while supporting nonprofits serving housing,
+            homelessness, mental health, and suicide prevention.
+            <br />
+            Wear His truth. Walk in grace. Give with purpose.
           </p>
         </div>
 
-        {/* Product grid */}
+        {/* Scripture rotation */}
+        <div
+          style={{
+            textAlign: "center",
+            padding: "1.5rem 1rem",
+            background: "#ffffffaa",
+            backdropFilter: "blur(6px)",
+            fontSize: "1.4rem",
+            fontWeight: "600",
+            color: "#7a4f85",
+            marginBottom: "3rem",
+            position: "sticky",
+            top: 0,
+            zIndex: 5,
+          }}
+        >
+          {scriptures[currentScripture]}
+        </div>
+
+        {/* Buzzword cloud */}
+        <div
+          style={{
+            maxWidth: "900px",
+            margin: "0 auto 4rem",
+            padding: "0 1rem",
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: "1rem",
+            position: "relative",
+            zIndex: 2,
+          }}
+        >
+          {[
+            "Redeemed",
+            "Chosen",
+            "Grace",
+            "Hope",
+            "Strength",
+            "Beloved",
+            "Restored",
+            "Faith",
+            "Light",
+            "Courage",
+            "Mercy",
+            "Peace",
+          ].map((word) => (
+            <span
+              key={word}
+              style={{
+                padding: "0.6rem 1.2rem",
+                background: "#fff",
+                borderRadius: "20px",
+                fontSize: "1.1rem",
+                color: "#7a4f85",
+                boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+                fontWeight: "600",
+              }}
+            >
+              {word}
+            </span>
+          ))}
+        </div>
+
+        {/* Product grid (unchanged — safe!) */}
         <div
           style={{
             padding: "2rem 1rem 6rem",
@@ -143,6 +247,8 @@ export default function SavedByGrace() {
             gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
             maxWidth: "1600px",
             margin: "0 auto",
+            position: "relative",
+            zIndex: 2,
           }}
         >
           {products.map((product) => (
@@ -215,6 +321,7 @@ export default function SavedByGrace() {
           ))}
         </div>
 
+        {/* Footer */}
         <div
           style={{
             textAlign: "center",
@@ -223,8 +330,7 @@ export default function SavedByGrace() {
             fontSize: "1.2rem",
           }}
         >
-          More pieces coming every week · Designed with love · Powered by
-          purpose
+          More pieces coming every week · Designed with love · Powered by purpose
         </div>
       </div>
     </>
