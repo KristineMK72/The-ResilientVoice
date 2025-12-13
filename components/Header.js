@@ -1,4 +1,4 @@
-// components/Header.js ← 100% WORKING VERSION
+// components/Header.js
 "use client";
 
 import Link from "next/link";
@@ -10,12 +10,12 @@ export default function Header() {
   const navLinks = [
     { href: "/", label: "Home", color: "#ffffff" },
     { href: "/saved-by-grace", label: "Saved By Grace", color: "#ff6666" },
-    { href: "/Patriot", label: "Patriot", color: "#ff0000" },        // lowercase href
-    { href: "/Social", label: "Social", color: "#4488ff" },          // lowercase href
+    { href: "/Patriot", label: "Patriot", color: "#ff0000" }, // lowercase href
+    { href: "/Social", label: "Social", color: "#4488ff" }, // lowercase href
     { href: "/blog", label: "Blog", color: "#ffaa00" },
     { href: "/about", label: "About", color: "#00ddff" },
     { href: "/cart", label: "Cart", color: "#ffcc00" },
-    { href: "/LegalPage", label: "Legal",  oolor: "#ff0000" },
+    { href: "/LegalPage", label: "Legal", color: "#ff0000" },
   ];
 
   return (
@@ -51,6 +51,7 @@ export default function Header() {
             </span>
           </Link>
 
+          {/* Desktop Navigation */}
           <nav style={{ display: "flex", gap: "2rem" }}>
             {navLinks.map((link) => (
               <Link
@@ -72,14 +73,31 @@ export default function Header() {
             ))}
           </nav>
 
+          {/* Mobile Menu Button - UPDATED */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            style={{ display: "none", background: "none", border: "none", color: "white", fontSize: "2.4rem", cursor: "pointer" }}
+            // Apply a class name or inline style for better visibility/click target
+            className="mobile-menu-button"
+            style={{
+              display: "none", // Will be overridden by CSS module below
+              background: "rgba(255,255,255,0.1)",
+              border: "2px solid white",
+              color: "white",
+              padding: "10px 15px", // Increased padding
+              borderRadius: "8px",
+              fontSize: "1.5rem", // Larger text/icon
+              fontWeight: "900",
+              cursor: "pointer",
+              transition: "all 0.3s",
+              lineHeight: 1, // Fixes vertical alignment
+            }}
           >
-            {mobileOpen ? "×" : "Menu"}
+            {/* Changed from 'Menu' to a standardized icon */}
+            {mobileOpen ? "×" : "☰"} 
           </button>
         </div>
 
+        {/* Mobile Dropdown Menu */}
         {mobileOpen && (
           <div style={{ position: "fixed", top: "80px", left: 0, right: 0, bottom: 0, background: "rgba(0,0,30,0.98)", padding: "2rem 0", overflowY: "auto", zIndex: 9998 }}>
             {navLinks.map((link) => (
@@ -87,7 +105,15 @@ export default function Header() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                style={{ display: "block", padding: "1.4rem 2rem", fontSize: "1.8rem", fontWeight: "bold", color: link.color, textAlign: "center", borderBottom: "1px solid rgba(255,255,255,0.1)" }}
+                style={{ 
+                  display: "block", 
+                  padding: "1.4rem 2rem", // Already good, makes a large tap target
+                  fontSize: "1.8rem", 
+                  fontWeight: "bold", 
+                  color: link.color, 
+                  textAlign: "center", 
+                  borderBottom: "1px solid rgba(255,255,255,0.1)" 
+                }}
               >
                 {link.label}
               </Link>
@@ -99,35 +125,40 @@ export default function Header() {
       <div style={{ height: "90px" }} />
 
       <style jsx>{`
-  @media (max-width: 1024px) {
-    /* Hide the desktop nav completely on tablets & phones */
-    header > div > nav {
-      display: none !important;
-    }
-    /* Force-show the hamburger */
-    header > div > button {
-      display: block !important;
-    }
-    /* Slightly smaller brand text */
-    header > div > a > span {
-      font-size: 1.7rem !important;
-    }
-    header > div > a > div {
-      width: 48px !important;
-      height: 48px !important;
-    }
-  }
+        @media (max-width: 1024px) {
+          /* Hide the desktop nav completely on tablets & phones */
+          header > div > nav {
+            display: none !important;
+          }
+          /* Force-show the hamburger */
+          header > div > button.mobile-menu-button {
+            display: block !important;
+            /* Further increases the size of the clickable button */
+            min-width: 60px; 
+            min-height: 48px;
+            /* Adjust padding for the new button style */
+            padding: 8px 12px;
+          }
+          /* Slightly smaller brand text */
+          header > div > a > span {
+            font-size: 1.7rem !important;
+          }
+          header > div > a > div {
+            width: 48px !important;
+            height: 48px !important;
+          }
+        }
 
-  @media (max-width: 480px) {
-    header > div > a > span {
-      font-size: 1.45rem !important;
-    }
-    header > div > a > div {
-      width: 44px !important;
-      height: 44px !important;
-    }
-  }
-`}</style>
+        @media (max-width: 480px) {
+          header > div > a > span {
+            font-size: 1.45rem !important;
+          }
+          header > div > a > div {
+            width: 44px !important;
+            height: 44px !important;
+          }
+        }
+      `}</style>
     </>
   );
 }
