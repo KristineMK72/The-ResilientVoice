@@ -18,9 +18,11 @@ export default async function handler(req, res) {
   const FIXED_SHIPPING_CENTS = Math.round(FIXED_SHIPPING_USD * 100);
   // ----------------------------------------------------
 
-  try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+ try {
+  const session = await stripe.checkout.sessions.create({
+    // payment_method_types: is removed
+    // Stripe will now dynamically display all enabled methods
+    // based on the customer's location, currency, and transaction amount.
       
       // *** FIX: ENABLE SHIPPING ADDRESS COLLECTION ***
       shipping_address_collection: {
