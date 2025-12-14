@@ -1,4 +1,9 @@
+// pages/giving-dashboard.js
+"use client";
+
 import { useEffect, useState } from "react";
+// You will likely need to import formatPrice function here if it's used elsewhere
+// import { formatPrice } from "../lib/formatPrice"; 
 
 export default function GivingDashboard() {
   const [salesInput, setSalesInput] = useState("");
@@ -40,7 +45,16 @@ export default function GivingDashboard() {
         const res = await fetch("/api/giving/summary");
         if (!res.ok) throw new Error("Failed to load giving summary");
         const data = await res.json();
-        setSummary(data);
+        // Ensure all numeric fields are present for consistency
+        const safeData = {
+          totalSales: data.totalSales || 0,
+          totalGiving: data.totalGiving || 0,
+          homelessnessAmount: data.homelessnessAmount || 0,
+          mentalHealthAmount: data.mentalHealthAmount || 0,
+          suicidePreventionAmount: data.suicidePreventionAmount || 0,
+          veteranSupportAmount: data.veteranSupportAmount || 0,
+        };
+        setSummary(safeData);
       } catch (err) {
         console.error(err);
         setError("We couldn't load live giving data right now.");
@@ -52,7 +66,11 @@ export default function GivingDashboard() {
     fetchSummary();
   }, []);
 
-  const simulatedGiving = salesInput ? salesInput * 0.1 : 0;
+  const simulatedGiving = salesInput ? parseFloat(salesInput) * 0.1 : 0;
+  
+  // Helper to format currency (assuming 'toFixed(2)' is sufficient or formatPrice is used)
+  const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+
 
   return (
     <main
@@ -131,12 +149,12 @@ export default function GivingDashboard() {
             <>
               <p style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>
                 Total Sales Counted:{" "}
-                <strong>${summary.totalSales.toFixed(2)}</strong>
+                <strong>{formatCurrency(summary.totalSales)}</strong>
               </p>
               <p style={{ fontSize: "1.1rem", marginBottom: "1.5rem" }}>
                 Total Given So Far:{" "}
                 <strong style={{ color: "#ffc0cb" }}>
-                  ${summary.totalGiving.toFixed(2)}
+                  {formatCurrency(summary.totalGiving)}
                 </strong>
               </p>
 
@@ -159,8 +177,9 @@ export default function GivingDashboard() {
               >
                 {causes.map((cause) => (
                   <li key={cause.key} style={{ marginBottom: "0.8rem" }}>
-                    {cause.icon} <strong>{cause.label}</strong> — $
-                    {summary[cause.key].toFixed(2)}
+                    {cause.icon} <strong>{cause.label}</strong> — {formatCurrency(summary[cause.key])}
+                    {/* Add an anchor tag if this is a public dashboard to link to the cause */}
+                    {/* <a href={cause.url} target="_blank" rel="noopener noreferrer" style={{color: '#b0c4de', marginLeft: '10px'}}> (Visit)</a> */}
                   </li>
                 ))}
               </ul>
@@ -217,7 +236,7 @@ export default function GivingDashboard() {
             textAlign: "center",
             }}
           >
-            If sales are: ${salesInput || "0.00"}
+            If sales are: {formatCurrency(salesInput)}
           </h3>
           <p
             style={{
@@ -228,7 +247,7 @@ export default function GivingDashboard() {
           >
             10% Giving:{" "}
             <strong style={{ color: "#ffc0cb" }}>
-              ${simulatedGiving.toFixed(2)}
+              {formatCurrency(simulatedGiving)}
             </strong>
           </p>
 
@@ -239,7 +258,7 @@ export default function GivingDashboard() {
               color: "#b0c4de",
             }}
           >
-            Split Evenly Across Causes:
+            Split Evenly Across Causes (25% each):
           </h4>
 
           <ul
@@ -251,8 +270,7 @@ export default function GivingDashboard() {
           >
             {causes.map((cause) => (
               <li key={cause.key} style={{ marginBottom: "0.6rem" }}>
-                {cause.icon} <strong>{cause.label}</strong> — $
-                {(simulatedGiving / causes.length || 0).toFixed(2)}
+                {cause.icon} <strong>{cause.label}</strong> — {formatCurrency(simulatedGiving / causes.length)}
               </li>
             ))}
           </ul>
