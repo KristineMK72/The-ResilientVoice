@@ -18,11 +18,46 @@ const SOCIAL_PRODUCT_IDS = [
   // add more Social Impact product IDs here
 ];
 
+// --- New Definitions for Rotation and Buzzwords ---
+
+const SOCIAL_PHRASES = [
+  "Take a deep breath. You are enough.",
+  "Community is our greatest resource.",
+  "Mental health is a priority, not a luxury.",
+  "Small acts of kindness change the world.",
+  "Be kind to your mind.",
+  "Together, we build resilience.",
+  "Sustainable systems support everyone.",
+  "Healing starts with honest conversation.",
+];
+
+const MENTAL_HEALTH_BUZZWORDS = [
+  "Compassion",
+  "Empathy",
+  "Wellbeing",
+  "Equity",
+  "Inclusion",
+  "Mindfulness",
+  "Connection",
+  "Awareness",
+  "Support",
+  "Resilience",
+  "Self-Care",
+  "Hope",
+  "Action",
+];
+
+// --------------------------------------------------
+
 export default function Social() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // --- New State for Phrase Rotation ---
+  const [currentPhrase, setCurrentPhrase] = useState(0);
+
+  // --- Product Loading Logic (Existing) ---
   useEffect(() => {
     async function loadProducts() {
       const loaded = [];
@@ -52,6 +87,18 @@ export default function Social() {
 
     loadProducts();
   }, []);
+
+  // --- Phrase Rotation Logic (New) ---
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCurrentPhrase(
+        (prevIndex) => (prevIndex + 1) % SOCIAL_PHRASES.length
+      );
+    }, 5000); // Change phrase every 5 seconds
+
+    return () => clearInterval(intervalId); // Cleanup on unmount
+  }, []);
+  // ------------------------------------
 
   return (
     <>
@@ -133,6 +180,64 @@ export default function Social() {
             we build resilience.
           </p>
         </div>
+        
+        {/* --- New: Social/Mental Health Phrase Rotation --- */}
+        <div
+          style={{
+            textAlign: "center",
+            padding: "1.5rem 1rem",
+            background: "#ffffffaa",
+            backdropFilter: "blur(6px)",
+            fontSize: "1.4rem",
+            fontWeight: "600",
+            color: "#7a4f85", // Changed color to fit the existing theme, or you can use a strong color like '#111827'
+            marginBottom: "3rem",
+            position: "sticky",
+            top: 0,
+            zIndex: 5,
+            minHeight: "3.5rem", // Ensures consistent height during rotation
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {SOCIAL_PHRASES[currentPhrase]}
+        </div>
+
+        {/* --- New: Buzzword cloud --- */}
+        <div
+          style={{
+            maxWidth: "900px",
+            margin: "0 auto 4rem",
+            padding: "0 1rem",
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: "1rem",
+            position: "relative",
+            zIndex: 2,
+          }}
+        >
+          {MENTAL_HEALTH_BUZZWORDS.map((word) => (
+            <span
+              key={word}
+              style={{
+                padding: "0.6rem 1.2rem",
+                background: "#fff",
+                borderRadius: "20px",
+                fontSize: "1.1rem",
+                color: "#7a4f85", // Matching color from the phrase rotation
+                boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+                fontWeight: "600",
+                textTransform: "uppercase",
+              }}
+            >
+              {word}
+            </span>
+          ))}
+        </div>
+        {/* ------------------------------------------------- */}
+
 
         {/* Product grid */}
         <div
