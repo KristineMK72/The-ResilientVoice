@@ -59,7 +59,6 @@ export default async function handler(req, res) {
           console.log('SUCCESS: Printful order created with ID:', printfulData.result.id);
           // Optional: save order ID to your database
         }
-        }
       } catch (err) {
         console.error('Error creating Printful order:', err);
       }
