@@ -1,6 +1,6 @@
 // pages/api/test-mongo.js
 
-import clientPromise from "../../lib/mongo"; // Adjust the path as necessary
+import clientPromise from "../../../lib/mongo"; // Adjust the path as necessary
 
 export default async function handler(req, res) {
   try {
