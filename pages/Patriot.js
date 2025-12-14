@@ -1,4 +1,3 @@
-// pages/patriot.js
 "use client";
 
 import Head from "next/head";
@@ -22,11 +21,46 @@ const PATRIOT_PRODUCT_IDS = [
   // add other Patriot product IDs here
 ];
 
+// --- New Definitions for Rotation and Buzzwords ---
+
+const PATRIOTIC_PHRASES = [
+  "Freedom isn't free. Thank a veteran.",
+  "Honor the oath. Respect the service.",
+  "Always faithful. Always prepared.",
+  "First Responders: Courage under fire.",
+  "United we stand, for Faith, Freedom, and Family.",
+  "Land of the free, because of the brave.",
+  "Support those who protect and serve.",
+  "God, Country, Corps.",
+];
+
+const SERVICE_BUZZWORDS = [
+  "Valor",
+  "Duty",
+  "Honor",
+  "Military",
+  "Veterans",
+  "Service",
+  "Police",
+  "Fire",
+  "EMS",
+  "Freedom",
+  "Liberty",
+  "Sacrifice",
+  "Patriot",
+];
+
+// --------------------------------------------------
+
 export default function Patriot() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // --- New State for Phrase Rotation ---
+  const [currentPhrase, setCurrentPhrase] = useState(0);
 
+  // --- Product Loading Logic (Existing) ---
   useEffect(() => {
     async function loadProducts() {
       const loaded = [];
@@ -56,6 +90,19 @@ export default function Patriot() {
 
     loadProducts();
   }, []);
+
+  // --- Phrase Rotation Logic (New) ---
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCurrentPhrase(
+        (prevIndex) => (prevIndex + 1) % PATRIOTIC_PHRASES.length
+      );
+    }, 5000); // Change phrase every 5 seconds
+
+    return () => clearInterval(intervalId); // Cleanup on unmount
+  }, []);
+  // ------------------------------------
+
 
   const addToCart = (product) => {
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
@@ -175,6 +222,65 @@ export default function Patriot() {
           </p>
         </div>
 
+        {/* --- New: Patriotic Phrase Rotation (Sticky) --- */}
+        <div
+          style={{
+            textAlign: "center",
+            padding: "1.5rem 1rem",
+            background: "#ffffffaa",
+            backdropFilter: "blur(6px)",
+            fontSize: "1.4rem",
+            fontWeight: "600",
+            color: "#0000ff", // Using blue from the patriotic colors
+            marginBottom: "3rem",
+            position: "sticky",
+            top: 0,
+            zIndex: 5,
+            minHeight: "3.5rem", // Ensures consistent height
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderBottom: "4px solid #ff0000", // Red accent
+          }}
+        >
+          {PATRIOTIC_PHRASES[currentPhrase]}
+        </div>
+        
+        {/* --- New: Buzzword cloud --- */}
+        <div
+          style={{
+            maxWidth: "900px",
+            margin: "0 auto 4rem",
+            padding: "0 1rem",
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: "1rem",
+            position: "relative",
+            zIndex: 2,
+          }}
+        >
+          {SERVICE_BUZZWORDS.map((word) => (
+            <span
+              key={word}
+              style={{
+                padding: "0.6rem 1.2rem",
+                background: "#fff",
+                borderRadius: "20px",
+                fontSize: "1.1rem",
+                color: "#ff0000", // Using red from the patriotic colors
+                boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+                fontWeight: "700",
+                textTransform: "uppercase",
+                border: "2px solid #0000ff",
+              }}
+            >
+              {word}
+            </span>
+          ))}
+        </div>
+        {/* ------------------------------------------------- */}
+
         {/* Product grid */}
         <div
           style={{
@@ -272,23 +378,23 @@ export default function Patriot() {
                 >
                   {formatPrice(product.variants?.[0]?.price)}
                 </p>
-               <Link href={`/product/${product.id}`}>
-  <a
-    style={{
-      display: "inline-block",
-      width: "100%",
-      padding: "1.4rem",
-      background: "#ff0000",
-      color: "white",
-      borderRadius: "16px",
-      fontSize: "1.3rem",
-      fontWeight: "bold",
-      textDecoration: "none",
-    }}
-  >
-    View Details →
-  </a>
-</Link>
+                <Link href={`/product/${product.id}`}>
+                  <a
+                    style={{
+                      display: "inline-block",
+                      width: "100%",
+                      padding: "1.4rem",
+                      background: "#ff0000",
+                      color: "white",
+                      borderRadius: "16px",
+                      fontSize: "1.3rem",
+                      fontWeight: "bold",
+                      textDecoration: "none",
+                    }}
+                  >
+                    View Details →
+                  </a>
+                </Link>
               </div>
             </div>
           ))}
