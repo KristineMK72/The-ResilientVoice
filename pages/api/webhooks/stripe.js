@@ -48,14 +48,17 @@ export default async function handler(req, res) {
           }),
         });
 
-        const printfulData = await printfulRes.json();
-
-        if (printfulData.code !== 200) {
-          console.error('Printful order creation failed:', printfulData);
-          // Optional: send yourself an email or log to Slack
-        } else {
-          console.log('Printful order created:', printfulData.result.id);
-          // Optional: save order ID to your database
+       // Capture the status code and full JSON response
+        const printfulStatus = printfulRes.status; 
+        const printfulData = await printfulRes.json();
+        
+        if (printfulStatus !== 200 || printfulData.code !== 200) {
+          console.error('Printful order creation failed! Status:', printfulStatus, 'Response:', printfulData);
+          // Optional: send yourself an email or log to Slack
+        } else {
+          console.log('SUCCESS: Printful order created with ID:', printfulData.result.id);
+          // Optional: save order ID to your database
+        }
         }
       } catch (err) {
         console.error('Error creating Printful order:', err);
