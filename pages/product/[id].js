@@ -48,6 +48,7 @@ export default function ProductPage() {
       price: variantToAdd.price,
       image: product.thumbnail_url,
       quantity: 1,
+      sync_variant_id: selectedVariantId,
     };
 
     const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
