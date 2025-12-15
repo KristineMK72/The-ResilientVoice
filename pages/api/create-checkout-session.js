@@ -1,4 +1,3 @@
-// pages/api/create-checkout-session.js
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -19,8 +18,8 @@ export default async function handler(req, res) {
       shipping_address_collection: {
         allowed_countries: ['US', 'CA', 'GB', 'AU'],
       },
-
       line_items: [
+        // Product items from cart
         ...cart.map(item => ({
           price_data: {
             currency: 'usd',
@@ -32,7 +31,7 @@ export default async function handler(req, res) {
           },
           quantity: item.quantity,
         })),
-
+        // Fixed shipping line item
         {
           price_data: {
             currency: 'usd',
@@ -42,19 +41,17 @@ export default async function handler(req, res) {
           quantity: 1,
         },
       ],
-
       mode: 'payment',
-
-      // ✅ Only send Printful‑ready cart items
+      // ✅ Correct Printful-ready cart items for synced products
       metadata: {
         cart: JSON.stringify(
           cart.map(item => ({
-            variant_id: item.variant_id,
+            sync_variant_id: item.sync_variant_id,  // ← Fixed: key must be sync_variant_id
             quantity: item.quantity,
+            retail_price: item.price.toString(),    // Helps Printful calculate your profit
           }))
         ),
       },
-
       success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.origin}/cart`,
     });
