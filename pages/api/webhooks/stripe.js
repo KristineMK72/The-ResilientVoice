@@ -1,5 +1,4 @@
 // pages/api/webhooks/stripe.js
-
 import Stripe from 'stripe';
 import { buffer } from 'micro';
 import fetch from 'node-fetch'; // Used for the server-side API call
@@ -87,17 +86,27 @@ export default async function handler(req, res) {
     }
 
     // 2. Map/Transform the data into the Printful structure (CRITICAL STEP)
+    // --- FIX APPLIED HERE ---
     const printfulItems = items.map(item => {
         // Validation: Ensure the critical design URL is present
         if (!item.design_url) { 
             throw new Error(`Missing design file URL for item ${item.name}. Cannot fulfill.`);
         }
+        
+        // Validation: Ensure the Printful ID is present
+        if (!item.sync_variant_id) {
+             throw new Error(`Missing Printful ID for item ${item.name}. Cannot fulfill.`);
+        }
 
         return {
-          variant_id: item.variant_id || item.sync_variant_id, 
+          // ✅ FIX: Use the explicit Printful sync_variant_id
+          variant_id: item.sync_variant_id, 
+          
           quantity: item.quantity,
-          // Printful expects 'retail_price' (uses your 'price' field)
-          retail_price: item.price.toString(), 
+          
+          // Use item.price which was sent in metadata
+          retail_price: String(item.price), 
+          
           // Printful requires the design URL in this nested 'files' array format:
           files: [
             {
@@ -107,6 +116,7 @@ export default async function handler(req, res) {
           name: item.name, // Custom name for the packing slip
         };
     });
+    // ------------------------
 
     /* -------------------------
        5. Send Order to Printful (Idempotent via external_id)
