@@ -42,14 +42,13 @@ export default function ProductPage() {
     }
 
     const cartItem = {
-      id: selectedVariantId,
-      productId: product.id,
-      name: variantToAdd.name,
-      price: variantToAdd.price,
-      image: product.thumbnail_url,
-      quantity: 1,
-      sync_variant_id: selectedVariantId,
-    };
+  id: product.id,                // ✅  internal product ID
+  variant_id: selectedVariantId, // ✅ Printful variant ID
+  name: variantToAdd.name,
+  price: variantToAdd.price,
+  image: product.thumbnail_url,
+  quantity: 1,
+};
 
     const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
     const exists = existingCart.find((item) => item.id === cartItem.id);
