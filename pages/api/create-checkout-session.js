@@ -8,31 +8,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { cart, shippingCost, address } = req.body;
+  const { cart } = req.body;
 
-  // ----------------------------------------------------
-  // *** TEMPORARY DIAGNOSTIC FIX: HARDCODE SHIPPING ***
-  // We use this to keep the site working while we fix the frontend data passing.
-  // ----------------------------------------------------
-  const FIXED_SHIPPING_USD = 7.00; 
+  // Temporary fixed shipping
+  const FIXED_SHIPPING_USD = 7.00;
   const FIXED_SHIPPING_CENTS = Math.round(FIXED_SHIPPING_USD * 100);
-  // ----------------------------------------------------
 
- try {
-  const session = await stripe.checkout.sessions.create({
-    // payment_method_types: is removed
-    // Stripe will now dynamically display all enabled methods
-    // based on the customer's location, currency, and transaction amount.
-      
-      // *** FIX: ENABLE SHIPPING ADDRESS COLLECTION ***
+  try {
+    const session = await stripe.checkout.sessions.create({
       shipping_address_collection: {
-        // Stripe will now ask the customer for their physical address
-        allowed_countries: ['US', 'CA', 'GB', 'AU'], 
+        allowed_countries: ['US', 'CA', 'GB', 'AU'],
       },
-      // ************************************************
 
       line_items: [
-        // Your products (Clean, correct array mapping)
         ...cart.map(item => ({
           price_data: {
             currency: 'usd',
@@ -45,13 +33,10 @@ export default async function handler(req, res) {
           quantity: item.quantity,
         })),
 
-        // Shipping as a fixed line item (using hardcoded value)
         {
           price_data: {
             currency: 'usd',
-            product_data: {
-              name: 'Shipping (Standard)',
-            },
+            product_data: { name: 'Shipping (Standard)' },
             unit_amount: FIXED_SHIPPING_CENTS,
           },
           quantity: 1,
@@ -60,10 +45,14 @@ export default async function handler(req, res) {
 
       mode: 'payment',
 
-      // Save address & cart for the webhook
+      // ✅ Only send Printful‑ready cart items
       metadata: {
-        address: JSON.stringify(address),
-        cart: JSON.stringify(cart),
+        cart: JSON.stringify(
+          cart.map(item => ({
+            variant_id: item.variant_id,
+            quantity: item.quantity,
+          }))
+        ),
       },
 
       success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
