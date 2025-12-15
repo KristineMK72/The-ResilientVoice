@@ -4,9 +4,7 @@ import { buffer } from 'micro';
 import fetch from 'node-fetch';
 
 export const config = {
-  api: {
-    bodyParser: false, // Required for Stripe
-  },
+  api: { bodyParser: false },
 };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -21,7 +19,7 @@ export default async function handler(req, res) {
   let event;
 
   try {
-    const buf = await buffer(req); // ✅ THIS IS THE FIX
+    const buf = await buffer(req);
     event = stripe.webhooks.constructEvent(
       buf,
       sig,
@@ -37,14 +35,20 @@ export default async function handler(req, res) {
 
     if (session.payment_status === 'paid') {
       try {
-        const recipient = JSON.parse(session.metadata.address);
-        const cartItems = JSON.parse(session.metadata.cart);
+        // ✅ Build Printful recipient from Stripe-collected address
+        const recipient = {
+          name: session.customer_details.name,
+          address1: session.customer_details.address.line1,
+          city: session.customer_details.address.city,
+          state_code: session.customer_details.address.state,
+          country_code: session.customer_details.address.country,
+          zip: session.customer_details.address.postal_code,
+        };
 
-        const items = cartItems.map(item => ({
-          variant_id: item.variant_id,
-          quantity: item.quantity,
-        }));
+        // ✅ Parse Printful-ready cart items
+        const items = JSON.parse(session.metadata.cart);
 
+        // ✅ Send order to Printful
         const printfulRes = await fetch('https://api.printful.com/orders', {
           method: 'POST',
           headers: {
