@@ -42,17 +42,36 @@ export default function ProductPage() {
       return;
     }
 
-    // --- FIX APPLIED HERE ---
-    // 1. Extract the design file URL required by Printful fulfillment
-    const designUrl =
-      variantToAdd.files?.find(f => f.type === "default")?.url ||
-      variantToAdd.files?.[0]?.url ||
-      null; 
+    // --- CRITICAL FIX APPLIED HERE: Robust File URL Extraction ---
+    let designUrl = null;
+
+    if (variantToAdd.files && variantToAdd.files.length > 0) {
+      
+      // 1. Prioritize the required print file types: "default" or "print"
+      const printFile = variantToAdd.files.find(
+        (f) => f.type === "default" || f.type === "print"
+      );
+      
+      if (printFile && printFile.url) {
+        designUrl = printFile.url;
+      } else {
+        // 2. Fallback: If no specific type is found, try the first file object that has a 'url'
+        // This is a safety net in case Printful uses an unexpected type name.
+        const firstFileWithUrl = variantToAdd.files.find(f => f.url);
+        if (firstFileWithUrl) {
+            designUrl = firstFileWithUrl.url;
+        }
+      }
+    }
+    
+    // Log the result. If this is null, the order will fail.
+    console.log("Extracted Design URL:", designUrl);
+    // -------------------------------------------------------------
 
     const cartItem = {
       id: product.id,
       
-      // ✅ FIX 1: Use the Printful-required sync_variant_id
+      // ✅ Using Printful's ID
       sync_variant_id: variantToAdd.id, 
       
       name: variantToAdd.name,
@@ -60,13 +79,11 @@ export default function ProductPage() {
       image: product.thumbnail_url,
       quantity: 1,
       
-      // ✅ FIX 2: Add the design URL needed by the webhook
+      // ✅ Adding the extracted design URL (the fix!)
       design_url: designUrl, 
     };
-    // ------------------------
-
+    
     const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
-    // NOTE: Changed logic to use sync_variant_id for uniqueness in the cart
     const exists = existingCart.find((item) => item.sync_variant_id === cartItem.sync_variant_id);
 
     if (exists) {
