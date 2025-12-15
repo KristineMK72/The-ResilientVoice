@@ -1,3 +1,4 @@
+// pages/product/[id].js
 "use client";
 
 import { useRouter } from "next/router";
@@ -41,17 +42,32 @@ export default function ProductPage() {
       return;
     }
 
+    // --- FIX APPLIED HERE ---
+    // 1. Extract the design file URL required by Printful fulfillment
+    const designUrl =
+      variantToAdd.files?.find(f => f.type === "default")?.url ||
+      variantToAdd.files?.[0]?.url ||
+      null; 
+
     const cartItem = {
-  id: product.id,                // ✅  internal product ID
-  variant_id: selectedVariantId, // ✅ Printful variant ID
-  name: variantToAdd.name,
-  price: variantToAdd.price,
-  image: product.thumbnail_url,
-  quantity: 1,
-};
+      id: product.id,
+      
+      // ✅ FIX 1: Use the Printful-required sync_variant_id
+      sync_variant_id: variantToAdd.id, 
+      
+      name: variantToAdd.name,
+      price: variantToAdd.price,
+      image: product.thumbnail_url,
+      quantity: 1,
+      
+      // ✅ FIX 2: Add the design URL needed by the webhook
+      design_url: designUrl, 
+    };
+    // ------------------------
 
     const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const exists = existingCart.find((item) => item.id === cartItem.id);
+    // NOTE: Changed logic to use sync_variant_id for uniqueness in the cart
+    const exists = existingCart.find((item) => item.sync_variant_id === cartItem.sync_variant_id);
 
     if (exists) {
       exists.quantity += 1;
