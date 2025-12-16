@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatPrice } from "../lib/formatPrice";
 
 export default function CartPage() {
@@ -8,19 +8,27 @@ export default function CartPage() {
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("cart") || "[]");
-    setCart(stored);
+    setCart(Array.isArray(stored) ? stored : []);
   }, []);
 
-  const removeFromCart = (id) => {
-    const updated = cart.filter((item) => item.id !== id);
-    setCart(updated);
-    localStorage.setItem("cart", JSON.stringify(updated));
+  const persist = (next) => {
+    setCart(next);
+    localStorage.setItem("cart", JSON.stringify(next));
   };
 
-  const subtotal = cart.reduce(
-    (sum, item) => sum + Number(item.price) * item.quantity,
-    0
-  );
+  // ✅ remove by unique fulfillment key
+  const removeFromCart = (syncVariantId) => {
+    const updated = cart.filter((item) => item.sync_variant_id !== syncVariantId);
+    persist(updated);
+  };
+
+  const subtotal = useMemo(() => {
+    return cart.reduce((sum, item) => {
+      const price = Number(item.price);
+      const qty = Number(item.quantity) || 1;
+      return sum + (Number.isFinite(price) ? price : 0) * qty;
+    }, 0);
+  }, [cart]);
 
   const checkout = async () => {
     const res = await fetch("/api/create-checkout-session", {
@@ -28,11 +36,25 @@ export default function CartPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cart }),
     });
-    const { url } = await res.json();
-    window.location = url;
+
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("Checkout session error:", data);
+      alert(data?.error || "Checkout failed. Check console logs.");
+      return;
+    }
+
+    window.location = data.url;
   };
 
-  if (cart.length === 0) {
+  // Helper to build mockup paths using sync_product_id
+  const getMockupPaths = (syncProductId) => [
+    `/${syncProductId}_1.png`,
+    `/${syncProductId}_2.png`,
+    `/${syncProductId}_3.png`,
+  ];
+
+  if (!cart.length) {
     return (
       <div style={{ padding: "6rem", textAlign: "center" }}>
         <h1>Your Cart</h1>
@@ -41,99 +63,120 @@ export default function CartPage() {
     );
   }
 
-  // Helper to build mockup paths
-  const getMockupPaths = (id) => [
-    `/${id}_1.png`,
-    `/${id}_2.png`,
-    `/${id}_3.png`,
-  ];
-
   return (
     <div style={{ padding: "4rem", maxWidth: "900px", margin: "0 auto" }}>
       <h1 style={{ fontSize: "3rem", marginBottom: "2rem" }}>Your Cart</h1>
+
       <ul style={{ listStyle: "none", padding: 0 }}>
-        {cart.map((item) => (
-          <li
-            key={item.id}
-            style={{
-              marginBottom: "2rem",
-              borderBottom: "1px solid #ddd",
-              paddingBottom: "1.5rem",
-            }}
-          >
-            {/* Product info row */}
-            <div
+        {cart.map((item) => {
+          const qty = Number(item.quantity) || 1;
+          const displayPrice = Number(item.price) || 0;
+
+          // Prefer stored image; fallback to something safe
+          const image = item.image || "/Logo.jpeg";
+
+          // Use sync_product_id for local mockups (fallback to stored productId if you have it)
+          const syncProductId = item.sync_product_id || item.productId || null;
+
+          return (
+            <li
+              key={item.sync_variant_id || `${item.name}-${Math.random()}`}
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
+                marginBottom: "2rem",
+                borderBottom: "1px solid #ddd",
+                paddingBottom: "1.5rem",
               }}
             >
-              <div style={{ flex: 1 }}>
-                <strong>{item.name}</strong>
-                <div style={{ fontSize: "1.2rem", color: "#555" }}>
-                  {item.quantity} × {formatPrice(item.price)}
-                </div>
-              </div>
-              <button
-                onClick={() => removeFromCart(item.id)}
+              {/* Product info row */}
+              <div
                 style={{
-                  background: "transparent",
-                  border: "1px solid #9f6baa",
-                  color: "#9f6baa",
-                  padding: "0.5rem 1rem",
-                  borderRadius: "8px",
-                  cursor: "pointer",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "1rem",
                 }}
               >
-                Remove
-              </button>
-            </div>
+                <div style={{ flex: 1 }}>
+                  <strong>{item.name}</strong>
 
-            {/* Main product image */}
-            <div style={{ marginTop: "1rem" }}>
-              <img
-                src={item.image}
-                alt={item.name}
-                style={{
-                  width: "120px",
-                  height: "120px",
-                  objectFit: "contain",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-                }}
-              />
-            </div>
+                  {/* Optional: show variant info if present */}
+                  {item.sync_variant_id && (
+                    <div style={{ fontSize: "0.95rem", color: "#777", marginTop: "0.25rem" }}>
+                      Variant: {item.sync_variant_id}
+                    </div>
+                  )}
 
-            {/* Additional mockups */}
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "12px",
-                marginTop: "1rem",
-              }}
-            >
-              {getMockupPaths(item.productId || item.id).map((path, index) => (
-                <img
-                  key={index}
-                  src={path}
-                  alt={`${item.name} mockup ${index + 1}`}
+                  <div style={{ fontSize: "1.2rem", color: "#555", marginTop: "0.35rem" }}>
+                    {qty} × {formatPrice(displayPrice)}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => removeFromCart(item.sync_variant_id)}
                   style={{
-                    width: "100px",
-                    height: "100px",
+                    background: "transparent",
+                    border: "1px solid #9f6baa",
+                    color: "#9f6baa",
+                    padding: "0.5rem 1rem",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+
+              {/* Main product image */}
+              <div style={{ marginTop: "1rem" }}>
+                <img
+                  src={image}
+                  alt={item.name}
+                  style={{
+                    width: "120px",
+                    height: "120px",
                     objectFit: "contain",
                     borderRadius: "8px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
                   }}
                   onError={(e) => {
-                    e.currentTarget.style.display = "none"; // hide if file doesn’t exist
+                    e.currentTarget.src = "/Logo.jpeg";
                   }}
                 />
-              ))}
-            </div>
-          </li>
-        ))}
+              </div>
+
+              {/* Additional mockups (only if we have a sync_product_id) */}
+              {syncProductId && (
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "12px",
+                    marginTop: "1rem",
+                  }}
+                >
+                  {getMockupPaths(syncProductId).map((path, index) => (
+                    <img
+                      key={index}
+                      src={path}
+                      alt={`${item.name} mockup ${index + 1}`}
+                      style={{
+                        width: "100px",
+                        height: "100px",
+                        objectFit: "contain",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                      }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       {/* Subtotal */}
@@ -158,8 +201,7 @@ export default function CartPage() {
           fontWeight: "500",
         }}
       >
-        ❤️ Thank you for shopping and supporting non‑profits.  
-        Your purchase helps us give back!
+        ❤️ Thank you for shopping and supporting non-profits. Your purchase helps us give back!
       </div>
 
       {/* Checkout button */}
