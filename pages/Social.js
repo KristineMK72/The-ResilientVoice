@@ -1,5 +1,6 @@
 "use client";
 
+import { PRINTFUL_PRODUCTS } from "../lib/printfulMap"; // ✅ YOU WERE MISSING THIS
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
@@ -41,23 +42,23 @@ export default function Social() {
 
   const [currentPhrase, setCurrentPhrase] = useState(0);
 
+  // ✅ EXACTLY like SavedByGrace: build from map keys + dedupe
   const SOCIAL_PRODUCT_IDS = useMemo(() => {
-  const ids = [
-    PRINTFUL_PRODUCTS.your_story?.sync_product_id,
-    PRINTFUL_PRODUCTS.retro_ringer?.sync_product_id,
-    PRINTFUL_PRODUCTS.the_climb?.sync_product_id,
-    PRINTFUL_PRODUCTS.safe?.sync_product_id,
-    PRINTFUL_PRODUCTS.mind?.sync_product_id,
-    PRINTFUL_PRODUCTS.multi_color_joggers_social?.sync_product_id,
-    PRINTFUL_PRODUCTS.multicolor_sweatshirt_social?.sync_product_id,
-    PRINTFUL_PRODUCTS.testproduct_can_cooler?.sync_product_id,
-  ]
-    .filter(Boolean)
-    .map(String);
+    const ids = [
+      PRINTFUL_PRODUCTS.your_story?.sync_product_id,
+      PRINTFUL_PRODUCTS.retro_ringer?.sync_product_id,
+      PRINTFUL_PRODUCTS.the_climb?.sync_product_id,
+      PRINTFUL_PRODUCTS.safe?.sync_product_id,
+      PRINTFUL_PRODUCTS.mind?.sync_product_id,
+      PRINTFUL_PRODUCTS.multi_color_joggers_social?.sync_product_id,
+      PRINTFUL_PRODUCTS.multicolor_sweatshirt_social?.sync_product_id,
+      PRINTFUL_PRODUCTS.testproduct_can_cooler?.sync_product_id,
+    ]
+      .filter(Boolean)
+      .map(String);
 
-  return Array.from(new Set(ids));
-}, []);
-
+    return Array.from(new Set(ids));
+  }, []);
 
   // ✅ Phrase rotation
   useEffect(() => {
@@ -100,7 +101,9 @@ export default function Social() {
           setLoading(false);
 
           if (results.length === 0) {
-            setError("No Social products loaded — check /api/printful-product/:id responses.");
+            setError(
+              "No Social products loaded — check /api/printful-product/:id responses."
+            );
           }
         }
       } catch (e) {
@@ -159,7 +162,14 @@ export default function Social() {
         `}</style>
 
         {/* Hero */}
-        <div style={{ textAlign: "center", padding: "6rem 1rem 4rem", position: "relative", zIndex: 10 }}>
+        <div
+          style={{
+            textAlign: "center",
+            padding: "6rem 1rem 4rem",
+            position: "relative",
+            zIndex: 10,
+          }}
+        >
           <h1
             style={{
               fontSize: "5rem",
@@ -174,9 +184,18 @@ export default function Social() {
             SOCIAL IMPACT
           </h1>
 
-          <p style={{ fontSize: "2rem", maxWidth: "900px", margin: "0 auto 2rem", lineHeight: "1.6", color: "#ccc" }}>
-            This collection is dedicated to healing and hope. Every piece is designed to spark conversation,
-            raise awareness, and give back to nonprofits tackling housing insecurity, homelessness, mental health,
+          <p
+            style={{
+              fontSize: "2rem",
+              maxWidth: "900px",
+              margin: "0 auto 2rem",
+              lineHeight: "1.6",
+              color: "#ccc",
+            }}
+          >
+            This collection is dedicated to healing and hope. Every piece is
+            designed to spark conversation, raise awareness, and give back to
+            nonprofits tackling housing insecurity, homelessness, mental health,
             and suicide prevention.
           </p>
         </div>
@@ -239,19 +258,35 @@ export default function Social() {
 
         {/* Status */}
         {loading && (
-          <div style={{ textAlign: "center", padding: "2rem 1rem", position: "relative", zIndex: 10 }}>
-            <p style={{ fontSize: "2rem", color: "#6ee7b7" }}>Loading Social Impact collection…</p>
+          <div
+            style={{
+              textAlign: "center",
+              padding: "2rem 1rem",
+              position: "relative",
+              zIndex: 10,
+            }}
+          >
+            <p style={{ fontSize: "2rem", color: "#6ee7b7" }}>
+              Loading Social Impact collection…
+            </p>
           </div>
         )}
 
         {error && (
-          <div style={{ textAlign: "center", padding: "2rem 1rem", position: "relative", zIndex: 10 }}>
+          <div
+            style={{
+              textAlign: "center",
+              padding: "2rem 1rem",
+              position: "relative",
+              zIndex: 10,
+            }}
+          >
             <p style={{ fontSize: "1.6rem", color: "#ff6b6b" }}>{error}</p>
             <p style={{ color: "#aaa" }}>Check browser console for details.</p>
           </div>
         )}
 
-        {/* ✅ Product grid (FIXED: uses sync_product_id, never product.id) */}
+        {/* Product grid */}
         {!loading && !error && (
           <div
             style={{
@@ -266,11 +301,12 @@ export default function Social() {
             }}
           >
             {products.map((product) => {
-              const productId = String(product?.sync_product_id ?? product?.id ?? "");
-              if (!productId) return null; // ✅ prevents /product/undefined
+              const productId = String(product?.sync_product_id ?? "");
+              if (!productId) return null;
 
               const firstVariant = product?.variants?.[0];
-              const price = firstVariant?.retail_price ?? firstVariant?.price ?? "0";
+              const price =
+                firstVariant?.retail_price ?? firstVariant?.price ?? "0";
 
               return (
                 <div
@@ -283,7 +319,13 @@ export default function Social() {
                   }}
                 >
                   <Link href={`/product/${productId}`}>
-                    <div style={{ height: "460px", position: "relative", background: "#111" }}>
+                    <div
+                      style={{
+                        height: "460px",
+                        position: "relative",
+                        background: "#111",
+                      }}
+                    >
                       <Image
                         src={product.thumbnail_url || product.preview_url}
                         alt={product.name}
@@ -295,11 +337,25 @@ export default function Social() {
                   </Link>
 
                   <div style={{ padding: "2.5rem", textAlign: "center" }}>
-                    <h3 style={{ margin: "0 0 1rem", fontSize: "1.7rem", fontWeight: "700", color: "#333" }}>
+                    <h3
+                      style={{
+                        margin: "0 0 1rem",
+                        fontSize: "1.7rem",
+                        fontWeight: "700",
+                        color: "#333",
+                      }}
+                    >
                       {product.name}
                     </h3>
 
-                    <p style={{ margin: "1rem 0", fontSize: "2.2rem", fontWeight: "bold", color: "#111827" }}>
+                    <p
+                      style={{
+                        margin: "1rem 0",
+                        fontSize: "2.2rem",
+                        fontWeight: "bold",
+                        color: "#111827",
+                      }}
+                    >
                       {formatPrice(price)}
                     </p>
 
