@@ -65,20 +65,15 @@ export default async function handler(req, res) {
       line_items: lineItems,
 
       // --- FIX APPLIED HERE ---
-      metadata: {
-        cart: JSON.stringify(
-          cart.map(item => ({
-            // ✅ Include ALL fields the webhook needs for fulfillment
-            sync_variant_id: item.sync_variant_id,
-            quantity: Number(item.quantity),
-            retail_price: Number(item.price).toFixed(2),
-            name: item.name,             
-            price: item.price,           
-            design_url: item.design_url, 
-            image: item.image,           
-          }))
-        ),
-      },
+    metadata: {
+  printful_items: JSON.stringify(
+    cart.map(item => ({
+      sync_variant_id: item.sync_variant_id,
+      quantity: Number(item.quantity),
+    }))
+  ),
+},
+
       // ------------------------
 
       success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
