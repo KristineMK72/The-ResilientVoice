@@ -17,11 +17,7 @@ const PATRIOT_PRODUCT_IDS = [
   "405510593",
   "406371194",
   "406372796",
-  // 👈 your newest shirt
-  // add other Patriot product IDs here
 ];
-
-// --- New Definitions for Rotation and Buzzwords ---
 
 const PATRIOTIC_PHRASES = [
   "Freedom isn't free. Thank a veteran.",
@@ -50,77 +46,86 @@ const SERVICE_BUZZWORDS = [
   "Patriot",
 ];
 
-// --------------------------------------------------
-
 export default function Patriot() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // --- New State for Phrase Rotation ---
   const [currentPhrase, setCurrentPhrase] = useState(0);
 
-  // --- Product Loading Logic (Existing) ---
   useEffect(() => {
     async function loadProducts() {
       const loaded = [];
-      let hasError = false;
+      let hadAnyError = false;
 
       for (const id of PATRIOT_PRODUCT_IDS) {
         try {
           const res = await fetch(`/api/printful-product/${id}`);
-          if (res.ok) {
-            const data = await res.json();
+          const data = await res.json().catch(() => ({}));
+
+          if (res.ok && data?.sync_product_id) {
             loaded.push(data);
           } else {
-            console.warn(`Failed to load ${id}: ${res.status}`);
+            hadAnyError = true;
+            console.warn(`Failed to load ${id}: ${res.status}`, data);
           }
         } catch (err) {
+          hadAnyError = true;
           console.error(`Error loading ${id}:`, err);
-          hasError = true;
         }
       }
 
       setProducts(loaded);
       setLoading(false);
-      if (hasError && loaded.length === 0) {
-        setError("Failed to load products — check console.");
+
+      if (loaded.length === 0) {
+        setError(
+          hadAnyError
+            ? "Failed to load products — check console."
+            : "No products returned."
+        );
       }
     }
 
     loadProducts();
   }, []);
 
-  // --- Phrase Rotation Logic (New) ---
   useEffect(() => {
     const intervalId = setInterval(() => {
-      setCurrentPhrase(
-        (prevIndex) => (prevIndex + 1) % PATRIOTIC_PHRASES.length
-      );
-    }, 5000); // Change phrase every 5 seconds
-
-    return () => clearInterval(intervalId); // Cleanup on unmount
+      setCurrentPhrase((prev) => (prev + 1) % PATRIOTIC_PHRASES.length);
+    }, 5000);
+    return () => clearInterval(intervalId);
   }, []);
-  // ------------------------------------
 
-
+  // (Optional) If you still want "add to cart" from the grid, keep this.
+  // Note: your Product Page already adds to cart more correctly with variants,
+  // so most stores just use "View Details" here.
   const addToCart = (product) => {
+    const firstVariant = product?.variants?.[0];
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const existing = cart.find((item) => item.id === product.id);
 
-    const productImage = product.thumbnail_url || product.preview_url;
+    const cartItem = {
+      sync_product_id: product.sync_product_id,
+      sync_variant_id: firstVariant?.sync_variant_id,
+      catalog_variant_id: firstVariant?.catalog_variant_id,
+      name: product.name,
+      price: firstVariant?.retail_price || "0",
+      image: product.thumbnail_url || firstVariant?.preview_url || "/Logo.jpeg",
+      quantity: 1,
+      is_synced: true,
+    };
 
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      cart.push({
-        id: product.id,
-        name: product.name,
-        price: Number(product.variants?.[0]?.price) || 29.99,
-        image: productImage,
-        quantity: 1,
-      });
+    // If we don't have a variant, don’t add (Stripe/Printful won’t know what to fulfill)
+    if (!cartItem.sync_variant_id) {
+      alert("Please open the product and choose a variant first.");
+      return;
     }
+
+    const existing = cart.find(
+      (item) => item.sync_variant_id === cartItem.sync_variant_id
+    );
+
+    if (existing) existing.quantity += 1;
+    else cart.push(cartItem);
 
     localStorage.setItem("cart", JSON.stringify(cart));
     alert(`${product.name} added to cart!`);
@@ -129,7 +134,7 @@ export default function Patriot() {
   return (
     <>
       <Head>
-        <title>Patriot Collection | The Resilient Voice</title>
+        <title>Patriot Collection | Grit & Grace</title>
         <meta
           name="description"
           content="Bold truthwear for those who stand for faith, freedom, and country."
@@ -214,15 +219,12 @@ export default function Patriot() {
               color: "#ccc",
             }}
           >
-            For those who stand unapologetically for faith, freedom, and country — and for those who serve to protect it.
-            This collection is a tribute to bold voices, sacred values, and the American spirit.
-            We honor veterans, active-duty military, law enforcement, and EMS — the everyday heroes who carry the weight of our safety and liberty.
-            Every purchase helps us give back to organizations that support their service, sacrifice, and recovery.
-            Designed to speak truth. Built to give back.
+            For those who stand unapologetically for faith, freedom, and country —
+            and for those who serve to protect it.
           </p>
         </div>
 
-        {/* --- New: Patriotic Phrase Rotation (Sticky) --- */}
+        {/* Phrase rotation */}
         <div
           style={{
             textAlign: "center",
@@ -231,22 +233,22 @@ export default function Patriot() {
             backdropFilter: "blur(6px)",
             fontSize: "1.4rem",
             fontWeight: "600",
-            color: "#0000ff", // Using blue from the patriotic colors
+            color: "#0000ff",
             marginBottom: "3rem",
             position: "sticky",
             top: 0,
             zIndex: 5,
-            minHeight: "3.5rem", // Ensures consistent height
+            minHeight: "3.5rem",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            borderBottom: "4px solid #ff0000", // Red accent
+            borderBottom: "4px solid #ff0000",
           }}
         >
           {PATRIOTIC_PHRASES[currentPhrase]}
         </div>
-        
-        {/* --- New: Buzzword cloud --- */}
+
+        {/* Buzzword cloud */}
         <div
           style={{
             maxWidth: "900px",
@@ -268,7 +270,7 @@ export default function Patriot() {
                 background: "#fff",
                 borderRadius: "20px",
                 fontSize: "1.1rem",
-                color: "#ff0000", // Using red from the patriotic colors
+                color: "#ff0000",
                 boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
                 fontWeight: "700",
                 textTransform: "uppercase",
@@ -279,7 +281,6 @@ export default function Patriot() {
             </span>
           ))}
         </div>
-        {/* ------------------------------------------------- */}
 
         {/* Product grid */}
         <div
@@ -306,6 +307,7 @@ export default function Patriot() {
               Loading Patriot collection…
             </p>
           )}
+
           {error && (
             <p
               style={{
@@ -318,6 +320,7 @@ export default function Patriot() {
               {error}
             </p>
           )}
+
           {!loading && !error && products.length === 0 && (
             <p
               style={{
@@ -330,74 +333,87 @@ export default function Patriot() {
               No Patriot products loaded yet
             </p>
           )}
-          {products.map((product) => (
-            <div
-              key={product.id}
-              style={{
-                borderRadius: "28px",
-                overflow: "hidden",
-                background: "white",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.12)",
-              }}
-            >
-              <Link href={`/product/${product.id}`}>
-                <div
-                  style={{
-                    height: "460px",
-                    position: "relative",
-                    background: "#111",
-                  }}
-                >
-                  <Image
-                    src={product.thumbnail_url || product.preview_url}
-                    alt={product.name}
-                    fill
-                    style={{ objectFit: "contain", padding: "40px" }}
-                    priority
-                  />
-                </div>
-              </Link>
-              <div style={{ padding: "2.5rem", textAlign: "center" }}>
-                <h3
-                  style={{
-                    margin: "0 0 1rem",
-                    fontSize: "1.7rem",
-                    fontWeight: "700",
-                    color: "#333",
-                  }}
-                >
-                  {product.name}
-                </h3>
-                <p
-                  style={{
-                    margin: "1rem 0",
-                    fontSize: "2.2rem",
-                    fontWeight: "bold",
-                    color: "#ff0000",
-                  }}
-                >
-                  {formatPrice(product.variants?.[0]?.price)}
-                </p>
-                <Link href={`/product/${product.id}`}>
-                  <a
+
+          {products.map((product) => {
+            const price = product?.variants?.[0]?.retail_price || "0";
+            const href = `/product/${product.sync_product_id}`;
+
+            return (
+              <div
+                key={product.sync_product_id}
+                style={{
+                  borderRadius: "28px",
+                  overflow: "hidden",
+                  background: "white",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.12)",
+                }}
+              >
+                <Link href={href}>
+                  <div
                     style={{
-                      display: "inline-block",
-                      width: "100%",
-                      padding: "1.4rem",
-                      background: "#ff0000",
-                      color: "white",
-                      borderRadius: "16px",
-                      fontSize: "1.3rem",
-                      fontWeight: "bold",
-                      textDecoration: "none",
+                      height: "460px",
+                      position: "relative",
+                      background: "#111",
+                      cursor: "pointer",
                     }}
                   >
-                    View Details →
-                  </a>
+                    <Image
+                      src={product.thumbnail_url || product.variants?.[0]?.preview_url}
+                      alt={product.name}
+                      fill
+                      style={{ objectFit: "contain", padding: "40px" }}
+                      priority
+                    />
+                  </div>
                 </Link>
+
+                <div style={{ padding: "2.5rem", textAlign: "center" }}>
+                  <h3
+                    style={{
+                      margin: "0 0 1rem",
+                      fontSize: "1.7rem",
+                      fontWeight: "700",
+                      color: "#333",
+                    }}
+                  >
+                    {product.name}
+                  </h3>
+
+                  <p
+                    style={{
+                      margin: "1rem 0",
+                      fontSize: "2.2rem",
+                      fontWeight: "bold",
+                      color: "#ff0000",
+                    }}
+                  >
+                    {formatPrice(price)}
+                  </p>
+
+                  <Link href={href}>
+                    <a
+                      style={{
+                        display: "inline-block",
+                        width: "100%",
+                        padding: "1.4rem",
+                        background: "#ff0000",
+                        color: "white",
+                        borderRadius: "16px",
+                        fontSize: "1.3rem",
+                        fontWeight: "bold",
+                        textDecoration: "none",
+                      }}
+                    >
+                      View Details →
+                    </a>
+                  </Link>
+
+                  {/* Optional quick add */}
+                  {/* <button onClick={() => addToCart(product)}>Quick Add</button> */}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </>
