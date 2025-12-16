@@ -10,19 +10,21 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { cart } = req.body;
+  // DESTRUCTURING CHANGE: Now expecting 'shippingRate' from the frontend
+  const { cart, shippingRate } = req.body;
 
   if (!Array.isArray(cart) || cart.length === 0) {
     return res.status(400).json({ error: 'Cart is empty or invalid' });
   }
-
-  // Fixed shipping
-  const FIXED_SHIPPING_USD = 7.0;
-  const FIXED_SHIPPING_CENTS = Math.round(FIXED_SHIPPING_USD * 100);
+  
+  // VALIDATION: Ensure a shipping rate has been selected and provided
+  if (!shippingRate || !shippingRate.rate || !shippingRate.shipping_method_name) {
+      return res.status(400).json({ error: 'Shipping rate details are missing or invalid.' });
+  }
 
   try {
     /* -------------------------
-       Build Stripe Line Items
+       Build Stripe Line Items (Products Only)
     -------------------------- */
     const lineItems = cart.map(item => {
       if (!item.sync_variant_id) {
@@ -42,15 +44,20 @@ export default async function handler(req, res) {
       };
     });
 
-    // Add shipping as a line item
+    // --- DYNAMIC SHIPPING FIX ---
+    // Add the calculated shipping rate as a line item
+    const shippingCents = Math.round(Number(shippingRate.rate) * 100);
+    
     lineItems.push({
       price_data: {
         currency: 'usd',
-        product_data: { name: 'Shipping (Standard)' },
-        unit_amount: FIXED_SHIPPING_CENTS,
+        // Use the method name returned by Printful V2 API for clarity
+        product_data: { name: `Shipping (${shippingRate.shipping_method_name})` }, 
+        unit_amount: shippingCents,
       },
       quantity: 1,
     });
+    // ----------------------------
 
     /* -------------------------
        Create Checkout Session
@@ -64,22 +71,22 @@ export default async function handler(req, res) {
 
       line_items: lineItems,
 
-      // --- FIX APPLIED HERE ---
       metadata: {
         cart: JSON.stringify(
           cart.map(item => ({
-            // ✅ Include ALL fields the webhook needs for fulfillment
+            // Include ALL fields the webhook needs for fulfillment
             sync_variant_id: item.sync_variant_id,
             quantity: Number(item.quantity),
             retail_price: Number(item.price).toFixed(2),
-            name: item.name,             
+            name: item.name,              
             price: item.price,           
-            design_url: item.design_url, 
-            image: item.image,           
+            design_url: item.design_url,  
+            image: item.image,
           }))
         ),
+        // CRITICAL: Store the Printful shipping method ID for the webhook
+        shipping_method: shippingRate.shipping, 
       },
-      // ------------------------
 
       success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.origin}/cart`,
