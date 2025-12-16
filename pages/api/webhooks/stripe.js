@@ -3,20 +3,23 @@ import Stripe from "stripe";
 import { buffer } from "micro";
 import fetch from "node-fetch";
 
+// Stripe requires the raw body
 export const config = {
   api: { bodyParser: false },
 };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-06-30",
+  apiVersion: "2025-06-30.basil",
 });
 
 export default async function handler(req, res) {
+  // 1) Method guard
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).end("Method Not Allowed");
   }
 
+  // 2) Verify webhook signature
   const sig = req.headers["stripe-signature"];
   let event;
 
@@ -32,7 +35,7 @@ export default async function handler(req, res) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Only fulfill on checkout completion
+  // 3) Only fulfill on checkout.session.completed
   if (event.type !== "checkout.session.completed") {
     return res
       .status(200)
@@ -41,13 +44,15 @@ export default async function handler(req, res) {
 
   const session = event.data.object;
 
+  // 4) Must be paid
   if (session.payment_status !== "paid") {
     console.warn("⚠️ Session completed but not paid:", session.id);
     return res.status(200).json({ received: true, message: "Not paid" });
   }
 
+  // 5) Fulfillment
   try {
-    // Prefer shipping_details when present, fallback to customer_details
+    // ✅ Recipient: prefer shipping_details; fallback to customer_details
     const shipping = session.shipping_details || {};
     const customer = session.customer_details || {};
     const addr = shipping.address || customer.address || {};
@@ -63,11 +68,17 @@ export default async function handler(req, res) {
       zip: addr.postal_code,
     };
 
-    if (!recipient.name || !recipient.address1 || !recipient.city || !recipient.country_code || !recipient.zip) {
+    if (
+      !recipient.name ||
+      !recipient.address1 ||
+      !recipient.city ||
+      !recipient.country_code ||
+      !recipient.zip
+    ) {
       throw new Error("Missing recipient shipping details for fulfillment.");
     }
 
-    // ✅ NEW: minimal metadata for Printful
+    // ✅ REQUIRED: read Printful metadata from Checkout Session (only once)
     if (!session.metadata?.printful_items) {
       throw new Error("Missing printful_items metadata from Stripe session.");
     }
@@ -118,20 +129,30 @@ export default async function handler(req, res) {
 
     const printfulData = await printfulRes.json();
 
+    // Duplicate order (safe)
     if (printfulRes.status === 409) {
       console.warn("⚠️ Printful order already exists for session:", session.id);
       return res.status(200).json({ duplicate: true });
     }
 
+    // Failure
     if (![200, 201].includes(printfulRes.status)) {
       console.error("❌ Printful API error:", {
         status: printfulRes.status,
         response: printfulData,
       });
-      return res.status(500).json({ error: "Printful order failed", details: printfulData });
+      return res
+        .status(500)
+        .json({ error: "Printful order failed", details: printfulData });
     }
 
-    console.log("✅ Printful order created:", printfulData?.result?.id, "session:", session.id);
+    console.log(
+      "✅ Printful order created:",
+      printfulData?.result?.id,
+      "session:",
+      session.id
+    );
+
     return res.status(200).json({ success: true });
   } catch (err) {
     console.error("❌ Fulfillment error:", err.message);
