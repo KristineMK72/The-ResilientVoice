@@ -3,7 +3,6 @@ import Stripe from "stripe";
 import { buffer } from "micro";
 import fetch from "node-fetch";
 
-// Stripe requires the raw body
 export const config = {
   api: { bodyParser: false },
 };
@@ -13,16 +12,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 export default async function handler(req, res) {
-  // 1) Method guard
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).end("Method Not Allowed");
   }
 
-  // 2) Verify webhook signature
   const sig = req.headers["stripe-signature"];
   let event;
 
+  // 1) Verify signature
   try {
     const rawBody = await buffer(req);
     event = stripe.webhooks.constructEvent(
@@ -35,24 +33,20 @@ export default async function handler(req, res) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // 3) Only fulfill on checkout.session.completed
+  // 2) Only fulfill on checkout.session.completed
   if (event.type !== "checkout.session.completed") {
-    return res
-      .status(200)
-      .json({ received: true, message: `Ignoring ${event.type}` });
+    return res.status(200).json({ received: true, ignored: event.type });
   }
 
   const session = event.data.object;
 
-  // 4) Must be paid
   if (session.payment_status !== "paid") {
     console.warn("⚠️ Session completed but not paid:", session.id);
     return res.status(200).json({ received: true, message: "Not paid" });
   }
 
-  // 5) Fulfillment
   try {
-    // ✅ Recipient: prefer shipping_details; fallback to customer_details
+    // 3) Recipient (prefer shipping_details, fallback to customer_details)
     const shipping = session.shipping_details || {};
     const customer = session.customer_details || {};
     const addr = shipping.address || customer.address || {};
@@ -78,7 +72,7 @@ export default async function handler(req, res) {
       throw new Error("Missing recipient shipping details for fulfillment.");
     }
 
-    // ✅ REQUIRED: read Printful metadata from Checkout Session (only once)
+    // 4) ✅ REQUIRED: read Printful metadata from Checkout Session
     if (!session.metadata?.printful_items) {
       throw new Error("Missing printful_items metadata from Stripe session.");
     }
@@ -94,7 +88,7 @@ export default async function handler(req, res) {
       throw new Error("printful_items metadata is empty or invalid.");
     }
 
-    // ✅ Synced Printful products: variant_id = sync_variant_id (no files needed)
+    // 5) ✅ IMPORTANT: for store-synced items, send sync_variant_id (NOT variant_id)
     const printfulItems = items.map((item, idx) => {
       const sync_variant_id = item?.sync_variant_id;
       const quantity = Number(item?.quantity);
@@ -107,11 +101,12 @@ export default async function handler(req, res) {
       }
 
       return {
-        variant_id: Number(sync_variant_id), // Printful expects a number
+        sync_variant_id: Number(sync_variant_id),
         quantity,
       };
     });
 
+    // 6) Create Printful order
     const printfulRes = await fetch("https://api.printful.com/orders", {
       method: "POST",
       headers: {
@@ -119,7 +114,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        external_id: session.id, // ✅ idempotency: one order per session
+        external_id: session.id, // idempotent: one order per Stripe session
         recipient,
         items: printfulItems,
         confirm: true,
@@ -129,13 +124,11 @@ export default async function handler(req, res) {
 
     const printfulData = await printfulRes.json();
 
-    // Duplicate order (safe)
     if (printfulRes.status === 409) {
       console.warn("⚠️ Printful order already exists for session:", session.id);
       return res.status(200).json({ duplicate: true });
     }
 
-    // Failure
     if (![200, 201].includes(printfulRes.status)) {
       console.error("❌ Printful API error:", {
         status: printfulRes.status,
