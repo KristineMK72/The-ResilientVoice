@@ -6,17 +6,22 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { formatPrice } from "../lib/formatPrice";
 
-const SOCIAL_PRODUCT_IDS = [
-  "405949039",
-  "405945273",
-  "406331944",
-  "406332650",
-  "406370294",
-  "406371194",
-  "406372796",
-  "407453890",
-  // add more Social Impact product IDs here
-];
+  // ✅ Explicit Social list (so you can SEE it)
+  const SOCIAL_PRODUCT_IDS = useMemo(() => {
+    const ids = [
+      "405949039", // Your Story
+      "405945273", // ;
+      "406331944", // The Climb
+      "406332650", // Safe
+      "406370294", // Mind
+      "406371194", // Multi Color Joggers
+      "406372796", // Multi Color Sweatshirt
+      "407453890", // TestProduct Can Cooler
+    ].map(String);
+
+    return Array.from(new Set(ids));
+  }, []);
+
 
 // --- New Definitions for Rotation and Buzzwords ---
 
