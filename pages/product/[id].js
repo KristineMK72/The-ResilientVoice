@@ -12,7 +12,9 @@ export default function ProductPage() {
 
   const [product, setProduct] = useState(null);
   const [added, setAdded] = useState(false);
-  const [selectedVariantId, setSelectedVariantId] = useState(null); // this will be sync_variant_id
+
+  // This is the Printful sync_variant_id
+  const [selectedVariantId, setSelectedVariantId] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -57,6 +59,9 @@ export default function ProductPage() {
     return Number.isFinite(n) ? n : 0;
   }, [selectedVariant, product]);
 
+  const heroImage =
+    selectedVariant?.preview_url || product?.thumbnail_url || "/Logo.jpeg";
+
   const getMockupPaths = (syncProductId) => [
     `/${syncProductId}_1.png`,
     `/${syncProductId}_2.png`,
@@ -78,11 +83,12 @@ export default function ProductPage() {
     }
 
     const cartItem = {
-      // ✅ keep both for debugging + future use
+      // Keep both identifiers
       sync_product_id: product.sync_product_id,
-      sync_variant_id: v.sync_variant_id,         // ✅ Printful fulfillment key for synced products
-      catalog_variant_id: v.catalog_variant_id,   // ✅ optional but helpful
+      sync_variant_id: v.sync_variant_id,
+      catalog_variant_id: v.catalog_variant_id,
 
+      // Display
       name: v.name || product.name,
       price: v.retail_price,
       image: v.preview_url || product.thumbnail_url || "/Logo.jpeg",
@@ -91,7 +97,9 @@ export default function ProductPage() {
     };
 
     const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const existing = existingCart.find((item) => item.sync_variant_id === cartItem.sync_variant_id);
+    const existing = existingCart.find(
+      (item) => item.sync_variant_id === cartItem.sync_variant_id
+    );
 
     if (existing) {
       existing.quantity += 1;
@@ -101,7 +109,7 @@ export default function ProductPage() {
 
     localStorage.setItem("cart", JSON.stringify(existingCart));
     setAdded(true);
-    setTimeout(() => setAdded(false), 3000);
+    setTimeout(() => setAdded(false), 2500);
   };
 
   if (!product) {
@@ -121,8 +129,6 @@ export default function ProductPage() {
     );
   }
 
-  const heroImage = selectedVariant?.preview_url || product.thumbnail_url || "/Logo.jpeg";
-
   return (
     <div
       style={{
@@ -134,12 +140,12 @@ export default function ProductPage() {
       }}
     >
       {/* Main Product Image */}
-      <div style={{ maxWidth: "500px", margin: "0 auto 2rem" }}>
+      <div style={{ maxWidth: "520px", margin: "0 auto 2rem" }}>
         <Image
           src={heroImage}
           alt={product.name}
-          width={600}
-          height={600}
+          width={700}
+          height={700}
           priority
           style={{
             borderRadius: "16px",
@@ -149,7 +155,7 @@ export default function ProductPage() {
         />
       </div>
 
-      {/* Scrollable Mockup Gallery (optional local images) */}
+      {/* Optional local mockup gallery */}
       <div
         style={{
           display: "flex",
@@ -158,6 +164,7 @@ export default function ProductPage() {
           padding: "1rem",
           marginTop: "2rem",
           scrollSnapType: "x mandatory",
+          justifyContent: "center",
         }}
       >
         {getMockupPaths(product.sync_product_id).map((path, index) => (
@@ -167,8 +174,8 @@ export default function ProductPage() {
             alt={`${product.name} mockup ${index + 1}`}
             style={{
               flex: "0 0 auto",
-              width: "480px",
-              height: "480px",
+              width: "420px",
+              height: "420px",
               objectFit: "contain",
               borderRadius: "20px",
               boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
@@ -184,14 +191,16 @@ export default function ProductPage() {
       </div>
 
       {/* Product Details */}
-      <h1 style={{ fontSize: "3rem", fontWeight: "900", margin: "1rem 0" }}>{product.name}</h1>
+      <h1 style={{ fontSize: "3rem", fontWeight: "900", margin: "1.25rem 0" }}>
+        {product.name}
+      </h1>
 
       {!!product.description && (
         <p
           style={{
-            fontSize: "1.4rem",
-            maxWidth: "700px",
-            margin: "1.5rem auto",
+            fontSize: "1.2rem",
+            maxWidth: "820px",
+            margin: "1.25rem auto",
             lineHeight: "1.7",
             opacity: 0.9,
           }}
@@ -205,16 +214,32 @@ export default function ProductPage() {
         ${currentPrice.toFixed(2)}
       </p>
 
-      {/* Variant Selection */}
+      {/* ✅ Variant Selection (clean labels) */}
       {product.variants?.length > 0 && (
-        <div style={{ margin: "2rem auto 2.5rem", maxWidth: "520px" }}>
+        <div style={{ margin: "2rem auto 2.5rem", maxWidth: "720px" }}>
           <h3 style={{ fontSize: "1.4rem", marginBottom: "1rem", fontWeight: "600" }}>
             Choose Your Variant:
           </h3>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "center" }}>
             {product.variants.map((variant) => {
-              const optionLabel = variant.name.split("/").slice(-2).join("/").trim(); // e.g. "Red / M"
+              const parts = String(variant.name || "")
+                .split("/")
+                .map((s) => s.trim())
+                .filter(Boolean);
+
+              // always last = size
+              const size = parts.length ? parts[parts.length - 1] : "Variant";
+
+              // second-to-last might be color (only if it looks like a real color word)
+              const maybeColor = parts.length >= 2 ? parts[parts.length - 2] : null;
+              const color =
+                maybeColor && maybeColor.length <= 20 && !maybeColor.includes(" ")
+                  ? maybeColor
+                  : null;
+
+              const optionLabel = color ? `${color} / ${size}` : size;
+
               const isSelected = variant.sync_variant_id === selectedVariantId;
 
               return (
