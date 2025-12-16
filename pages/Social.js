@@ -1,10 +1,12 @@
 "use client";
 
+import { PRINTFUL_PRODUCTS } from "../lib/printfulMap";
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatPrice } from "../lib/formatPrice";
+
 
   // ✅ Explicit Social list (so you can SEE it)
   const SOCIAL_PRODUCT_IDS = useMemo(() => {
