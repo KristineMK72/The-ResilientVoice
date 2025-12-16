@@ -1,30 +1,11 @@
 "use client";
 
+import { PRINTFUL_PRODUCTS } from "../lib/printfulMap";
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatPrice } from "../lib/formatPrice";
-
-const YOUR_PRODUCT_IDS = [
-  "402037152",
-  "407452483",
-  "402181003",
-  "402034024",
-  "403261853",
-  "403262072",
-  "403262589",
-  "403264720",
-  "403600962",
-  "403601375",
-  "403602081",
-  "403602399",
-  "403602928",
-  "406374826",
-  "40759834",
-  "407591493",
-  "407452483",
-];
 
 export default function SavedByGrace() {
   const [products, setProducts] = useState([]);
@@ -40,6 +21,26 @@ export default function SavedByGrace() {
   ];
   const [currentScripture, setCurrentScripture] = useState(0);
 
+  // Build IDs from your map (and prevent duplicates)
+  const YOUR_PRODUCT_IDS = useMemo(() => {
+    const ids = [
+      PRINTFUL_PRODUCTS.joy?.sync_product_id,
+      PRINTFUL_PRODUCTS.strength?.sync_product_id,
+      PRINTFUL_PRODUCTS.courageous?.sync_product_id,
+      PRINTFUL_PRODUCTS.builder?.sync_product_id,
+      PRINTFUL_PRODUCTS.power?.sync_product_id,
+      PRINTFUL_PRODUCTS.redeemed?.sync_product_id,
+      PRINTFUL_PRODUCTS.unshaken?.sync_product_id,
+      PRINTFUL_PRODUCTS.radiant?.sync_product_id,
+      PRINTFUL_PRODUCTS.love?.sync_product_id,
+      PRINTFUL_PRODUCTS.faith?.sync_product_id,
+    ]
+      .filter(Boolean)
+      .map(String);
+
+    return Array.from(new Set(ids));
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentScripture((prev) => (prev + 1) % scriptures.length);
@@ -48,34 +49,53 @@ export default function SavedByGrace() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadProducts() {
-      const loaded = [];
-      let hasError = false;
+      try {
+        setLoading(true);
+        setError(null);
 
-      for (const id of YOUR_PRODUCT_IDS) {
-        try {
-          const res = await fetch(`/api/printful-product/${id}`);
-          if (res.ok) {
+        const results = [];
+
+        for (const id of YOUR_PRODUCT_IDS) {
+          try {
+            const res = await fetch(`/api/printful-product/${id}`);
+            if (!res.ok) {
+              console.warn(`Failed to load ${id}: ${res.status}`);
+              continue;
+            }
             const data = await res.json();
-            loaded.push(data);
-          } else {
-            console.warn(`Failed to load ${id}: ${res.status}`);
+            results.push(data);
+          } catch (err) {
+            console.error(`Error loading ${id}:`, err);
           }
-        } catch (err) {
-          console.error(`Error loading ${id}:`, err);
-          hasError = true;
         }
-      }
 
-      setProducts(loaded);
-      setLoading(false);
-      if (hasError && loaded.length === 0) {
-        setError("Failed to load products — check console.");
+        // Sort by name (optional, makes it look nicer)
+        results.sort((a, b) => (a?.name || "").localeCompare(b?.name || ""));
+
+        if (!cancelled) {
+          setProducts(results);
+          setLoading(false);
+
+          if (results.length === 0) {
+            setError("No products loaded — check /api/printful-product/:id responses.");
+          }
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setLoading(false);
+          setError("Failed to load products — check console.");
+        }
       }
     }
 
     loadProducts();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [YOUR_PRODUCT_IDS]);
 
   if (loading) {
     return (
@@ -143,7 +163,14 @@ export default function SavedByGrace() {
         />
 
         {/* Hero */}
-        <div style={{ textAlign: "center", padding: "7rem 1rem 4rem", position: "relative", zIndex: 2 }}>
+        <div
+          style={{
+            textAlign: "center",
+            padding: "7rem 1rem 4rem",
+            position: "relative",
+            zIndex: 2,
+          }}
+        >
           <h1
             style={{
               fontSize: "5.5rem",
@@ -167,10 +194,10 @@ export default function SavedByGrace() {
             A collection shaped by grace. These pieces speak life through words
             like <strong>Redeemed</strong>, <strong>Chosen</strong>,{" "}
             <strong>Strength</strong>, and <strong>Hope</strong> — echoing the
-            scriptures that uplift weary hearts and remind us of God’s
-            unshakable love. Every item carries a message of faith and
-            restoration while supporting nonprofits serving housing,
-            homelessness, mental health, and suicide prevention.
+            scriptures that uplift weary hearts and remind us of God’s unshakable
+            love. Every item carries a message of faith and restoration while
+            supporting nonprofits serving housing, homelessness, mental health,
+            and suicide prevention.
             <br />
             Wear His truth. Walk in grace. Give with purpose.
           </p>
@@ -240,7 +267,7 @@ export default function SavedByGrace() {
           ))}
         </div>
 
-        {/* Product grid (unchanged — safe!) */}
+        {/* Product grid (FIXED: key + links use sync_product_id) */}
         <div
           style={{
             padding: "2rem 1rem 6rem",
@@ -253,74 +280,83 @@ export default function SavedByGrace() {
             zIndex: 2,
           }}
         >
-          {products.map((product) => (
-            <div
-              key={product.id}
-              style={{
-                borderRadius: "28px",
-                overflow: "hidden",
-                background: "white",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.12)",
-              }}
-            >
-              <Link href={`/product/${product.id}`}>
-                <div
-                  style={{
-                    height: "460px",
-                    position: "relative",
-                    background: "#f8f5fa",
-                  }}
-                >
-                  <Image
-                    src={product.thumbnail_url || product.preview_url}
-                    alt={product.name}
-                    fill
-                    style={{ objectFit: "contain", padding: "40px" }}
-                    priority
-                  />
-                </div>
-              </Link>
-              <div style={{ padding: "2.5rem", textAlign: "center" }}>
-                <h3
-                  style={{
-                    margin: "0 0 1rem",
-                    fontSize: "1.7rem",
-                    fontWeight: "700",
-                    color: "#333",
-                  }}
-                >
-                  {product.name}
-                </h3>
-                <p
-                  style={{
-                    margin: "1rem 0",
-                    fontSize: "2.2rem",
-                    fontWeight: "bold",
-                    color: "#9f6baa",
-                  }}
-                >
-                  {formatPrice(product.variants?.[0]?.price)}
-                </p>
-                <Link href={`/product/${product.id}`}>
-                  <a
+          {products.map((product) => {
+            const productId = String(product?.sync_product_id ?? product?.id ?? "");
+            const firstVariant = product?.variants?.[0];
+            const price = firstVariant?.retail_price ?? firstVariant?.price ?? "0";
+
+            return (
+              <div
+                key={productId}
+                style={{
+                  borderRadius: "28px",
+                  overflow: "hidden",
+                  background: "white",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.12)",
+                }}
+              >
+                <Link href={`/product/${productId}`}>
+                  <div
                     style={{
-                      display: "inline-block",
-                      width: "100%",
-                      padding: "1.4rem",
-                      background: "#9f6baa",
-                      color: "white",
-                      borderRadius: "16px",
-                      fontSize: "1.3rem",
-                      fontWeight: "bold",
-                      textDecoration: "none",
+                      height: "460px",
+                      position: "relative",
+                      background: "#f8f5fa",
                     }}
                   >
-                    View Details →
-                  </a>
+                    <Image
+                      src={product.thumbnail_url || product.preview_url}
+                      alt={product.name}
+                      fill
+                      style={{ objectFit: "contain", padding: "40px" }}
+                      priority
+                    />
+                  </div>
                 </Link>
+
+                <div style={{ padding: "2.5rem", textAlign: "center" }}>
+                  <h3
+                    style={{
+                      margin: "0 0 1rem",
+                      fontSize: "1.7rem",
+                      fontWeight: "700",
+                      color: "#333",
+                    }}
+                  >
+                    {product.name}
+                  </h3>
+
+                  <p
+                    style={{
+                      margin: "1rem 0",
+                      fontSize: "2.2rem",
+                      fontWeight: "bold",
+                      color: "#9f6baa",
+                    }}
+                  >
+                    {formatPrice(price)}
+                  </p>
+
+                  <Link href={`/product/${productId}`}>
+                    <a
+                      style={{
+                        display: "inline-block",
+                        width: "100%",
+                        padding: "1.4rem",
+                        background: "#9f6baa",
+                        color: "white",
+                        borderRadius: "16px",
+                        fontSize: "1.3rem",
+                        fontWeight: "bold",
+                        textDecoration: "none",
+                      }}
+                    >
+                      View Details →
+                    </a>
+                  </Link>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Footer */}
