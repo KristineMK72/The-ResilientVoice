@@ -41,6 +41,7 @@ export default function Blog() {
 
         {/* --- DIVIDER --- */}
         <hr style={{ border: '0', borderTop: '1px solid #ddd', margin: '60px 0' }} />
+
         {/* --- PREVIOUS BLOG POST: TRIALS TO TRIUMPH --- */}
         <p style={{ fontSize: '0.9rem', color: '#888', marginBottom: '10px', fontWeight: '600' }}>{POST_ONE_DATE}</p>
         <h1 className="about-title" style={{ textAlign: 'left' }}>✨ From Trials to Triumph: The Story Behind Grit & Grace</h1>
