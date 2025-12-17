@@ -459,6 +459,60 @@ export default function Home() {
               <span>🏠 Homelessness relief</span>
             </div>
           </div>
+         {/* Email Signup */}
+<div className="emailBox">
+  <h2 className="emailTitle">Join the Grit & Grace Family</h2>
+  <p className="emailSub">
+    Get encouragement drops, new releases, and impact updates.
+  </p>
+
+  <form
+    onSubmit={async (e) => {
+      e.preventDefault();
+      const email = e.target.email.value;
+
+      const res = await fetch("/api/email-signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (res.ok) {
+        alert("You’re in. Welcome to Grit & Grace ♥️");
+        e.target.reset();
+      } else {
+        alert("Something went wrong. Please try again.");
+      }
+    }}
+    className="emailForm"
+  >
+    <input
+      type="email"
+      name="email"
+      placeholder="Your email"
+      required
+      className="emailInput"
+    />
+    <button type="submit" className="emailBtn">
+      Join the Mission
+    </button>
+  </form>
+
+  <div className="emailFine">
+    We respect your inbox. Unsubscribe anytime.
+  </div>
+</div>
+
+{/* Brand story section */}
+<div className="subSection">
+  <h2>Born from storms. Built on grace.</h2>
+  <p>
+    Grit &amp; Grace is more than apparel—it’s a testimony in motion.
+    Every design is created to remind you that you are seen, strengthened,
+    and deeply loved, even when life gets heavy.
+  </p>
+  ...
+</div>
 
           {/* Brand story section */}
           <div className="subSection">
