@@ -27,7 +27,7 @@ const MENTAL_HEALTH_BUZZWORDS = [
   "Inclusion",
   "Mindfulness",
   "Connection",
-  "Awareness",
+  "Awareness", 
   "Support",
   "Resilience",
   "Self-Care",
