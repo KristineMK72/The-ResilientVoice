@@ -26,3 +26,7 @@ pids
 *.seed
 *.log
 *.err
+# Local debug / temp files
+debug.txt
+out.csv
+printful_variants.csv
