@@ -1,32 +1,27 @@
-import fs from "fs";
-import path from "path";
+export default function handler(req, res) {
+  // Allow POST from browser forms
+  if (req.method === "POST") {
+    try {
+      const { email } = req.body || {};
+      const clean = String(email || "").trim().toLowerCase();
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+      if (!clean || !clean.includes("@")) {
+        return res.status(400).json({ error: "Invalid email" });
+      }
+
+      console.log("📩 New email signup:", clean);
+
+      return res.status(200).json({ success: true });
+    } catch (e) {
+      console.error("Email signup error:", e);
+      return res.status(500).json({ error: "Server error" });
+    }
   }
 
-  const { email } = req.body;
-
-  if (!email || !email.includes("@")) {
-    return res.status(400).json({ error: "Invalid email" });
-  }
-
-  // Store emails in a simple JSON file (easy + fine for now)
-  const filePath = path.join(process.cwd(), "emails.json");
-
-  let emails = [];
-  if (fs.existsSync(filePath)) {
-    emails = JSON.parse(fs.readFileSync(filePath, "utf8"));
-  }
-
-  if (!emails.includes(email)) {
-    emails.push(email);
-    fs.writeFileSync(filePath, JSON.stringify(emails, null, 2));
-  }
-
-  // OPTIONAL: send notification email (see Step 3)
-  console.log("New email signup:", email);
-
-  return res.status(200).json({ success: true });
+  // Helpful response for accidental GET (e.g. user visits URL in browser)
+  res.setHeader("Allow", "POST");
+  return res.status(200).json({
+    ok: true,
+    message: "Email signup endpoint. Send a POST with JSON: { email }",
+  });
 }
