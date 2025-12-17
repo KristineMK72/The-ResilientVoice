@@ -82,8 +82,7 @@ export default function BlogIndex() {
           </div>
 
           <footer style={{ marginTop: 26, color: "#777", fontSize: "0.95rem" }}>
-            Want a new post added? Create a new file in <code style={{ background: "rgba(255,255,255,0.7)", padding: "2px 6px", borderRadius: 8 }}>pages/blog/</code>{" "}
-            and add a new card to <code style={{ background: "rgba(255,255,255,0.7)", padding: "2px 6px", borderRadius: 8 }}>POSTS</code>.
+           Love, Kris
           </footer>
         </section>
       </main>
