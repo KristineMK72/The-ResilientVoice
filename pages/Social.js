@@ -42,23 +42,33 @@ export default function Social() {
 
   const [currentPhrase, setCurrentPhrase] = useState(0);
 
-  // ✅ EXACTLY like SavedByGrace: build from map keys + dedupe
   const SOCIAL_PRODUCT_IDS = useMemo(() => {
-    const ids = [
-      PRINTFUL_PRODUCTS.your_story?.sync_product_id,
-      PRINTFUL_PRODUCTS.retro_ringer?.sync_product_id,
-      PRINTFUL_PRODUCTS.the_climb?.sync_product_id,
-      PRINTFUL_PRODUCTS.safe?.sync_product_id,
-      PRINTFUL_PRODUCTS.mind?.sync_product_id,
-      PRINTFUL_PRODUCTS.multi_color_joggers_social?.sync_product_id,
-      PRINTFUL_PRODUCTS.multicolor_sweatshirt_social?.sync_product_id,
-      PRINTFUL_PRODUCTS.testproduct_can_cooler?.sync_product_id,
-    ]
-      .filter(Boolean)
-      .map(String);
+  const idsFromMap = [
+    PRINTFUL_PRODUCTS.your_story?.sync_product_id,
+    PRINTFUL_PRODUCTS.retro_ringer?.sync_product_id,
+    PRINTFUL_PRODUCTS.the_climb?.sync_product_id,
+    PRINTFUL_PRODUCTS.safe?.sync_product_id,
+    PRINTFUL_PRODUCTS.mind?.sync_product_id,
+    PRINTFUL_PRODUCTS.multi_color_joggers_social?.sync_product_id,
+    PRINTFUL_PRODUCTS.multicolor_sweatshirt_social?.sync_product_id,
+    PRINTFUL_PRODUCTS.testproduct_can_cooler?.sync_product_id,
+  ].filter(Boolean).map(String);
 
-    return Array.from(new Set(ids));
-  }, []);
+  // ✅ fallback if the map keys aren’t present yet
+  const fallback = [
+    "405949039", // Your Story
+    "405945273", // Retro ringer (your “;” duplicate row)
+    "406331944", // The Climb
+    "406332650", // Safe
+    "406370294", // Mind
+    "406371194", // Multi Color Joggers
+    "406372796", // Multi Color Sweatshirt
+    "407453890", // TestProduct Can Cooler
+  ];
+
+  const finalIds = idsFromMap.length ? idsFromMap : fallback;
+  return Array.from(new Set(finalIds.map(String)));
+}, []);
 
   // ✅ Phrase rotation
   useEffect(() => {
