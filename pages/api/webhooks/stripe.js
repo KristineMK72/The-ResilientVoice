@@ -1,7 +1,6 @@
 // pages/api/webhooks/stripe.js
 import Stripe from "stripe";
 import { buffer } from "micro";
-import fetch from "node-fetch";
 
 export const config = {
   api: { bodyParser: false },
@@ -10,6 +9,10 @@ export const config = {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-06-30.basil",
 });
+
+function clean(v) {
+  return (v || "").toString().trim().replace(/\r/g, "");
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -20,7 +23,7 @@ export default async function handler(req, res) {
   const sig = req.headers["stripe-signature"];
   let event;
 
-  // 1) Verify signature
+  // 1) Verify Stripe signature
   try {
     const rawBody = await buffer(req);
     event = stripe.webhooks.constructEvent(
@@ -52,14 +55,14 @@ export default async function handler(req, res) {
     const addr = shipping.address || customer.address || {};
 
     const recipient = {
-      name: shipping.name || customer.name,
-      email: customer.email || undefined,
-      address1: addr.line1,
-      address2: addr.line2 || undefined,
-      city: addr.city,
-      state_code: addr.state,
-      country_code: addr.country,
-      zip: addr.postal_code,
+      name: clean(shipping.name || customer.name),
+      email: clean(customer.email) || undefined,
+      address1: clean(addr.line1),
+      address2: clean(addr.line2) || undefined,
+      city: clean(addr.city),
+      state_code: clean(addr.state),
+      country_code: clean(addr.country),
+      zip: clean(addr.postal_code),
     };
 
     if (
@@ -69,42 +72,66 @@ export default async function handler(req, res) {
       !recipient.country_code ||
       !recipient.zip
     ) {
-      throw new Error("Missing recipient shipping details for fulfillment.");
+      throw new Error(
+        "Missing recipient shipping details (name/address/city/country/zip)."
+      );
     }
 
-    // 4) ✅ REQUIRED: read Printful metadata from Checkout Session
-    if (!session.metadata?.printful_items) {
-      throw new Error("Missing printful_items metadata from Stripe session.");
-    }
-
-    let items;
-    try {
-      items = JSON.parse(session.metadata.printful_items);
-    } catch {
-      throw new Error("printful_items metadata is not valid JSON.");
-    }
-
-    if (!Array.isArray(items) || items.length === 0) {
-      throw new Error("printful_items metadata is empty or invalid.");
-    }
-
-    // 5) ✅ IMPORTANT: for store-synced items, send sync_variant_id (NOT variant_id)
-    const printfulItems = items.map((item, idx) => {
-      const sync_variant_id = item?.sync_variant_id;
-      const quantity = Number(item?.quantity);
-
-      if (!sync_variant_id) {
-        throw new Error(`Missing sync_variant_id for item at index ${idx}.`);
-      }
-      if (!Number.isFinite(quantity) || quantity <= 0) {
-        throw new Error(`Invalid quantity for item ${sync_variant_id}.`);
-      }
-
-      return {
-        sync_variant_id: Number(sync_variant_id),
-        quantity,
-      };
+    // 4) Load line items (this is the key change)
+    // Expand price so we can read price.metadata without extra API calls
+    const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
+      limit: 100,
+      expand: ["data.price", "data.price.product"],
     });
+
+    if (!lineItems.data?.length) {
+      throw new Error("No line items found for session.");
+    }
+
+    // 5) Build Printful items from Stripe price metadata
+    const printfulItems = [];
+    for (const li of lineItems.data) {
+      const qty = Number(li.quantity || 0);
+      if (!Number.isFinite(qty) || qty <= 0) continue;
+
+      // li.price is expanded; fallback if it isn't
+      const priceObj =
+        li.price && typeof li.price === "object"
+          ? li.price
+          : await stripe.prices.retrieve(li.price);
+
+      const meta = priceObj.metadata || {};
+      const syncVariantIdRaw = meta.printful_sync_variant_id;
+
+      if (!syncVariantIdRaw) {
+        // Helpful debug info
+        const sku = clean(meta.printful_sku || meta.sku || "");
+        const nick = clean(priceObj.nickname || "");
+        console.warn(
+          `⚠️ Missing printful_sync_variant_id on Stripe price ${priceObj.id} (sku=${sku} nickname=${nick})`
+        );
+        continue;
+      }
+
+      const sync_variant_id = Number(clean(syncVariantIdRaw));
+      if (!Number.isFinite(sync_variant_id)) {
+        console.warn(
+          `⚠️ Invalid printful_sync_variant_id "${syncVariantIdRaw}" on Stripe price ${priceObj.id}`
+        );
+        continue;
+      }
+
+      printfulItems.push({
+        sync_variant_id,
+        quantity: qty,
+      });
+    }
+
+    if (!printfulItems.length) {
+      throw new Error(
+        "No fulfillable items found. (Likely missing printful_sync_variant_id metadata on Stripe prices.)"
+      );
+    }
 
     // 6) Create Printful order
     const printfulRes = await fetch("https://api.printful.com/orders", {
@@ -114,7 +141,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        external_id: session.id, // idempotent: one order per Stripe session
+        external_id: session.id, // idempotency: one Printful order per Stripe session
         recipient,
         items: printfulItems,
         confirm: true,
@@ -124,6 +151,7 @@ export default async function handler(req, res) {
 
     const printfulData = await printfulRes.json();
 
+    // Printful returns 409 if external_id already used
     if (printfulRes.status === 409) {
       console.warn("⚠️ Printful order already exists for session:", session.id);
       return res.status(200).json({ duplicate: true });
