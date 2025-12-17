@@ -12,7 +12,6 @@ export default function SavedByGrace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Scripture rotation
   const scriptures = [
     "“My grace is sufficient for you.” — 2 Corinthians 12:9",
     "“He restores my soul.” — Psalm 23:3",
@@ -21,7 +20,6 @@ export default function SavedByGrace() {
   ];
   const [currentScripture, setCurrentScripture] = useState(0);
 
-  // Build IDs from your map (and prevent duplicates)
   const YOUR_PRODUCT_IDS = useMemo(() => {
     const ids = [
       PRINTFUL_PRODUCTS.joy?.sync_product_id,
@@ -72,7 +70,6 @@ export default function SavedByGrace() {
           }
         }
 
-        // Sort by name (optional, makes it look nicer)
         results.sort((a, b) => (a?.name || "").localeCompare(b?.name || ""));
 
         if (!cancelled) {
@@ -80,7 +77,9 @@ export default function SavedByGrace() {
           setLoading(false);
 
           if (results.length === 0) {
-            setError("No products loaded — check /api/printful-product/:id responses.");
+            setError(
+              "No products loaded — check /api/printful-product/:id responses."
+            );
           }
         }
       } catch (e) {
@@ -138,11 +137,11 @@ export default function SavedByGrace() {
         <div
           style={{
             position: "absolute",
-            top: "-200px",
-            left: "-200px",
-            width: "600px",
-            height: "600px",
-            background: "rgba(159,107,170,0.18)",
+            top: "-220px",
+            left: "-220px",
+            width: "650px",
+            height: "650px",
+            background: "rgba(159,107,170,0.20)",
             filter: "blur(140px)",
             borderRadius: "50%",
             zIndex: 0,
@@ -151,14 +150,27 @@ export default function SavedByGrace() {
         <div
           style={{
             position: "absolute",
-            bottom: "-200px",
-            right: "-200px",
-            width: "600px",
-            height: "600px",
-            background: "rgba(255,182,193,0.18)",
+            bottom: "-220px",
+            right: "-220px",
+            width: "650px",
+            height: "650px",
+            background: "rgba(255,182,193,0.20)",
             filter: "blur(140px)",
             borderRadius: "50%",
             zIndex: 0,
+          }}
+        />
+
+        {/* subtle sparkle/shine */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 45%), radial-gradient(circle at 80% 35%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 50%)",
+            opacity: 0.5,
+            zIndex: 1,
+            pointerEvents: "none",
           }}
         />
 
@@ -166,17 +178,46 @@ export default function SavedByGrace() {
         <div
           style={{
             textAlign: "center",
-            padding: "7rem 1rem 4rem",
+            padding: "5.5rem 1rem 3.2rem",
             position: "relative",
             zIndex: 2,
+            maxWidth: "1100px",
+            margin: "0 auto",
           }}
         >
+          {/* logo */}
+          <div
+            style={{
+              width: "92px",
+              height: "92px",
+              margin: "0 auto 1.25rem",
+              borderRadius: "24px",
+              background: "rgba(255,255,255,0.75)",
+              backdropFilter: "blur(8px)",
+              boxShadow: "0 14px 40px rgba(0,0,0,0.10)",
+              display: "grid",
+              placeItems: "center",
+              overflow: "hidden",
+            }}
+          >
+            <Image
+              src="/faithLogo.png"
+              alt="Faith logo"
+              width={72}
+              height={72}
+              style={{ objectFit: "contain" }}
+              priority
+            />
+          </div>
+
           <h1
             style={{
-              fontSize: "5.5rem",
-              fontWeight: "800",
+              fontSize: "clamp(2.6rem, 5vw, 4rem)", // ✅ smaller + responsive
+              fontWeight: "900",
               color: "#9f6baa",
-              margin: "0 0 1.5rem",
+              margin: "0 0 0.9rem",
+              letterSpacing: "-0.02em",
+              lineHeight: 1.05,
             }}
           >
             Saved By Grace
@@ -184,39 +225,62 @@ export default function SavedByGrace() {
 
           <p
             style={{
-              fontSize: "2rem",
+              fontSize: "clamp(1.1rem, 1.6vw, 1.35rem)",
               color: "#444",
-              maxWidth: "900px",
+              maxWidth: "880px",
               margin: "0 auto",
-              lineHeight: "1.6",
+              lineHeight: "1.8",
             }}
           >
             A collection shaped by grace. These pieces speak life through words
             like <strong>Redeemed</strong>, <strong>Chosen</strong>,{" "}
             <strong>Strength</strong>, and <strong>Hope</strong> — echoing the
             scriptures that uplift weary hearts and remind us of God’s unshakable
-            love. Every item carries a message of faith and restoration while
-            supporting nonprofits serving housing, homelessness, mental health,
-            and suicide prevention.
+            love.
             <br />
-            Wear His truth. Walk in grace. Give with purpose.
+            <span style={{ color: "#6b6b6b" }}>
+              Wear His truth. Walk in grace. Give with purpose.
+            </span>
           </p>
+
+          {/* small “pill” note */}
+          <div
+            style={{
+              marginTop: "1.8rem",
+              display: "inline-flex",
+              gap: "10px",
+              alignItems: "center",
+              padding: "10px 14px",
+              borderRadius: "999px",
+              background: "rgba(255,255,255,0.75)",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+              fontWeight: 700,
+              color: "#7a4f85",
+              fontSize: "0.95rem",
+            }}
+          >
+            <span>10% donated</span>
+            <span style={{ opacity: 0.6 }}>•</span>
+            <span>mental health + housing support</span>
+          </div>
         </div>
 
         {/* Scripture rotation */}
         <div
           style={{
             textAlign: "center",
-            padding: "1.5rem 1rem",
-            background: "#ffffffaa",
-            backdropFilter: "blur(6px)",
-            fontSize: "1.4rem",
-            fontWeight: "600",
+            padding: "1.15rem 1rem",
+            background: "rgba(255,255,255,0.78)",
+            backdropFilter: "blur(10px)",
+            fontSize: "1.15rem",
+            fontWeight: "700",
             color: "#7a4f85",
-            marginBottom: "3rem",
+            marginBottom: "2.5rem",
             position: "sticky",
             top: 0,
             zIndex: 5,
+            borderTop: "1px solid rgba(0,0,0,0.05)",
+            borderBottom: "1px solid rgba(0,0,0,0.06)",
           }}
         >
           {scriptures[currentScripture]}
@@ -225,13 +289,13 @@ export default function SavedByGrace() {
         {/* Buzzword cloud */}
         <div
           style={{
-            maxWidth: "900px",
-            margin: "0 auto 4rem",
+            maxWidth: "980px",
+            margin: "0 auto 3.5rem",
             padding: "0 1rem",
             display: "flex",
             flexWrap: "wrap",
             justifyContent: "center",
-            gap: "1rem",
+            gap: "0.75rem",
             position: "relative",
             zIndex: 2,
           }}
@@ -253,13 +317,14 @@ export default function SavedByGrace() {
             <span
               key={word}
               style={{
-                padding: "0.6rem 1.2rem",
-                background: "#fff",
-                borderRadius: "20px",
-                fontSize: "1.1rem",
+                padding: "0.55rem 1rem",
+                background: "rgba(255,255,255,0.9)",
+                borderRadius: "999px",
+                fontSize: "1rem",
                 color: "#7a4f85",
-                boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
-                fontWeight: "600",
+                boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+                fontWeight: "700",
+                border: "1px solid rgba(159,107,170,0.12)",
               }}
             >
               {word}
@@ -267,13 +332,13 @@ export default function SavedByGrace() {
           ))}
         </div>
 
-        {/* Product grid (FIXED: key + links use sync_product_id) */}
+        {/* Product grid */}
         <div
           style={{
             padding: "2rem 1rem 6rem",
             display: "grid",
-            gap: "4rem",
-            gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+            gap: "3rem",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
             maxWidth: "1600px",
             margin: "0 auto",
             position: "relative",
@@ -281,9 +346,12 @@ export default function SavedByGrace() {
           }}
         >
           {products.map((product) => {
-            const productId = String(product?.sync_product_id ?? product?.id ?? "");
+            const productId = String(
+              product?.sync_product_id ?? product?.id ?? ""
+            );
             const firstVariant = product?.variants?.[0];
-            const price = firstVariant?.retail_price ?? firstVariant?.price ?? "0";
+            const price =
+              firstVariant?.retail_price ?? firstVariant?.price ?? "0";
 
             return (
               <div
@@ -291,35 +359,65 @@ export default function SavedByGrace() {
                 style={{
                   borderRadius: "28px",
                   overflow: "hidden",
-                  background: "white",
-                  boxShadow: "0 20px 60px rgba(0,0,0,0.12)",
+                  background: "rgba(255,255,255,0.92)",
+                  boxShadow: "0 18px 55px rgba(0,0,0,0.12)",
+                  transition: "transform 180ms ease, box-shadow 180ms ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-4px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 24px 70px rgba(0,0,0,0.16)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow =
+                    "0 18px 55px rgba(0,0,0,0.12)";
                 }}
               >
                 <Link href={`/product/${productId}`}>
                   <div
                     style={{
-                      height: "460px",
+                      height: "430px",
                       position: "relative",
-                      background: "#f8f5fa",
+                      background:
+                        "linear-gradient(180deg, #faf7ff 0%, #f6f1fb 100%)",
                     }}
                   >
                     <Image
                       src={product.thumbnail_url || product.preview_url}
                       alt={product.name}
                       fill
-                      style={{ objectFit: "contain", padding: "40px" }}
+                      style={{ objectFit: "contain", padding: "36px" }}
                       priority
                     />
+
+                    {/* corner badge */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 16,
+                        left: 16,
+                        padding: "8px 12px",
+                        borderRadius: "999px",
+                        background: "rgba(159,107,170,0.12)",
+                        color: "#7a4f85",
+                        fontWeight: 800,
+                        fontSize: "0.9rem",
+                        border: "1px solid rgba(159,107,170,0.18)",
+                      }}
+                    >
+                      Grace Collection
+                    </div>
                   </div>
                 </Link>
 
-                <div style={{ padding: "2.5rem", textAlign: "center" }}>
+                <div style={{ padding: "2.2rem", textAlign: "center" }}>
                   <h3
                     style={{
-                      margin: "0 0 1rem",
-                      fontSize: "1.7rem",
-                      fontWeight: "700",
-                      color: "#333",
+                      margin: "0 0 0.75rem",
+                      fontSize: "1.55rem",
+                      fontWeight: "800",
+                      color: "#2b2b2b",
                     }}
                   >
                     {product.name}
@@ -327,9 +425,9 @@ export default function SavedByGrace() {
 
                   <p
                     style={{
-                      margin: "1rem 0",
-                      fontSize: "2.2rem",
-                      fontWeight: "bold",
+                      margin: "0.9rem 0 1.3rem",
+                      fontSize: "2rem",
+                      fontWeight: "900",
                       color: "#9f6baa",
                     }}
                   >
@@ -341,13 +439,15 @@ export default function SavedByGrace() {
                       style={{
                         display: "inline-block",
                         width: "100%",
-                        padding: "1.4rem",
-                        background: "#9f6baa",
+                        padding: "1.15rem",
+                        background:
+                          "linear-gradient(135deg, #9f6baa 0%, #c08bd0 100%)",
                         color: "white",
                         borderRadius: "16px",
-                        fontSize: "1.3rem",
-                        fontWeight: "bold",
+                        fontSize: "1.15rem",
+                        fontWeight: "900",
                         textDecoration: "none",
+                        boxShadow: "0 14px 30px rgba(159,107,170,0.28)",
                       }}
                     >
                       View Details →
@@ -363,9 +463,9 @@ export default function SavedByGrace() {
         <div
           style={{
             textAlign: "center",
-            padding: "6rem 1rem",
-            color: "#888",
-            fontSize: "1.2rem",
+            padding: "5rem 1rem",
+            color: "#8a8a8a",
+            fontSize: "1.05rem",
           }}
         >
           More pieces coming every week · Designed with love · Powered by purpose
