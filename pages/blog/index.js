@@ -40,9 +40,7 @@ function PostCard({ post }) {
           {post.title}
         </h2>
 
-        <p style={{ margin: 0, color: "#555", lineHeight: 1.55 }}>
-          {post.excerpt}
-        </p>
+        <p style={{ margin: 0, color: "#555", lineHeight: 1.55 }}>{post.excerpt}</p>
 
         <p style={{ margin: "14px 0 0", fontWeight: 800, color: "#333" }}>
           Read →
@@ -82,7 +80,7 @@ export default function BlogIndex() {
           </div>
 
           <footer style={{ marginTop: 26, color: "#777", fontSize: "0.95rem" }}>
-           Love, Kris
+            Love, Kris
           </footer>
         </section>
       </main>
