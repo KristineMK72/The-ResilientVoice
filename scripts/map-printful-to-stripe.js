@@ -2,12 +2,16 @@ import fs from "fs";
 import csv from "csv-parser";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
 if (!process.env.STRIPE_SECRET_KEY) {
   console.error("❌ Missing STRIPE_SECRET_KEY");
   process.exit(1);
 }
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2025-06-30.basil",
+});
+
+const clean = (v) => (v ?? "").toString().trim().replace(/\r/g, "").replace(/"/g, "");
 
 const rows = [];
 
@@ -18,41 +22,68 @@ fs.createReadStream("printful_variants.csv")
     console.log(`Found ${rows.length} Printful variants`);
 
     for (const row of rows) {
-      const {
-        sku,
-        sync_variant_id,
-        sync_product_id,
-        color,
-        size,
-      } = row;
+      const sku = clean(row.sku);
+      const sync_variant_id = clean(row.sync_variant_id);
+      const sync_product_id = clean(row.sync_product_id);
+      const color = clean(row.color);
+      const size = clean(row.size);
+
+      if (!sku || !sync_variant_id || !sync_product_id) {
+        console.warn(`⚠️ Skipping row missing required fields: sku=${sku}`);
+        continue;
+      }
 
       try {
-        // Find Stripe price by lookup_key == SKU
-        const prices = await stripe.prices.list({
+        let price = null;
+
+        // 1) Try find by lookup_key == SKU (fast path)
+        const byLookup = await stripe.prices.list({
           lookup_keys: [sku],
           limit: 1,
         });
+        if (byLookup.data.length) price = byLookup.data[0];
 
-        if (!prices.data.length) {
-          console.warn(`⚠️ No Stripe price for SKU ${sku}`);
+        // 2) Fallback: find by metadata.sku (helps when lookup_key is null)
+        if (!price) {
+          try {
+            const q = `metadata['sku']:'${sku}'`;
+            const found = await stripe.prices.search({ query: q, limit: 1 });
+            if (found.data?.length) price = found.data[0];
+          } catch (e) {
+            // ignore if search not available
+          }
+        }
+
+        if (!price) {
+          console.warn(`⚠️ No Stripe price found for SKU ${sku}`);
           continue;
         }
 
-        const price = prices.data[0];
+        // Merge metadata (don't wipe anything else already stored)
+        const nextMeta = {
+          ...(price.metadata || {}),
+          printful_sync_variant_id: sync_variant_id,
+          printful_sync_product_id: sync_product_id,
+          printful_color: color,
+          printful_size: size,
+          printful_sku: sku,
+          // also keep generic keys
+          sku,
+          sync_variant_id,
+          sync_product_id,
+          color,
+          size,
+        };
 
-        await stripe.prices.update(price.id, {
-          metadata: {
-            printful_sync_variant_id: sync_variant_id,
-            printful_sync_product_id: sync_product_id,
-            printful_color: color,
-            printful_size: size,
-            printful_sku: sku,
-          },
-        });
+        // If lookup_key is missing, try to set it (Stripe may allow this if it’s currently null)
+        const updatePayload = { metadata: nextMeta };
+        if (!price.lookup_key) updatePayload.lookup_key = sku;
 
-        console.log(`✅ Linked ${sku} → ${price.id}`);
+        await stripe.prices.update(price.id, updatePayload);
+
+        console.log(`✅ Linked ${sku} → ${price.id} (lookup_key=${price.lookup_key || sku})`);
       } catch (err) {
-        console.error(`❌ Error for SKU ${sku}`, err.message);
+        console.error(`❌ Error for SKU ${sku}:`, err?.message || err);
       }
     }
 
