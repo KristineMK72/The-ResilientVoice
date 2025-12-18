@@ -3,87 +3,91 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-// Add as many IDs as you want to rotate through
+/* ============================
+   CONFIG
+============================ */
 const FEATURED_PRODUCT_IDS = [
   "402034024", // Saved By Grace
   "405190886", // Patriot
-  // Add more IDs here to rotate:
-  // "403261853",
-  // "403262072",
-  // "403262589",
 ];
 
 function getCollectionLabel(id) {
-  // Keep your current logic; expand as you add more IDs
   if (id === "405190886") return "Patriot";
   return "Saved By Grace";
 }
 
+/* ============================
+   PAGE
+============================ */
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // Load featured products (parallel)
+  const [emailStatus, setEmailStatus] = useState({
+    state: "idle",
+    message: "",
+  });
+  // idle | loading | success | error
+
+  /* ============================
+     LOAD FEATURED PRODUCTS
+  ============================ */
   useEffect(() => {
     let alive = true;
 
-    async function loadFeaturedProducts() {
+    async function loadFeatured() {
+      setLoadingFeatured(true);
       try {
-        setLoadingFeatured(true);
-
         const results = await Promise.all(
           FEATURED_PRODUCT_IDS.map(async (id) => {
-            try {
-              const res = await fetch(`/api/printful-product/${id}`);
-              if (!res.ok) return null;
-              const data = await res.json();
-              return { ...data, collection: getCollectionLabel(id), _id: id };
-            } catch (e) {
-              console.error("Featured product fetch failed:", id, e);
-              return null;
-            }
+            const res = await fetch(`/api/printful-product/${id}`);
+            if (!res.ok) return null;
+            const data = await res.json();
+            return { ...data, collection: getCollectionLabel(id) };
           })
         );
-
-        if (!alive) return;
-        const cleaned = results.filter(Boolean);
-        setFeaturedProducts(cleaned);
-        setActiveIndex(0);
+        if (alive) {
+          setFeaturedProducts(results.filter(Boolean));
+          setActiveIndex(0);
+        }
       } finally {
         if (alive) setLoadingFeatured(false);
       }
     }
 
-    loadFeaturedProducts();
+    loadFeatured();
     return () => {
       alive = false;
     };
   }, []);
 
-  // Auto-rotate carousel
+  /* ============================
+     CAROUSEL ROTATION
+  ============================ */
   useEffect(() => {
     if (!featuredProducts.length) return;
-
-    const interval = setInterval(() => {
-      setActiveIndex((i) => (i + 1) % featuredProducts.length);
-    }, 4500);
-
-    return () => clearInterval(interval);
+    const t = setInterval(
+      () => setActiveIndex((i) => (i + 1) % featuredProducts.length),
+      4500
+    );
+    return () => clearInterval(t);
   }, [featuredProducts.length]);
 
   const activeProduct = useMemo(() => {
-    if (!featuredProducts.length) return null;
-    return featuredProducts[Math.min(activeIndex, featuredProducts.length - 1)];
+    return featuredProducts[activeIndex] || null;
   }, [featuredProducts, activeIndex]);
 
+  /* ============================
+     RENDER
+  ============================ */
   return (
     <>
       <Head>
         <title>Grit & Grace | Faith, Freedom, Purpose</title>
         <meta
           name="description"
-          content="Faith-driven apparel born from storms—created to inspire courage, healing, and grace. Every purchase supports mental health, suicide prevention, and homelessness relief."
+          content="Faith-driven apparel born from storms. Every purchase supports mental health, suicide prevention, and homelessness relief."
         />
       </Head>
 
@@ -94,13 +98,9 @@ export default function Home() {
           .page {
             min-height: 100vh;
             background: radial-gradient(circle at center, #0f172a 0%, #000 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            color: white;
+            padding: 2.5rem 1.25rem;
             text-align: center;
-            padding: 2.25rem 1.25rem 2.75rem;
-            color: #fff;
             position: relative;
             overflow: hidden;
           }
@@ -109,19 +109,16 @@ export default function Home() {
             position: absolute;
             inset: 0;
             background: conic-gradient(
-              from 180deg at 50% 50%,
-              #ff0000 0deg,
-              #0000ff 120deg,
-              #ff0000 360deg
+              from 180deg,
+              #ff0000,
+              #0000ff,
+              #ff0000
             );
             opacity: 0.08;
             animation: spin 30s linear infinite;
           }
 
           @keyframes spin {
-            from {
-              transform: rotate(0deg);
-            }
             to {
               transform: rotate(360deg);
             }
@@ -130,33 +127,24 @@ export default function Home() {
           .content {
             position: relative;
             z-index: 10;
-            width: 100%;
             max-width: 1100px;
-          }
-
-          .logoWrap {
-            margin: 0 auto 1.25rem;
-            display: flex;
-            justify-content: center;
+            margin: 0 auto;
           }
 
           .heroTitle {
-            font-size: clamp(2.6rem, 6vw, 4.6rem);
+            font-size: clamp(2.8rem, 6vw, 4.6rem);
             font-weight: 950;
-            margin: 0.75rem 0 0.75rem;
-            letter-spacing: 0.07em;
-            background: linear-gradient(90deg, #ff4444, #ffffff, #4444ff);
+            letter-spacing: 0.08em;
+            background: linear-gradient(90deg, #ff4444, #fff, #4444ff);
             -webkit-background-clip: text;
-            background-clip: text;
             color: transparent;
           }
 
           .heroTagline {
-            font-size: clamp(1.1rem, 2.2vw, 1.35rem);
+            max-width: 900px;
+            margin: 1rem auto 1.5rem;
             line-height: 1.6;
             opacity: 0.92;
-            margin: 0 auto 1.25rem;
-            max-width: 900px;
           }
 
           .ctaRow {
@@ -164,202 +152,129 @@ export default function Home() {
             gap: 14px;
             justify-content: center;
             flex-wrap: wrap;
-            margin: 1.25rem 0 1.75rem;
+            margin-bottom: 2rem;
           }
 
           .btn {
-            display: inline-block;
-            padding: 0.95rem 1.3rem;
+            padding: 0.95rem 1.4rem;
             border-radius: 12px;
-            text-decoration: none;
             font-weight: 800;
-            box-shadow: 0 0 25px rgba(255, 255, 255, 0.18);
-            transition: transform 0.12s ease, opacity 0.12s ease;
-          }
-          .btn:hover {
-            transform: translateY(-1px);
-            opacity: 0.98;
+            text-decoration: none;
+            color: white;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
           }
 
           .btnPrimary {
             background: linear-gradient(90deg, #ff4444, #4444ff);
-            color: #fff;
           }
           .btnPatriot {
             background: #00bfa5;
-            color: #fff;
           }
           .btnSocial {
             background: #ff6b6b;
-            color: #fff;
           }
 
-          .sectionTitle {
-            margin: 0.6rem 0 0.8rem;
-            font-weight: 950;
-            letter-spacing: 0.03em;
-            font-size: 1.35rem;
-          }
-
-          /* Carousel */
-          .carouselWrap {
-            width: 100%;
+          /* ===== Carousel ===== */
+          .carousel {
             max-width: 560px;
-            margin: 0.75rem auto 1.75rem;
-          }
-
-          .carouselCard {
+            margin: 2rem auto;
             background: rgba(255, 255, 255, 0.08);
             border-radius: 18px;
             padding: 1.25rem;
-            text-align: left;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.14);
-          }
-
-          .tag {
-            font-size: 0.95rem;
-            opacity: 0.9;
-            margin: 0 0 0.75rem;
-          }
-
-          .pname {
-            font-size: 1.25rem;
-            margin: 0.65rem 0 0.4rem;
-            font-weight: 900;
           }
 
           .price {
-            font-size: 1.35rem;
-            font-weight: 950;
-            color: #ff6b6b;
-            margin: 0.2rem 0 0.9rem;
-          }
-
-          .carouselActions {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 10px;
-            flex-wrap: wrap;
-          }
-
-          .navBtn {
-            background: rgba(255, 255, 255, 0.12);
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            padding: 0.7rem 1rem;
-            border-radius: 12px;
+            font-size: 1.4rem;
             font-weight: 900;
-            cursor: pointer;
+            color: #ff6b6b;
           }
 
           .dots {
             display: flex;
             gap: 8px;
             justify-content: center;
-            margin-top: 14px;
+            margin-top: 12px;
           }
 
           .dot {
             width: 10px;
             height: 10px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.3);
             border: none;
-            cursor: pointer;
           }
 
           .dotActive {
-            background: rgba(255, 255, 255, 0.9);
+            background: white;
           }
 
-          /* Impact + sections */
-          .impact {
-            margin: 1.25rem auto 0;
-            max-width: 920px;
-            padding: 1.1rem 1.1rem;
+          /* ===== Email ===== */
+          .emailBox {
+            margin-top: 2.5rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.07);
             border-radius: 18px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-          }
-          .impactTitle {
-            font-weight: 950;
-            margin: 0 0 0.55rem;
-            font-size: 1.05rem;
-          }
-          .impactRow {
-            display: flex;
-            gap: 14px;
-            justify-content: center;
-            flex-wrap: wrap;
-            opacity: 0.95;
-            line-height: 1.5;
+            max-width: 520px;
+            margin-left: auto;
+            margin-right: auto;
           }
 
-          .subSection {
-            margin: 1.8rem auto 0;
-            max-width: 920px;
-            padding: 1.2rem 1.2rem;
-            border-radius: 18px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            text-align: left;
-          }
-          .subSection h2 {
-            margin: 0 0 0.55rem;
-            font-size: 1.25rem;
-            font-weight: 950;
-          }
-          .subSection p {
-            margin: 0;
-            opacity: 0.95;
-            line-height: 1.65;
-            font-size: 1.03rem;
-          }
-          .subCtas {
+          .emailForm {
             display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-top: 0.9rem;
+            gap: 10px;
+            margin-top: 1rem;
           }
 
-          .finePrint {
-            margin-top: 1.2rem;
-            opacity: 0.7;
-            font-size: 0.95rem;
+          .emailInput {
+            flex: 1;
+            padding: 0.8rem;
+            border-radius: 10px;
+            border: none;
+          }
+
+          .emailBtn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.2rem;
+            border-radius: 10px;
+            font-weight: 800;
+          }
+
+          .emailBtn:disabled {
+            opacity: 0.6;
+          }
+
+          .emailMsg {
+            margin-top: 0.75rem;
+            font-weight: 800;
+          }
+
+          .success {
+            color: #b9ffcc;
+          }
+          .error {
+            color: #ffb4b4;
           }
         `}</style>
 
         <div className="content">
-          {/* Logo */}
-          <div className="logoWrap">
-            <Image
-              src="/gritngrlogo.png"
-              alt="Grit & Grace Logo"
-              width={560}
-              height={560}
-              priority
-              style={{
-                maxWidth: "92vw",
-                height: "auto",
-                filter: "drop-shadow(0 0 45px rgba(255,255,255,0.6))",
-              }}
-            />
-          </div>
+          <Image
+            src="/gritngrlogo.png"
+            alt="Grit & Grace Logo"
+            width={520}
+            height={520}
+            priority
+          />
 
-          {/* Hero */}
-          <h1 className="heroTitle">GRIT &amp; GRACE</h1>
+          <h1 className="heroTitle">GRIT & GRACE</h1>
 
           <p className="heroTagline">
-            Faith-driven apparel born from storms—created to unite resilience, freedom,
-            and purpose. Founded by <strong>The Resilient Voice</strong>.
-            <br />
-            Every purchase supports mental health, suicide prevention, and homelessness relief.
+            Faith-driven apparel born from storms. Founded by{" "}
+            <strong>The Resilient Voice</strong>. Every purchase supports mental
+            health, suicide prevention, and homelessness relief.
           </p>
 
-          {/* CTAs (KEEP Social/Patriot refs same as your current pages) */}
           <div className="ctaRow">
             <Link href="/saved-by-grace" className="btn btnPrimary">
               Shop Saved By Grace
@@ -372,167 +287,98 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* Featured Carousel */}
-          <div className="carouselWrap">
-            <div className="sectionTitle">Featured Drops</div>
-
-            {loadingFeatured ? (
-              <p style={{ opacity: 0.85 }}>Loading featured products…</p>
-            ) : activeProduct ? (
-              <div className="carouselCard">
-                <div className="tag">{activeProduct.collection} Featured</div>
-
-                <Image
-                  src={activeProduct.image || activeProduct.thumbnail_url}
-                  alt={activeProduct.name}
-                  width={520}
-                  height={520}
-                  style={{ borderRadius: 12, width: "100%", height: "auto" }}
-                />
-
-                <div className="pname">{activeProduct.name}</div>
-
-                {(() => {
-                  const price =
-                    activeProduct?.variants?.[0]?.price ?? activeProduct?.price ?? null;
-                  return price ? (
-                    <div className="price">${price}</div>
-                  ) : (
-                    <div className="price">See options</div>
-                  );
-                })()}
-
-                <div className="carouselActions">
-                  <button
-                    className="navBtn"
-                    onClick={() =>
-                      setActiveIndex((i) =>
-                        (i - 1 + featuredProducts.length) % featuredProducts.length
-                      )
-                    }
-                    aria-label="Previous product"
-                    type="button"
-                  >
-                    ← Prev
-                  </button>
-
-                  <Link href={`/product/${activeProduct.id}`} className="btn btnPrimary">
-                    View Product
-                  </Link>
-
-                  <button
-                    className="navBtn"
-                    onClick={() =>
-                      setActiveIndex((i) => (i + 1) % featuredProducts.length)
-                    }
-                    aria-label="Next product"
-                    type="button"
-                  >
-                    Next →
-                  </button>
-                </div>
-
-                <div className="dots">
-                  {featuredProducts.map((p, i) => (
-                    <button
-                      key={p.id || i}
-                      className={`dot ${i === activeIndex ? "dotActive" : ""}`}
-                      onClick={() => setActiveIndex(i)}
-                      aria-label={`Go to featured product ${i + 1}`}
-                      type="button"
-                    />
-                  ))}
-                </div>
+          {/* Featured */}
+          {activeProduct && (
+            <div className="carousel">
+              <div>{activeProduct.collection} Featured</div>
+              <Image
+                src={activeProduct.image || activeProduct.thumbnail_url}
+                alt={activeProduct.name}
+                width={520}
+                height={520}
+              />
+              <div>{activeProduct.name}</div>
+              <div className="price">
+                ${activeProduct?.variants?.[0]?.price}
               </div>
-            ) : (
-              <p style={{ opacity: 0.85 }}>No featured products found.</p>
+              <Link
+                href={`/product/${activeProduct.id}`}
+                className="btn btnPrimary"
+              >
+                View Product
+              </Link>
+
+              <div className="dots">
+                {featuredProducts.map((_, i) => (
+                  <button
+                    key={i}
+                    className={`dot ${
+                      i === activeIndex ? "dotActive" : ""
+                    }`}
+                    onClick={() => setActiveIndex(i)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Email */}
+          <div className="emailBox">
+            <h2>Join the Grit & Grace Family</h2>
+            <p>Get encouragement, new releases, and impact updates.</p>
+
+            <form
+              className="emailForm"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const email = e.target.email.value;
+                setEmailStatus({ state: "loading", message: "" });
+
+                const res = await fetch("/api/email-signup", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ email }),
+                });
+
+                if (res.ok) {
+                  setEmailStatus({
+                    state: "success",
+                    message: "You’re in! Welcome ♥️",
+                  });
+                  e.target.reset();
+                  setTimeout(() => (window.location.href = "/welcome"), 900);
+                } else {
+                  setEmailStatus({
+                    state: "error",
+                    message: "Something went wrong.",
+                  });
+                }
+              }}
+            >
+              <input
+                type="email"
+                name="email"
+                required
+                placeholder="Your email"
+                className="emailInput"
+              />
+              <button
+                className="emailBtn"
+                disabled={emailStatus.state === "loading"}
+              >
+                {emailStatus.state === "loading" ? "Joining…" : "Join"}
+              </button>
+            </form>
+
+            {emailStatus.state !== "idle" && (
+              <div
+                className={`emailMsg ${
+                  emailStatus.state === "success" ? "success" : "error"
+                }`}
+              >
+                {emailStatus.message}
+              </div>
             )}
-          </div>
-
-          {/* Impact block */}
-          <div className="impact">
-            <div className="impactTitle">Your purchase makes an impact</div>
-            <div className="impactRow">
-              <span>🕊 Suicide prevention</span>
-              <span>💬 Anti-bullying</span>
-              <span>💚 Mental health</span>
-              <span>🏠 Homelessness relief</span>
-            </div>
-          </div>
-         {/* Email Signup */}
-<div className="emailBox">
-  <h2 className="emailTitle">Join the Grit & Grace Family</h2>
-  <p className="emailSub">
-    Get encouragement drops, new releases, and impact updates.
-  </p>
-
-  <form
-    onSubmit={async (e) => {
-      e.preventDefault();
-      const email = e.target.email.value;
-
-      const res = await fetch("/api/email-signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      if (res.ok) {
-        alert("You’re in. Welcome to Grit & Grace ♥️");
-        e.target.reset();
-      } else {
-        alert("Something went wrong. Please try again.");
-      }
-    }}
-    className="emailForm"
-  >
-    <input
-      type="email"
-      name="email"
-      placeholder="Your email"
-      required
-      className="emailInput"
-    />
-    <button type="submit" className="emailBtn">
-      Join the Mission
-    </button>
-  </form>
-
-  <div className="emailFine">
-    We respect your inbox. Unsubscribe anytime.
-  </div>
-</div>
-
-{/* Brand story section */}
-<div className="subSection">
-  <h2>Born from storms. Built on grace.</h2>
-  <p>
-    Grit &amp; Grace is more than apparel—it’s a testimony in motion.
-    Every design is created to remind you that you are seen, strengthened,
-    and deeply loved, even when life gets heavy.
-  </p>
-  ...
-</div>
-
-          {/* Brand story section */}
-          <div className="subSection">
-            <h2>Born from storms. Built on grace.</h2>
-            <p>
-              Grit &amp; Grace is more than apparel—it’s a testimony in motion.
-              Every design is created to remind you that you are seen, strengthened,
-              and deeply loved, even when life gets heavy.
-            </p>
-            <div className="subCtas">
-              <Link href="/about" className="btn btnPrimary">
-                Read Our Story
-              </Link>
-              <Link href="/giving" className="btn btnSocial">
-                Giving Back
-              </Link>
-            </div>
-            <div className="finePrint">
-              Email signup is coming next (we’ll add Mailchimp or Klaviyo when you’re ready).
-            </div>
           </div>
         </div>
       </div>
