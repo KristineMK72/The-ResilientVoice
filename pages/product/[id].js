@@ -6,20 +6,13 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-function parseLabel(variantName) {
-  const parts = String(variantName || "")
+function parseSizeFromVariantName(name = "") {
+  // your names look like "... / 2XL"
+  const parts = String(name)
     .split("/")
     .map((s) => s.trim())
     .filter(Boolean);
-
-  const size = parts.length ? parts[parts.length - 1] : "Size";
-  const maybeColor = parts.length >= 2 ? parts[parts.length - 2] : null;
-  const color =
-    maybeColor && maybeColor.length <= 24 && !maybeColor.includes(" ")
-      ? maybeColor
-      : null;
-
-  return { size, color, label: color ? `${color} / ${size}` : size };
+  return parts.length ? parts[parts.length - 1] : "Size";
 }
 
 export default function ProductPage() {
@@ -27,11 +20,19 @@ export default function ProductPage() {
   const { id } = router.query;
 
   const [product, setProduct] = useState(null);
-  const [selectedVariantId, setSelectedVariantId] = useState(null);
   const [added, setAdded] = useState(false);
+
+  // selected Printful sync_variant_id (fulfillment id)
+  const [selectedSyncVariantId, setSelectedSyncVariantId] = useState(null);
+
+  // Map of SKU -> Stripe price info (optional)
+  // { [sku]: { available: boolean, price_id?: string } }
+  const [availability, setAvailability] = useState({});
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     if (!id) return;
+
     let cancelled = false;
 
     (async () => {
@@ -47,9 +48,39 @@ export default function ProductPage() {
 
         setProduct(data);
 
-        // Default to first variant that has SKU
-        const firstValid = data?.variants?.find((v) => (v.sku || "").trim());
-        setSelectedVariantId((firstValid || data?.variants?.[0])?.sync_variant_id || null);
+        // Default select first variant
+        if (data?.variants?.length) {
+          setSelectedSyncVariantId(data.variants[0].sync_variant_id);
+        }
+
+        // OPTIONAL: check Stripe mapping for SKUs so we can disable only truly unavailable sizes
+        // If you don't have this endpoint yet, it will silently skip.
+        setChecking(true);
+        try {
+          const skus = (data.variants || [])
+            .map((v) => (v.sku || "").trim())
+            .filter(Boolean);
+
+          if (skus.length) {
+            const checkRes = await fetch("/api/stripe/check-skus", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ skus }),
+            });
+
+            if (checkRes.ok) {
+              const checkData = await checkRes.json();
+              // expected: { availability: { [sku]: { available: true/false, price_id?: string } } }
+              if (!cancelled && checkData?.availability) {
+                setAvailability(checkData.availability);
+              }
+            }
+          }
+        } catch (e) {
+          // ignore if endpoint doesn't exist yet
+        } finally {
+          if (!cancelled) setChecking(false);
+        }
       } catch (err) {
         console.error("Product fetch error:", err);
       }
@@ -60,35 +91,60 @@ export default function ProductPage() {
     };
   }, [id]);
 
-  const selectedVariant = useMemo(() => {
-    if (!product?.variants?.length || !selectedVariantId) return null;
-    return product.variants.find((v) => v.sync_variant_id === selectedVariantId) || null;
-  }, [product, selectedVariantId]);
+  const variants = product?.variants || [];
 
-  const currentPrice = useMemo(() => {
-    const p = selectedVariant?.retail_price || product?.variants?.[0]?.retail_price || "0";
+  const selectedVariant = useMemo(() => {
+    if (!variants.length || !selectedSyncVariantId) return null;
+    return variants.find((v) => v.sync_variant_id === selectedSyncVariantId) || null;
+  }, [variants, selectedSyncVariantId]);
+
+  const heroImage =
+    selectedVariant?.preview_url || product?.thumbnail_url || "/Logo.jpeg";
+
+  // Price shown on page: uses Printful retail_price directly (good UX),
+  // Stripe will ultimately charge based on mapped Stripe prices during checkout creation.
+  const displayPrice = useMemo(() => {
+    const p = selectedVariant?.retail_price ?? variants?.[0]?.retail_price ?? "0";
     const n = Number(p);
     return Number.isFinite(n) ? n : 0;
-  }, [selectedVariant, product]);
+  }, [selectedVariant, variants]);
 
-  const heroImage = selectedVariant?.preview_url || product?.thumbnail_url || "/Logo.jpeg";
+  const selectedSku = useMemo(() => {
+    return (selectedVariant?.sku || "").trim();
+  }, [selectedVariant]);
 
-  const handleAddToCart = () => {
+  const selectedIsMissingSku = !selectedSku;
+
+  // If we have availability info, use it. If we don't, treat as available (do NOT disable everything).
+  const selectedIsUnavailable = useMemo(() => {
+    if (!selectedSku) return true; // missing SKU really is a blocker
+    const entry = availability[selectedSku];
+    if (!entry) return false; // unknown = allow
+    return entry.available === false;
+  }, [selectedSku, availability]);
+
+  const addToCart = () => {
     if (!product || !selectedVariant) return;
 
     const sku = (selectedVariant.sku || "").trim();
     if (!sku) {
-      alert("This size is missing a SKU in Printful (external_id). Please bulk-edit and add one.");
+      alert("This size is missing a SKU, so checkout can't map it to Stripe yet.");
+      return;
+    }
+
+    // If we know it's unavailable, block
+    const entry = availability[sku];
+    if (entry && entry.available === false) {
+      alert("That size isn't available right now.");
       return;
     }
 
     const cartItem = {
       sync_product_id: product.sync_product_id,
-      sync_variant_id: selectedVariant.sync_variant_id,
-      catalog_variant_id: selectedVariant.catalog_variant_id,
+      sync_variant_id: selectedVariant.sync_variant_id, // Printful fulfillment id
+      catalog_variant_id: selectedVariant.catalog_variant_id, // Printful catalog variant id (optional)
 
-      sku, // ✅ used to find Stripe price via lookup_key
-
+      sku, // ✅ IMPORTANT: use this later to map to Stripe lookup_key
       name: selectedVariant.name || product.name,
       price: Number(selectedVariant.retail_price || 0),
       image: selectedVariant.preview_url || product.thumbnail_url || "/Logo.jpeg",
@@ -97,19 +153,28 @@ export default function ProductPage() {
     };
 
     const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const existing = existingCart.find((i) => i.sync_variant_id === cartItem.sync_variant_id);
+    const existing = existingCart.find((item) => item.sku === cartItem.sku);
 
     if (existing) existing.quantity += 1;
     else existingCart.push(cartItem);
 
     localStorage.setItem("cart", JSON.stringify(existingCart));
     setAdded(true);
-    setTimeout(() => setAdded(false), 1600);
+    setTimeout(() => setAdded(false), 2000);
   };
 
   if (!product) {
     return (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "white" }}>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          color: "white",
+          fontSize: "1.2rem",
+          background: "radial-gradient(circle at center, #0f172a 0%, #000 100%)",
+        }}
+      >
         Loading...
       </div>
     );
@@ -125,7 +190,8 @@ export default function ProductPage() {
         textAlign: "center",
       }}
     >
-      <div style={{ maxWidth: 520, margin: "0 auto 2rem" }}>
+      {/* Product Image */}
+      <div style={{ maxWidth: "560px", margin: "0 auto 1.5rem" }}>
         <Image
           src={heroImage}
           alt={product.name}
@@ -133,113 +199,169 @@ export default function ProductPage() {
           height={700}
           priority
           style={{
-            borderRadius: 16,
-            boxShadow: "0 0 40px rgba(255,255,255,0.2)",
+            borderRadius: "18px",
+            boxShadow: "0 0 50px rgba(255,255,255,0.14)",
             objectFit: "contain",
-            transition: "transform 200ms ease",
           }}
         />
       </div>
 
-      <h1 style={{ fontSize: "2.4rem", fontWeight: 900, margin: "1rem 0" }}>
+      {/* Title */}
+      <h1 style={{ fontSize: "2.2rem", fontWeight: 900, margin: "1rem 0" }}>
         {product.name}
       </h1>
 
       {!!product.description && (
-        <p style={{ maxWidth: 820, margin: "1rem auto", lineHeight: 1.7, opacity: 0.9 }}>
+        <p
+          style={{
+            fontSize: "1.05rem",
+            maxWidth: "840px",
+            margin: "0.75rem auto 1.25rem",
+            lineHeight: 1.6,
+            opacity: 0.9,
+          }}
+        >
           {product.description}
         </p>
       )}
 
-      <p style={{ fontSize: "2rem", fontWeight: "bold", color: "#ff6b6b", margin: "1.5rem 0" }}>
-        ${currentPrice.toFixed(2)}
+      {/* Price */}
+      <p style={{ fontSize: "2rem", fontWeight: "bold", color: "#ff6b6b", margin: "1rem 0 1.25rem" }}>
+        ${displayPrice.toFixed(2)}
       </p>
 
-      {product.variants?.length > 0 && (
-        <div style={{ margin: "2rem auto", maxWidth: 760 }}>
-          <h3 style={{ fontSize: "1.2rem", marginBottom: 12, fontWeight: 700 }}>
-            Choose your size:
-          </h3>
+      {/* Size selection */}
+      {variants.length > 0 && (
+        <div style={{ margin: "1.5rem auto 1.25rem", maxWidth: "860px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+            <h3 style={{ fontSize: "1.2rem", margin: 0, fontWeight: 700 }}>
+              Choose size:
+            </h3>
+            {checking && (
+              <span style={{ fontSize: "0.95rem", opacity: 0.8 }}>
+                checking availability…
+              </span>
+            )}
+          </div>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
-            {product.variants.map((v) => {
-              const { label } = parseLabel(v.name);
-              const isSelected = v.sync_variant_id === selectedVariantId;
-              const hasSku = !!(v.sku || "").trim();
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "10px",
+              justifyContent: "center",
+              marginTop: "12px",
+            }}
+          >
+            {variants.map((variant) => {
+              const size = parseSizeFromVariantName(variant.name);
+              const sku = (variant.sku || "").trim();
+
+              // Disable only if truly missing SKU OR known unavailable
+              const known = sku ? availability[sku] : null;
+              const disabled = !sku || (known && known.available === false);
+
+              const isSelected = variant.sync_variant_id === selectedSyncVariantId;
 
               return (
                 <button
-                  key={v.sync_variant_id}
-                  onClick={() => hasSku && setSelectedVariantId(v.sync_variant_id)}
-                  disabled={!hasSku}
-                  title={!hasSku ? "This size is missing SKU/external_id in Printful" : ""}
+                  key={variant.sync_variant_id}
+                  onClick={() => !disabled && setSelectedSyncVariantId(variant.sync_variant_id)}
+                  disabled={disabled}
                   style={{
                     padding: "10px 14px",
-                    borderRadius: 10,
-                    border: isSelected ? "2px solid #ff4444" : "1px solid rgba(255,255,255,0.2)",
-                    background: isSelected ? "rgba(255,68,68,0.18)" : "rgba(255,255,255,0.04)",
-                    color: !hasSku ? "rgba(255,255,255,0.35)" : isSelected ? "#ff6666" : "white",
-                    cursor: !hasSku ? "not-allowed" : "pointer",
-                    transform: isSelected ? "translateY(-1px)" : "translateY(0)",
-                    transition: "all 180ms ease",
-                    opacity: !hasSku ? 0.55 : 1,
+                    borderRadius: "10px",
+                    border: isSelected ? "2px solid #ff4444" : "1px solid rgba(148,163,184,0.35)",
+                    background: disabled
+                      ? "rgba(148,163,184,0.08)"
+                      : isSelected
+                      ? "rgba(255,68,68,0.16)"
+                      : "rgba(255,255,255,0.02)",
+                    color: disabled ? "rgba(255,255,255,0.35)" : isSelected ? "#ff6b6b" : "white",
+                    cursor: disabled ? "not-allowed" : "pointer",
+                    fontSize: "1rem",
+                    fontWeight: 700,
+                    opacity: disabled ? 0.7 : 1,
+                    transform: isSelected ? "translateY(-1px)" : "none",
+                    transition: "all 0.15s ease",
                   }}
+                  title={
+                    !sku
+                      ? "SKU missing for this size"
+                      : known?.available === false
+                      ? "Not available"
+                      : ""
+                  }
                 >
-                  {label}
+                  {size}
                 </button>
               );
             })}
           </div>
 
-          <p style={{ marginTop: 12, opacity: 0.75, fontSize: 13 }}>
-            If a size is disabled, it’s missing a Printful SKU/external_id (needed for Stripe mapping).
-          </p>
+          {/* Clear messaging */}
+          <div style={{ marginTop: 12, minHeight: 22 }}>
+            {selectedIsMissingSku ? (
+              <p style={{ color: "#fbbf24", margin: 0, fontWeight: 700 }}>
+                This size is missing a SKU, so Stripe mapping can’t happen.
+              </p>
+            ) : selectedIsUnavailable ? (
+              <p style={{ color: "#f87171", margin: 0, fontWeight: 700 }}>
+                This size is currently unavailable.
+              </p>
+            ) : (
+              <p style={{ opacity: 0.75, margin: 0 }}>
+                Selected size: <span style={{ fontWeight: 800 }}>{parseSizeFromVariantName(selectedVariant?.name)}</span>
+              </p>
+            )}
+          </div>
         </div>
       )}
 
+      {/* Add to cart */}
       {!added ? (
         <button
-          onClick={handleAddToCart}
+          onClick={addToCart}
+          disabled={selectedIsMissingSku || selectedIsUnavailable}
           style={{
-            padding: "1.1rem 2.4rem",
-            background: "#ff4444",
+            padding: "1.15rem 2.6rem",
+            background: selectedIsMissingSku || selectedIsUnavailable ? "rgba(148,163,184,0.35)" : "#ff4444",
             color: "white",
             border: "none",
-            borderRadius: 14,
-            fontSize: "1.2rem",
-            fontWeight: "bold",
-            cursor: "pointer",
-            boxShadow: "0 10px 30px rgba(255,68,68,0.35)",
-            transition: "transform 180ms ease",
+            borderRadius: "14px",
+            fontSize: "1.25rem",
+            fontWeight: 900,
+            cursor: selectedIsMissingSku || selectedIsUnavailable ? "not-allowed" : "pointer",
+            boxShadow: "0 10px 26px rgba(255,68,68,0.28)",
+            transition: "transform 0.12s ease",
           }}
-          onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
-          onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
           Add to Cart
         </button>
       ) : (
-        <div style={{ margin: "1.5rem 0" }}>
-          <p style={{ color: "#4ade80", fontSize: "1.3rem", fontWeight: 800 }}>
+        <div style={{ margin: "1.25rem 0" }}>
+          <p style={{ color: "#4ade80", fontSize: "1.35rem", fontWeight: 900, marginBottom: "0.75rem" }}>
             Added to cart!
           </p>
-          <Link href="/cart" style={{ color: "#fff", textDecoration: "underline" }}>
+          <Link href="/cart" style={{ textDecoration: "none" }}>
             Go to Cart →
           </Link>
         </div>
       )}
 
-      <div style={{ marginTop: "2.5rem" }}>
+      {/* Back */}
+      <div style={{ marginTop: "2.25rem" }}>
         <button
           onClick={() => router.back()}
           style={{
-            padding: "0.9rem 1.4rem",
+            padding: "0.9rem 1.7rem",
             background: "linear-gradient(90deg, #ff4444, #4444ff)",
             color: "white",
-            borderRadius: 12,
-            fontWeight: 700,
-            fontSize: "1.05rem",
-            cursor: "pointer",
             border: "none",
+            borderRadius: "12px",
+            fontWeight: 800,
+            fontSize: "1.1rem",
+            cursor: "pointer",
           }}
         >
           ← Keep Shopping
