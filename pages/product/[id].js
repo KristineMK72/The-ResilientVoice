@@ -6,46 +6,18 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-function money(n) {
-  const x = Number(n);
-  return Number.isFinite(x) ? x.toFixed(2) : "0.00";
+function clean(v) {
+  return String(v ?? "").trim().replace(/\r/g, "");
 }
 
-function parseVariantLabel(variantName) {
-  const parts = String(variantName || "")
-    .split("/")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  // Size is usually last segment
-  const size = parts.length ? parts[parts.length - 1] : "Size";
-
-  // Try to guess color (2nd-to-last) only if it looks like a short token
-  const maybeColor = parts.length >= 2 ? parts[parts.length - 2] : null;
-  const color =
-    maybeColor && maybeColor.length <= 20 && !maybeColor.includes(" ")
-      ? maybeColor
-      : null;
-
-  return { size, color };
+// Printful synced products often use external_id as the "SKU-like" identifier
+function getVariantSku(variant) {
+  return clean(variant?.sku || variant?.external_id || "");
 }
 
-/**
- * Define "available" for checkout.
- * The #1 reason your site shows "missing a SKU, so Stripe mapping can’t happen":
- * - if a variant has no SKU, you can’t look up Stripe prices by lookup_key reliably.
- *
- * So we disable anything without a SKU.
- *
- * If you want different rules later, change only this function.
- */
-function isVariantPurchasable(v) {
-  const sku = String(v?.sku || "").trim();
-  const price = Number(v?.retail_price);
-  if (!sku) return false;
-  if (!Number.isFinite(price) || price <= 0) return false;
-  if (!v?.sync_variant_id) return false;
-  return true;
+function formatPrice(n) {
+  const num = Number(n);
+  return Number.isFinite(num) ? num : 0;
 }
 
 export default function ProductPage() {
@@ -53,13 +25,9 @@ export default function ProductPage() {
   const { id } = router.query;
 
   const [product, setProduct] = useState(null);
-  const [added, setAdded] = useState(false);
-
-  // Selected Printful sync_variant_id
   const [selectedVariantId, setSelectedVariantId] = useState(null);
-
-  // UX messages
-  const [variantMsg, setVariantMsg] = useState("");
+  const [added, setAdded] = useState(false);
+  const [pageError, setPageError] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -67,30 +35,27 @@ export default function ProductPage() {
     let cancelled = false;
 
     (async () => {
+      setPageError("");
       try {
         const res = await fetch(`/api/printful-product/${id}`);
         const data = await res.json();
 
         if (!res.ok) {
           console.error("Product fetch failed:", data);
+          if (!cancelled) setPageError(data?.error || "Failed to load product.");
           return;
         }
         if (cancelled) return;
 
         setProduct(data);
 
-        // Default select: first purchasable variant, else just first variant
-        const variants = data?.variants || [];
-        const firstGood = variants.find(isVariantPurchasable);
-        const fallback = variants[0];
-
-        if (firstGood?.sync_variant_id) {
-          setSelectedVariantId(firstGood.sync_variant_id);
-        } else if (fallback?.sync_variant_id) {
-          setSelectedVariantId(fallback.sync_variant_id);
+        // Default to the first variant
+        if (data?.variants?.length) {
+          setSelectedVariantId(data.variants[0].sync_variant_id);
         }
       } catch (err) {
         console.error("Product fetch error:", err);
+        if (!cancelled) setPageError("Network error loading product.");
       }
     })();
 
@@ -99,86 +64,63 @@ export default function ProductPage() {
     };
   }, [id]);
 
-  const variants = useMemo(() => product?.variants || [], [product]);
-
   const selectedVariant = useMemo(() => {
-    if (!variants.length || !selectedVariantId) return null;
-    return variants.find((v) => v.sync_variant_id === selectedVariantId) || null;
-  }, [variants, selectedVariantId]);
+    if (!product?.variants?.length || !selectedVariantId) return null;
+    return (
+      product.variants.find((v) => v.sync_variant_id === selectedVariantId) || null
+    );
+  }, [product, selectedVariantId]);
+
+  const currentPrice = useMemo(() => {
+    const p =
+      selectedVariant?.retail_price ??
+      product?.variants?.[0]?.retail_price ??
+      "0";
+    return formatPrice(p);
+  }, [selectedVariant, product]);
 
   const heroImage =
     selectedVariant?.preview_url || product?.thumbnail_url || "/Logo.jpeg";
 
-  const currentPrice = useMemo(() => {
-    // Prefer selected variant price, fallback to first purchasable variant, then first variant.
-    const chosen =
-      selectedVariant ||
-      variants.find(isVariantPurchasable) ||
-      variants[0] ||
-      null;
-
-    const p = chosen?.retail_price ?? "0";
-    const n = Number(p);
-    return Number.isFinite(n) ? n : 0;
-  }, [selectedVariant, variants]);
-
-  const availability = useMemo(() => {
-    // Map: sync_variant_id -> purchasable boolean
-    const map = new Map();
-    for (const v of variants) {
-      map.set(v.sync_variant_id, isVariantPurchasable(v));
-    }
-    return map;
-  }, [variants]);
-
-  const selectedIsPurchasable = useMemo(() => {
-    if (!selectedVariant) return false;
-    return availability.get(selectedVariant.sync_variant_id) === true;
-  }, [selectedVariant, availability]);
-
-  const handleSelectVariant = (variant) => {
-    setVariantMsg("");
-
-    const ok = isVariantPurchasable(variant);
-    if (!ok) {
-      // Let them tap it, but explain why it’s disabled for checkout.
-      setVariantMsg(
-        "That size isn’t available for checkout yet (missing SKU / price mapping)."
-      );
-      return;
-    }
-
-    setSelectedVariantId(variant.sync_variant_id);
-  };
+  // Optional local mockups (safe to keep; hides missing images)
+  const getMockupPaths = (syncProductId) => [
+    `/${syncProductId}_1.png`,
+    `/${syncProductId}_2.png`,
+    `/${syncProductId}_3.png`,
+  ];
 
   const handleAddToCart = () => {
-    setVariantMsg("");
-
     if (!product) return;
 
-    if (!selectedVariant) {
-      setVariantMsg("Please choose a size.");
-      return;
-    }
-
-    if (!selectedIsPurchasable) {
-      setVariantMsg(
-        "That size can’t be purchased yet (missing SKU / price mapping)."
-      );
+    if (!selectedVariantId) {
+      alert("Please select a size first!");
       return;
     }
 
     const v = selectedVariant;
+    if (!v) {
+      alert("Error: Could not find variant details.");
+      return;
+    }
+
+    // IMPORTANT: treat external_id as SKU fallback
+    const sku = getVariantSku(v);
+
+    if (!sku) {
+      alert("This size is missing a SKU/external_id, so it can't be purchased yet.");
+      return;
+    }
 
     const cartItem = {
+      // identifiers
       sync_product_id: product.sync_product_id,
       sync_variant_id: v.sync_variant_id,
       catalog_variant_id: v.catalog_variant_id,
 
-      // Helpful for Stripe mapping / debugging
-      sku: v.sku,
+      // SKU-like value for Stripe lookup_key mapping (if your flow uses that)
+      sku,
 
-      // Display
+      // display
       name: v.name || product.name,
       price: Number(v.retail_price),
       image: v.preview_url || product.thumbnail_url || "/Logo.jpeg",
@@ -191,16 +133,12 @@ export default function ProductPage() {
       (item) => item.sync_variant_id === cartItem.sync_variant_id
     );
 
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      existingCart.push(cartItem);
-    }
+    if (existing) existing.quantity += 1;
+    else existingCart.push(cartItem);
 
     localStorage.setItem("cart", JSON.stringify(existingCart));
-
     setAdded(true);
-    setTimeout(() => setAdded(false), 2200);
+    setTimeout(() => setAdded(false), 1800);
   };
 
   if (!product) {
@@ -211,11 +149,17 @@ export default function ProductPage() {
           display: "grid",
           placeItems: "center",
           color: "white",
-          fontSize: "1.25rem",
+          padding: "2rem",
+          textAlign: "center",
           background: "radial-gradient(circle at center, #0f172a 0%, #000 100%)",
         }}
       >
-        Loading...
+        <div>
+          <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>Loading…</div>
+          {pageError && (
+            <div style={{ marginTop: "1rem", color: "#fca5a5" }}>{pageError}</div>
+          )}
+        </div>
       </div>
     );
   }
@@ -225,74 +169,104 @@ export default function ProductPage() {
       style={{
         minHeight: "100vh",
         background: "radial-gradient(circle at center, #0f172a 0%, #000 100%)",
-        padding: "3.5rem 1rem 5rem",
+        padding: "4rem 1rem",
         color: "white",
         textAlign: "center",
       }}
     >
-      {/* HERO */}
-      <div style={{ maxWidth: "560px", margin: "0 auto 1.75rem" }}>
-        <div
+      {/* Main Product Image */}
+      <div style={{ maxWidth: "520px", margin: "0 auto 2rem" }}>
+        <Image
+          src={heroImage}
+          alt={product.name}
+          width={700}
+          height={700}
+          priority
           style={{
-            borderRadius: "18px",
-            padding: "10px",
-            background: "rgba(255,255,255,0.04)",
-            boxShadow: "0 0 40px rgba(255,255,255,0.12)",
+            borderRadius: "16px",
+            boxShadow: "0 0 40px rgba(255,255,255,0.2)",
+            objectFit: "contain",
           }}
-        >
-          <Image
-            src={heroImage}
-            alt={product.name}
-            width={900}
-            height={900}
-            priority
-            style={{
-              borderRadius: "14px",
-              objectFit: "contain",
-              width: "100%",
-              height: "auto",
-            }}
-          />
-        </div>
+        />
       </div>
 
-      {/* TITLE / DESC */}
-      <h1 style={{ fontSize: "2.3rem", fontWeight: 900, margin: "1rem 0" }}>
+      {/* Optional local mockup gallery */}
+      <div
+        style={{
+          display: "flex",
+          overflowX: "auto",
+          gap: "16px",
+          padding: "1rem",
+          marginTop: "1.5rem",
+          scrollSnapType: "x mandatory",
+          justifyContent: "center",
+        }}
+      >
+        {getMockupPaths(product.sync_product_id).map((path, index) => (
+          <img
+            key={index}
+            src={path}
+            alt={`${product.name} mockup ${index + 1}`}
+            style={{
+              flex: "0 0 auto",
+              width: "420px",
+              height: "420px",
+              objectFit: "contain",
+              borderRadius: "20px",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
+              scrollSnapAlign: "center",
+              border: "2px solid rgba(255,255,255,0.08)",
+            }}
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Product Details */}
+      <h1 style={{ fontSize: "3rem", fontWeight: 900, margin: "1.25rem 0" }}>
         {product.name}
       </h1>
 
       {!!product.description && (
         <p
           style={{
-            fontSize: "1.05rem",
-            maxWidth: "860px",
-            margin: "0.75rem auto 0",
+            fontSize: "1.15rem",
+            maxWidth: "820px",
+            margin: "1.25rem auto",
             lineHeight: 1.7,
             opacity: 0.92,
-            padding: "0 8px",
           }}
         >
           {product.description}
         </p>
       )}
 
-      {/* PRICE */}
+      {/* Price */}
       <p
         style={{
-          fontSize: "2.1rem",
+          fontSize: "2.4rem",
           fontWeight: "bold",
           color: "#ff6b6b",
-          margin: "1.4rem 0 0.25rem",
+          margin: "1.5rem 0 0.5rem",
         }}
       >
-        ${money(currentPrice)}
+        ${currentPrice.toFixed(2)}
       </p>
 
-      {/* SIZE PICKER */}
-      {variants.length > 0 && (
-        <div style={{ margin: "2rem auto 1.5rem", maxWidth: "820px" }}>
-          <h3 style={{ fontSize: "1.25rem", marginBottom: "1rem", fontWeight: 700 }}>
-            Choose Your Size:
+      {/* If selected size has no SKU/external_id, show a warning but don't break the whole page */}
+      {selectedVariant && !getVariantSku(selectedVariant) && (
+        <div style={{ marginTop: "0.75rem", color: "#fca5a5", fontWeight: 600 }}>
+          This size is missing a SKU/external_id, so Stripe mapping can’t happen yet.
+        </div>
+      )}
+
+      {/* Size Selection */}
+      {product.variants?.length > 0 && (
+        <div style={{ margin: "2rem auto 2.5rem", maxWidth: "720px" }}>
+          <h3 style={{ fontSize: "1.35rem", marginBottom: "1rem", fontWeight: 700 }}>
+            Choose your size:
           </h3>
 
           <div
@@ -301,184 +275,128 @@ export default function ProductPage() {
               flexWrap: "wrap",
               gap: "12px",
               justifyContent: "center",
-              padding: "0 6px",
             }}
           >
-            {variants.map((variant) => {
-              const { size, color } = parseVariantLabel(variant.name);
-              const label = color ? `${size} · ${color}` : size;
+            {product.variants.map((variant) => {
+              const parts = String(variant.name || "")
+                .split("/")
+                .map((s) => s.trim())
+                .filter(Boolean);
 
-              const purchasable = isVariantPurchasable(variant);
+              // last token is usually size
+              const size = parts.length ? parts[parts.length - 1] : "Size";
+
+              // only disable if we truly have no sku/external_id
+              const sku = getVariantSku(variant);
+              const isUnavailable = !sku;
+
               const isSelected = variant.sync_variant_id === selectedVariantId;
 
               return (
                 <button
                   key={variant.sync_variant_id}
-                  onClick={() => handleSelectVariant(variant)}
-                  disabled={!purchasable}
-                  title={
-                    purchasable
-                      ? "Select size"
-                      : "Unavailable (missing SKU/price mapping)"
-                  }
+                  onClick={() => !isUnavailable && setSelectedVariantId(variant.sync_variant_id)}
+                  disabled={isUnavailable}
                   style={{
-                    padding: "10px 14px",
+                    padding: "10px 16px",
+                    border: isSelected ? "3px solid #ff4444" : "1px solid rgba(148,163,184,0.5)",
+                    backgroundColor: isSelected ? "rgba(255,68,68,0.12)" : "transparent",
+                    color: isUnavailable ? "rgba(148,163,184,0.8)" : isSelected ? "#ff6b6b" : "white",
                     borderRadius: "10px",
-                    minWidth: "72px",
-                    border: isSelected
-                      ? "2px solid #ff4444"
-                      : "1px solid rgba(148,163,184,0.55)",
-                    background: isSelected
-                      ? "rgba(255,68,68,0.18)"
-                      : "rgba(255,255,255,0.02)",
-                    color: purchasable ? "white" : "rgba(255,255,255,0.35)",
-                    cursor: purchasable ? "pointer" : "not-allowed",
+                    fontSize: "1rem",
                     fontWeight: 700,
-                    fontSize: "0.98rem",
-                    letterSpacing: "0.2px",
-
-                    // ✅ simple animation
-                    transform: isSelected ? "scale(1.06)" : "scale(1)",
-                    transition: "transform 160ms ease, border 160ms ease, background 160ms ease, opacity 160ms ease",
-                    opacity: purchasable ? 1 : 0.55,
-                    position: "relative",
+                    cursor: isUnavailable ? "not-allowed" : "pointer",
+                    opacity: isUnavailable ? 0.45 : 1,
+                    transform: isSelected ? "scale(1.03)" : "scale(1)",
+                    transition: "transform 140ms ease, opacity 140ms ease, border 140ms ease",
+                  }}
+                  title={isUnavailable ? "Missing SKU/external_id (not purchasable yet)" : ""}
+                  onMouseEnter={(e) => {
+                    if (isUnavailable) return;
+                    e.currentTarget.style.transform = "scale(1.05)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = isSelected ? "scale(1.03)" : "scale(1)";
                   }}
                 >
-                  {label}
-
-                  {/* tiny badge for disabled */}
-                  {!purchasable && (
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: "-8px",
-                        right: "-8px",
-                        fontSize: "0.68rem",
-                        padding: "4px 6px",
-                        borderRadius: "999px",
-                        background: "rgba(255,255,255,0.12)",
-                        border: "1px solid rgba(255,255,255,0.16)",
-                      }}
-                    >
-                      unavailable
-                    </span>
-                  )}
+                  {size}
                 </button>
               );
             })}
           </div>
 
-          {/* Helper message */}
-          {!!variantMsg && (
-            <div
-              style={{
-                marginTop: "14px",
-                display: "inline-block",
-                padding: "10px 14px",
-                borderRadius: "12px",
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                color: "rgba(255,255,255,0.95)",
-                maxWidth: "720px",
-              }}
-            >
-              {variantMsg}
-            </div>
-          )}
+          <div style={{ marginTop: "10px", opacity: 0.7, fontSize: "0.95rem" }}>
+            * Disabled sizes are missing SKU/external_id.
+          </div>
         </div>
       )}
 
-      {/* CTA */}
-      <div style={{ marginTop: "1.5rem" }}>
-        {!added ? (
-          <button
-            onClick={handleAddToCart}
-            style={{
-              padding: "1.05rem 2.6rem",
-              background: selectedIsPurchasable ? "#ff4444" : "rgba(255,68,68,0.35)",
-              color: "white",
-              border: "none",
-              borderRadius: "14px",
-              fontSize: "1.2rem",
-              fontWeight: 900,
-              cursor: selectedIsPurchasable ? "pointer" : "not-allowed",
-              boxShadow: selectedIsPurchasable
-                ? "0 10px 30px rgba(255,68,68,0.35)"
-                : "none",
-              transform: selectedIsPurchasable ? "translateY(0)" : "translateY(0)",
-              transition: "transform 160ms ease, background 160ms ease, box-shadow 160ms ease",
-            }}
-            onMouseDown={(e) => {
-              if (!selectedIsPurchasable) return;
-              e.currentTarget.style.transform = "translateY(2px)";
-            }}
-            onMouseUp={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-          >
-            Add to Cart
-          </button>
-        ) : (
-          <div style={{ marginTop: "1.2rem" }}>
-            <div
+      {/* Add to Cart */}
+      {!added ? (
+        <button
+          onClick={handleAddToCart}
+          style={{
+            padding: "1.1rem 3rem",
+            background: "linear-gradient(90deg, #ff4444, #ff6b6b)",
+            color: "white",
+            border: "none",
+            borderRadius: "14px",
+            fontSize: "1.35rem",
+            fontWeight: 900,
+            cursor: "pointer",
+            boxShadow: "0 10px 30px rgba(255,68,68,0.35)",
+            transform: "translateY(0)",
+            transition: "transform 120ms ease, box-shadow 120ms ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow = "0 14px 38px rgba(255,68,68,0.45)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "0 10px 30px rgba(255,68,68,0.35)";
+          }}
+        >
+          Add to Cart
+        </button>
+      ) : (
+        <div style={{ margin: "2rem 0" }}>
+          <p style={{ color: "#4ade80", fontSize: "1.5rem", fontWeight: 900, marginBottom: "1rem" }}>
+            Added to cart!
+          </p>
+
+          <Link href="/cart" style={{ textDecoration: "none" }}>
+            <span
               style={{
                 display: "inline-block",
-                padding: "12px 16px",
-                borderRadius: "14px",
-                background: "rgba(74,222,128,0.12)",
-                border: "1px solid rgba(74,222,128,0.25)",
-                color: "#4ade80",
+                padding: "0.95rem 2.2rem",
+                background: "white",
+                color: "#ff4444",
+                borderRadius: "12px",
                 fontWeight: 900,
-                fontSize: "1.1rem",
-                transform: "scale(1)",
-                animation: "pop 260ms ease-out",
+                cursor: "pointer",
               }}
             >
-              Added to cart ✅
-            </div>
+              Go to Cart →
+            </span>
+          </Link>
+        </div>
+      )}
 
-            <div style={{ marginTop: "14px" }}>
-              <Link href="/cart" legacyBehavior>
-                <a
-                  style={{
-                    display: "inline-block",
-                    padding: "0.95rem 2.2rem",
-                    background: "white",
-                    color: "#ff4444",
-                    borderRadius: "14px",
-                    fontWeight: 900,
-                    textDecoration: "none",
-                  }}
-                >
-                  Go to Cart →
-                </a>
-              </Link>
-            </div>
-
-            <style jsx>{`
-              @keyframes pop {
-                0% { transform: scale(0.95); opacity: 0.3; }
-                100% { transform: scale(1); opacity: 1; }
-              }
-            `}</style>
-          </div>
-        )}
-      </div>
-
-      {/* BACK */}
-      <div style={{ marginTop: "2.6rem" }}>
+      {/* Back Button */}
+      <div style={{ marginTop: "3rem" }}>
         <button
           onClick={() => router.back()}
           style={{
-            padding: "0.95rem 1.8rem",
+            padding: "1rem 2rem",
             background: "linear-gradient(90deg, #ff4444, #4444ff)",
             color: "white",
-            borderRadius: "14px",
-            fontWeight: 800,
-            fontSize: "1.1rem",
-            cursor: "pointer",
             border: "none",
-            boxShadow: "0 10px 28px rgba(0,0,0,0.35)",
+            borderRadius: "12px",
+            fontWeight: 800,
+            fontSize: "1.15rem",
+            cursor: "pointer",
+            opacity: 0.95,
           }}
         >
           ← Keep Shopping
