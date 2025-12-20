@@ -5,11 +5,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-06-30.basil",
 });
 
-function toCents(n) {
-  const x = Number(n);
-  return Math.round((Number.isFinite(x) ? x : 0) * 100);
-}
-
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
@@ -20,43 +15,34 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Cart is empty or invalid" });
     }
 
-    const shippingCost = Number(shipping?.cost);
-    const shippingName = (shipping?.name || "Shipping").toString();
-
-    if (!Number.isFinite(shippingCost) || shippingCost <= 0) {
-      return res.status(400).json({ error: "Shipping cost missing/invalid. Please calculate shipping and select an option first." });
+    const shipRate = Number(shipping?.rate);
+    if (!Number.isFinite(shipRate) || shipRate <= 0) {
+      return res.status(400).json({ error: "Shipping cost missing/invalid" });
     }
 
-    // Build line items using existing Stripe Prices via lookup_key = sku
-    const lineItems = [];
-    for (const item of cart) {
-      const qty = Number(item.quantity || 0);
-      const sku = (item.sku || "").toString().trim();
+    // Build product line items
+    const lineItems = cart.map((item) => {
+      if (!item.sync_variant_id) throw new Error("Missing sync_variant_id on cart item");
 
-      if (!sku) {
-        return res.status(400).json({ error: `Cart item "${item.name}" is missing sku (Printful external_id).` });
-      }
-      if (!Number.isFinite(qty) || qty <= 0) continue;
+      return {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: item.name,
+            images: item.image ? [item.image] : [],
+          },
+          unit_amount: Math.round(Number(item.price) * 100),
+        },
+        quantity: Number(item.quantity || 1),
+      };
+    });
 
-      const prices = await stripe.prices.list({
-        lookup_keys: [sku],
-        limit: 1,
-      });
-
-      const price = prices.data?.[0];
-      if (!price) {
-        return res.status(400).json({ error: `No Stripe price found for SKU ${sku}. Did lookup_keys get set?` });
-      }
-
-      lineItems.push({ price: price.id, quantity: qty });
-    }
-
-    // Add shipping as separate line item (no Printful metadata — webhook will ignore it)
+    // Add shipping as a separate line item (dynamic amount)
     lineItems.push({
       price_data: {
         currency: "usd",
-        product_data: { name: shippingName },
-        unit_amount: toCents(shippingCost),
+        product_data: { name: `Shipping (${shipping?.name || "Standard"})` },
+        unit_amount: Math.round(shipRate * 100),
       },
       quantity: 1,
     });
@@ -68,10 +54,16 @@ export default async function handler(req, res) {
       },
       line_items: lineItems,
 
-      // Optional: keep shipping selection on the session
+      // This is for your fulfillment webhook (Printful):
       metadata: {
-        shipping_name: shippingName,
-        shipping_cost: String(shippingCost),
+        printful_items: JSON.stringify(
+          cart.map((item) => ({
+            sync_variant_id: Number(item.sync_variant_id),
+            quantity: Number(item.quantity || 1),
+          }))
+        ),
+        shipping_name: String(shipping?.name || ""),
+        shipping_rate: String(shipRate),
       },
 
       success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -81,6 +73,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ url: session.url });
   } catch (err) {
     console.error("❌ Stripe checkout error:", err);
-    return res.status(500).json({ error: err.message || "Server error" });
+    return res.status(500).json({ error: err.message || "Stripe error" });
   }
 }
