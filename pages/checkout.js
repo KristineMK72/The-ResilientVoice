@@ -3,6 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 export default function Checkout() {
+  // ---------------------------
+  // State
+  // ---------------------------
   const [cartItems, setCartItems] = useState([]);
   const [address, setAddress] = useState({
     name: "",
@@ -14,53 +17,82 @@ export default function Checkout() {
     zip: "",
   });
 
-  const [rates, setRates] = useState([]);
+  const [rates, setRates] = useState([]); // Printful rates list
   const [selectedRateId, setSelectedRateId] = useState("");
   const [shippingCost, setShippingCost] = useState(0);
+  const [shippingName, setShippingName] = useState("");
 
   const [calculating, setCalculating] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
+  // ---------------------------
+  // Load cart on mount
+  // ---------------------------
   useEffect(() => {
-    const savedCart = localStorage.getItem("cart");
-    const items = savedCart ? JSON.parse(savedCart) : [];
-    setCartItems(items);
+    try {
+      const savedCart = localStorage.getItem("cart");
+      const items = savedCart ? JSON.parse(savedCart) : [];
+      setCartItems(Array.isArray(items) ? items : []);
+    } catch {
+      setCartItems([]);
+    }
   }, []);
 
+  // ---------------------------
+  // Helpers
+  // ---------------------------
   const subtotal = useMemo(() => {
     return cartItems.reduce(
-      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1),
+      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
       0
     );
   }, [cartItems]);
 
-  const total = useMemo(() => subtotal + shippingCost, [subtotal, shippingCost]);
+  const total = useMemo(() => {
+    return subtotal + Number(shippingCost || 0);
+  }, [subtotal, shippingCost]);
 
   const handleInputChange = (e) => {
-    setAddress((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setAddress((prev) => ({ ...prev, [name]: value }));
+
+    // If user changes address, invalidate old shipping selection
+    if (["address1", "address2", "city", "state_code", "zip", "country_code"].includes(name)) {
+      setRates([]);
+      setSelectedRateId("");
+      setShippingCost(0);
+      setShippingName("");
+    }
   };
 
-  async function handleCalculateShipping() {
-    setError("");
+  const validateForShipping = () => {
+    if (!cartItems.length) return "Your cart is empty.";
+    if (!address.name) return "Full name is required.";
+    if (!address.address1) return "Address Line 1 is required.";
+    if (!address.city) return "City is required.";
+    if (!address.state_code) return "State is required.";
+    if (!address.zip) return "ZIP code is required.";
+    if (!address.country_code) return "Country is required.";
+    return "";
+  };
 
-    if (!cartItems.length) return setError("Your cart is empty.");
-    if (!address.name || !address.address1 || !address.city || !address.state_code || !address.zip) {
-      return setError("Please fill in all required shipping fields.");
-    }
-
-    // Make sure every cart item has sync_variant_id
-    const missingVariant = cartItems.find((i) => !i.sync_variant_id);
-    if (missingVariant) {
-      return setError(
-        `Cart item is missing sync_variant_id (cannot rate shipping): ${missingVariant.name}`
-      );
+  // ---------------------------
+  // 1) Calculate shipping rates
+  // ---------------------------
+  const handleCalculateShipping = async () => {
+    const msg = validateForShipping();
+    if (msg) {
+      setError(msg);
+      return;
     }
 
     setCalculating(true);
+    setError("");
     setRates([]);
     setSelectedRateId("");
     setShippingCost(0);
+    setShippingName("");
 
     try {
       const res = await fetch("/api/calculate-shipping", {
@@ -71,46 +103,68 @@ export default function Checkout() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        console.error("Shipping calc failed:", data);
+      if (!res.ok || data?.error) {
+        console.error("Shipping API error:", data);
         setError(data?.error || "Could not calculate shipping.");
         return;
       }
 
-      const newRates = data?.rates || [];
-      if (!newRates.length) {
-        setError("No shipping rates returned (Printful).");
+      const list = Array.isArray(data?.rates) ? data.rates : [];
+      if (!list.length) {
+        setError("No shipping options returned. Try another address or item.");
         return;
       }
 
-      setRates(newRates);
+      // Save rates
+      setRates(list);
 
-      // default select the cheapest
-      const cheapest = [...newRates].sort((a, b) => Number(a.rate) - Number(b.rate))[0];
-      setSelectedRateId(String(cheapest.id));
-      setShippingCost(Number(cheapest.rate) || 0);
-    } catch (e) {
-      console.error(e);
+      // Auto-select cheapest
+      const cheapest = list.reduce((best, r) => {
+        const rate = Number(r.rate);
+        if (!Number.isFinite(rate)) return best;
+        if (!best) return r;
+        return Number(best.rate) <= rate ? best : r;
+      }, null);
+
+      if (cheapest) {
+        setSelectedRateId(String(cheapest.id));
+        setShippingCost(Number(cheapest.rate));
+        setShippingName(String(cheapest.name || "Shipping"));
+      }
+    } catch (err) {
+      console.error("Shipping API call failed:", err);
       setError("Could not calculate shipping. Please try again.");
     } finally {
       setCalculating(false);
     }
-  }
+  };
 
-  function onSelectRate(id) {
-    setSelectedRateId(id);
-    const chosen = rates.find((r) => String(r.id) === String(id));
-    setShippingCost(chosen ? Number(chosen.rate) || 0 : 0);
-  }
+  const onSelectRate = (rateId) => {
+    setSelectedRateId(rateId);
+    const chosen = rates.find((r) => String(r.id) === String(rateId));
+    if (!chosen) return;
 
-  async function handleCheckout() {
-    setError("");
+    const amount = Number(chosen.rate);
+    setShippingCost(Number.isFinite(amount) ? amount : 0);
+    setShippingName(String(chosen.name || "Shipping"));
+  };
 
-    if (!cartItems.length) return setError("Your cart is empty.");
-    if (!selectedRateId) return setError("Please calculate shipping and select a shipping option.");
-    if (!(shippingCost > 0)) return setError("Shipping cost is invalid. Recalculate shipping.");
+  // ---------------------------
+  // 2) Create checkout session
+  // ---------------------------
+  const handleCheckout = async () => {
+    if (!cartItems.length) {
+      setError("Your cart is empty.");
+      return;
+    }
+    if (!selectedRateId || shippingCost <= 0) {
+      setError("Shipping cost missing/invalid. Please calculate shipping and select an option first.");
+      return;
+    }
 
     setCreating(true);
+    setError("");
+
     try {
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
@@ -118,149 +172,186 @@ export default function Checkout() {
         body: JSON.stringify({
           cart: cartItems,
           address,
-          shipping: {
-            rate_id: selectedRateId,
-            rate: shippingCost,
-          },
+          shippingCost,
+          shippingName,
+          selectedRateId,
         }),
       });
 
       if (!res.ok) {
-        const txt = await res.text();
-        console.error("Create session failed:", res.status, txt);
+        const text = await res.text();
+        console.error("Create checkout session failed:", res.status, text);
         setError(`Failed to create checkout session (Status ${res.status}).`);
         return;
       }
 
-      const { url } = await res.json();
-      if (url) window.location.href = url;
-      else setError("Stripe URL missing from response.");
-    } catch (e) {
-      console.error(e);
+      const data = await res.json();
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        setError("Could not get Stripe checkout URL.");
+      }
+    } catch (err) {
+      console.error("Checkout error:", err);
       setError("Failed to start checkout. Please try again.");
     } finally {
       setCreating(false);
     }
-  }
+  };
 
+  // ---------------------------
+  // UI
+  // ---------------------------
   return (
-    <div style={{ maxWidth: 820, margin: "40px auto", padding: 20 }}>
-      <h1>Checkout</h1>
+    <div style={{ maxWidth: 720, margin: "30px auto", padding: 16, color: "white" }}>
+      <h1 style={{ fontSize: "2rem", fontWeight: 900, marginBottom: 10 }}>Checkout</h1>
 
-      <p style={{ opacity: 0.85 }}>
-        <Link href="/cart">← Back to cart</Link>
-      </p>
+      {/* Order summary */}
+      <div style={{ background: "rgba(0,0,0,0.35)", padding: 16, borderRadius: 16, marginBottom: 18 }}>
+        <h2 style={{ marginTop: 0 }}>Order Summary</h2>
 
-      {error && (
-        <div style={{ padding: 12, borderRadius: 12, background: "rgba(239,68,68,0.15)", marginTop: 12 }}>
-          {error}
-        </div>
-      )}
-
-      <h2 style={{ marginTop: 22 }}>Order Summary</h2>
-      {cartItems.length === 0 ? (
-        <p>Your cart is empty.</p>
-      ) : (
-        <>
-          {cartItems.map((item) => (
-            <div key={item.sync_variant_id} style={{ display: "flex", justifyContent: "space-between", margin: "10px 0" }}>
-              <div>
-                <strong>{item.name}</strong> × {item.quantity}
+        {cartItems.length === 0 ? (
+          <p>
+            Your cart is empty. <Link href="/">Go shopping</Link>
+          </p>
+        ) : (
+          <>
+            {cartItems.map((item) => (
+              <div key={item.sync_variant_id || item.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                <div style={{ maxWidth: 460 }}>
+                  <strong>{item.name}</strong> × {item.quantity}
+                </div>
+                <div>${(Number(item.price) * Number(item.quantity)).toFixed(2)}</div>
               </div>
-              <div>${(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}</div>
+            ))}
+
+            <hr style={{ opacity: 0.25 }} />
+
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800 }}>
+              <span>Subtotal</span>
+              <span>${subtotal.toFixed(2)}</span>
             </div>
-          ))}
-          <hr style={{ opacity: 0.2 }} />
-          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800 }}>
-            <span>Subtotal</span>
-            <span>${subtotal.toFixed(2)}</span>
-          </div>
 
-          {shippingCost > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-              <span>Shipping</span>
-              <span>${shippingCost.toFixed(2)}</span>
+            {shippingCost > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+                <span>Shipping ({shippingName || "Selected"})</span>
+                <span>${shippingCost.toFixed(2)}</span>
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, fontSize: "1.4rem", fontWeight: 900 }}>
+              <span>Total</span>
+              <span>${total.toFixed(2)}</span>
             </div>
-          )}
+          </>
+        )}
+      </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 22, marginTop: 12, fontWeight: 900 }}>
-            <span>Total</span>
-            <span>${total.toFixed(2)}</span>
-          </div>
-        </>
-      )}
+      {/* Shipping form */}
+      <div style={{ background: "rgba(0,0,0,0.35)", padding: 16, borderRadius: 16 }}>
+        <h2 style={{ marginTop: 0 }}>Shipping Address</h2>
 
-      <h2 style={{ marginTop: 28 }}>Shipping Address</h2>
-      <div style={{ display: "grid", gap: 10 }}>
-        <input name="name" placeholder="Full Name *" value={address.name} onChange={handleInputChange} />
-        <input name="address1" placeholder="Address Line 1 *" value={address.address1} onChange={handleInputChange} />
-        <input name="address2" placeholder="Address Line 2" value={address.address2} onChange={handleInputChange} />
-        <input name="city" placeholder="City *" value={address.city} onChange={handleInputChange} />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <input name="state_code" placeholder="State (e.g., MN) *" value={address.state_code} onChange={handleInputChange} />
-          <input name="zip" placeholder="ZIP Code *" value={address.zip} onChange={handleInputChange} />
-        </div>
-        <select name="country_code" value={address.country_code} onChange={handleInputChange}>
-          <option value="US">United States</option>
-        </select>
-
-        <button
-          type="button"
-          onClick={handleCalculateShipping}
-          disabled={calculating || cartItems.length === 0}
-          style={btnDark}
-        >
-          {calculating ? "Calculating..." : "Calculate Shipping"}
-        </button>
-
-        {rates.length > 0 && (
-          <div style={{ marginTop: 10 }}>
-            <label style={{ fontWeight: 800 }}>Shipping Options</label>
-            <select
-              value={selectedRateId}
-              onChange={(e) => onSelectRate(e.target.value)}
-              style={{ width: "100%", padding: 12, borderRadius: 10, marginTop: 8 }}
-            >
-              {rates.map((r) => (
-                <option key={String(r.id)} value={String(r.id)}>
-                  {r.name} — ${Number(r.rate).toFixed(2)}
-                  {r.minDays != null && r.maxDays != null ? ` (${r.minDays}-${r.maxDays} days)` : ""}
-                </option>
-              ))}
-            </select>
+        {error && (
+          <div style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.45)", padding: 12, borderRadius: 12, marginBottom: 12 }}>
+            {error}
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={handleCheckout}
-          disabled={!selectedRateId || creating}
-          style={btnPrimary}
-        >
-          {creating ? "Redirecting..." : `Pay $${total.toFixed(2)} with Stripe`}
-        </button>
+        <div style={{ display: "grid", gap: 10 }}>
+          <input name="name" placeholder="Full Name *" value={address.name} onChange={handleInputChange} style={inputStyle} />
+          <input name="address1" placeholder="Address Line 1 *" value={address.address1} onChange={handleInputChange} style={inputStyle} />
+          <input name="address2" placeholder="Address Line 2" value={address.address2} onChange={handleInputChange} style={inputStyle} />
+          <input name="city" placeholder="City *" value={address.city} onChange={handleInputChange} style={inputStyle} />
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <input name="state_code" placeholder="State (e.g., NY) *" value={address.state_code} onChange={handleInputChange} style={inputStyle} />
+            <input name="zip" placeholder="ZIP Code *" value={address.zip} onChange={handleInputChange} style={inputStyle} />
+          </div>
+
+          <select name="country_code" value={address.country_code} onChange={handleInputChange} style={inputStyle}>
+            <option value="US">United States</option>
+            <option value="CA">Canada</option>
+            <option value="GB">United Kingdom</option>
+            <option value="AU">Australia</option>
+          </select>
+
+          {/* Calculate */}
+          <button
+            type="button"
+            onClick={handleCalculateShipping}
+            disabled={calculating || cartItems.length === 0}
+            style={buttonDark}
+          >
+            {calculating ? "Calculating..." : "Calculate Shipping"}
+          </button>
+
+          {/* Shipping options */}
+          {rates.length > 0 && (
+            <div style={{ marginTop: 6 }}>
+              <label style={{ fontWeight: 900, display: "block", marginBottom: 8 }}>
+                Select Shipping Option
+              </label>
+              <select
+                value={selectedRateId}
+                onChange={(e) => onSelectRate(e.target.value)}
+                style={inputStyle}
+              >
+                {rates.map((r) => (
+                  <option key={String(r.id)} value={String(r.id)}>
+                    {r.name} — ${Number(r.rate).toFixed(2)}
+                    {r.minDays != null && r.maxDays != null ? ` (${r.minDays}-${r.maxDays} days)` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Pay */}
+          {selectedRateId && shippingCost > 0 && (
+            <button type="button" onClick={handleCheckout} disabled={creating} style={buttonPay}>
+              {creating ? "Redirecting..." : `Pay $${total.toFixed(2)} with Stripe`}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-const btnDark = {
-  padding: 14,
-  borderRadius: 12,
-  border: "none",
-  cursor: "pointer",
-  fontWeight: 900,
-  background: "#111827",
-  color: "white",
+// ---------------------------
+// Styles
+// ---------------------------
+const inputStyle = {
+  width: "100%",
+  padding: "14px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.18)",
+  outline: "none",
+  fontSize: "1rem",
 };
 
-const btnPrimary = {
-  padding: 16,
-  borderRadius: 12,
+const buttonDark = {
+  padding: "14px",
+  background: "#111827",
+  color: "#fff",
   border: "none",
+  fontSize: "1.1em",
   cursor: "pointer",
-  fontWeight: 900,
+  marginTop: "8px",
+  borderRadius: "12px",
+  width: "100%",
+  fontWeight: 800,
+};
+
+const buttonPay = {
+  padding: "16px",
   background: "linear-gradient(90deg, #7c3aed, #ec4899)",
-  color: "white",
-  marginTop: 10,
+  color: "#fff",
+  border: "none",
+  fontSize: "1.25em",
+  cursor: "pointer",
+  marginTop: "14px",
+  borderRadius: "14px",
+  width: "100%",
+  fontWeight: 900,
 };
