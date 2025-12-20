@@ -2,8 +2,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
-const STORAGE_KEY = "selected_shipping_rate_v1";
-
 export default function Checkout() {
   const [cartItems, setCartItems] = useState([]);
   const [address, setAddress] = useState({
@@ -18,58 +16,52 @@ export default function Checkout() {
 
   const [rates, setRates] = useState([]);
   const [selectedRateId, setSelectedRateId] = useState("");
+  const [shippingCost, setShippingCost] = useState(0);
+
   const [calculating, setCalculating] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
-  // Load cart + previously selected shipping (important for mobile refresh)
   useEffect(() => {
     const savedCart = localStorage.getItem("cart");
-    setCartItems(savedCart ? JSON.parse(savedCart) : []);
-
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed?.id) setSelectedRateId(parsed.id);
-        if (parsed?.address) setAddress((a) => ({ ...a, ...parsed.address }));
-      } catch {}
-    }
+    const items = savedCart ? JSON.parse(savedCart) : [];
+    setCartItems(items);
   }, []);
 
-  const subtotal = useMemo(
-    () => cartItems.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0),
-    [cartItems]
-  );
+  const subtotal = useMemo(() => {
+    return cartItems.reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1),
+      0
+    );
+  }, [cartItems]);
 
-  const selectedRate = useMemo(() => {
-    if (!selectedRateId) return null;
-    return rates.find((r) => String(r.id) === String(selectedRateId)) || null;
-  }, [rates, selectedRateId]);
-
-  const shippingCost = selectedRate?.rate ? Number(selectedRate.rate) : 0;
-  const total = subtotal + shippingCost;
+  const total = useMemo(() => subtotal + shippingCost, [subtotal, shippingCost]);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setAddress((prev) => ({ ...prev, [name]: value }));
+    setAddress((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleCalculateShipping = async () => {
+  async function handleCalculateShipping() {
     setError("");
-    setRates([]);
-    setSelectedRateId("");
 
-    if (!cartItems.length) {
-      setError("Your cart is empty");
-      return;
+    if (!cartItems.length) return setError("Your cart is empty.");
+    if (!address.name || !address.address1 || !address.city || !address.state_code || !address.zip) {
+      return setError("Please fill in all required shipping fields.");
     }
 
-    if (!address.name || !address.address1 || !address.city || !address.state_code || !address.zip) {
-      setError("Please fill in all required shipping fields");
-      return;
+    // Make sure every cart item has sync_variant_id
+    const missingVariant = cartItems.find((i) => !i.sync_variant_id);
+    if (missingVariant) {
+      return setError(
+        `Cart item is missing sync_variant_id (cannot rate shipping): ${missingVariant.name}`
+      );
     }
 
     setCalculating(true);
+    setRates([]);
+    setSelectedRateId("");
+    setShippingCost(0);
+
     try {
       const res = await fetch("/api/calculate-shipping", {
         method: "POST",
@@ -78,69 +70,47 @@ export default function Checkout() {
       });
 
       const data = await res.json();
+
       if (!res.ok) {
-        console.error("Shipping rates error:", data);
-        setError(data?.error || "Could not calculate shipping");
+        console.error("Shipping calc failed:", data);
+        setError(data?.error || "Could not calculate shipping.");
         return;
       }
 
-      const list = Array.isArray(data.rates) ? data.rates : [];
-      if (!list.length) {
-        setError("No shipping rates returned. Try a different address or cart.");
+      const newRates = data?.rates || [];
+      if (!newRates.length) {
+        setError("No shipping rates returned (Printful).");
         return;
       }
 
-      setRates(list);
+      setRates(newRates);
 
-      // Auto-select the cheapest rate
-      const cheapest = [...list].sort((a, b) => Number(a.rate) - Number(b.rate))[0];
+      // default select the cheapest
+      const cheapest = [...newRates].sort((a, b) => Number(a.rate) - Number(b.rate))[0];
       setSelectedRateId(String(cheapest.id));
-
-      // Persist to survive refresh (mobile)
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          id: String(cheapest.id),
-          address,
-        })
-      );
+      setShippingCost(Number(cheapest.rate) || 0);
     } catch (e) {
       console.error(e);
       setError("Could not calculate shipping. Please try again.");
     } finally {
       setCalculating(false);
     }
-  };
+  }
 
-  const handleChooseRate = (id) => {
-    setSelectedRateId(String(id));
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        id: String(id),
-        address,
-      })
-    );
-  };
+  function onSelectRate(id) {
+    setSelectedRateId(id);
+    const chosen = rates.find((r) => String(r.id) === String(id));
+    setShippingCost(chosen ? Number(chosen.rate) || 0 : 0);
+  }
 
-  const handleCheckout = async () => {
+  async function handleCheckout() {
     setError("");
 
-    if (!cartItems.length) {
-      alert("Your cart is empty.");
-      return;
-    }
+    if (!cartItems.length) return setError("Your cart is empty.");
+    if (!selectedRateId) return setError("Please calculate shipping and select a shipping option.");
+    if (!(shippingCost > 0)) return setError("Shipping cost is invalid. Recalculate shipping.");
 
-    if (!selectedRate || !Number.isFinite(shippingCost) || shippingCost <= 0) {
-      alert("Shipping cost missing/invalid. Please calculate shipping and select an option first.");
-      return;
-    }
-
-    if (!address.name || !address.address1 || !address.city || !address.state_code || !address.zip) {
-      alert("Please fill in all shipping fields before checking out.");
-      return;
-    }
-
+    setCreating(true);
     try {
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
@@ -149,63 +119,71 @@ export default function Checkout() {
           cart: cartItems,
           address,
           shipping: {
-            id: selectedRate.id,
-            name: selectedRate.name,
+            rate_id: selectedRateId,
             rate: shippingCost,
-            currency: selectedRate.currency || "USD",
           },
         }),
       });
 
       if (!res.ok) {
         const txt = await res.text();
-        console.error("Create checkout session failed:", res.status, txt);
-        setError(`Checkout failed (Status ${res.status}). Check console logs.`);
+        console.error("Create session failed:", res.status, txt);
+        setError(`Failed to create checkout session (Status ${res.status}).`);
         return;
       }
 
       const { url } = await res.json();
       if (url) window.location.href = url;
-      else setError("No Stripe checkout URL returned.");
+      else setError("Stripe URL missing from response.");
     } catch (e) {
       console.error(e);
       setError("Failed to start checkout. Please try again.");
+    } finally {
+      setCreating(false);
     }
-  };
+  }
 
   return (
-    <div style={{ maxWidth: 760, margin: "40px auto", padding: 20 }}>
+    <div style={{ maxWidth: 820, margin: "40px auto", padding: 20 }}>
       <h1>Checkout</h1>
 
-      <h2>Your Order Summary</h2>
-      {!cartItems.length ? (
-        <p>
-          Your cart is empty. <Link href="/">Go shopping</Link>
-        </p>
+      <p style={{ opacity: 0.85 }}>
+        <Link href="/cart">← Back to cart</Link>
+      </p>
+
+      {error && (
+        <div style={{ padding: 12, borderRadius: 12, background: "rgba(239,68,68,0.15)", marginTop: 12 }}>
+          {error}
+        </div>
+      )}
+
+      <h2 style={{ marginTop: 22 }}>Order Summary</h2>
+      {cartItems.length === 0 ? (
+        <p>Your cart is empty.</p>
       ) : (
         <>
           {cartItems.map((item) => (
-            <div key={item.sync_variant_id || item.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+            <div key={item.sync_variant_id} style={{ display: "flex", justifyContent: "space-between", margin: "10px 0" }}>
               <div>
                 <strong>{item.name}</strong> × {item.quantity}
               </div>
-              <div>${(Number(item.price) * Number(item.quantity)).toFixed(2)}</div>
+              <div>${(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}</div>
             </div>
           ))}
-          <hr />
-          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
+          <hr style={{ opacity: 0.2 }} />
+          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800 }}>
             <span>Subtotal</span>
             <span>${subtotal.toFixed(2)}</span>
           </div>
 
-          {selectedRate && (
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Shipping: {selectedRate.name}</span>
+          {shippingCost > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+              <span>Shipping</span>
               <span>${shippingCost.toFixed(2)}</span>
             </div>
           )}
 
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1.3em", marginTop: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 22, marginTop: 12, fontWeight: 900 }}>
             <span>Total</span>
             <span>${total.toFixed(2)}</span>
           </div>
@@ -213,8 +191,6 @@ export default function Checkout() {
       )}
 
       <h2 style={{ marginTop: 28 }}>Shipping Address</h2>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
       <div style={{ display: "grid", gap: 10 }}>
         <input name="name" placeholder="Full Name *" value={address.name} onChange={handleInputChange} />
         <input name="address1" placeholder="Address Line 1 *" value={address.address1} onChange={handleInputChange} />
@@ -224,71 +200,67 @@ export default function Checkout() {
           <input name="state_code" placeholder="State (e.g., MN) *" value={address.state_code} onChange={handleInputChange} />
           <input name="zip" placeholder="ZIP Code *" value={address.zip} onChange={handleInputChange} />
         </div>
+        <select name="country_code" value={address.country_code} onChange={handleInputChange}>
+          <option value="US">United States</option>
+        </select>
 
         <button
           type="button"
           onClick={handleCalculateShipping}
-          disabled={calculating || !cartItems.length}
-          style={{ padding: 14, background: "#000", color: "#fff", border: "none", fontSize: "1.05em" }}
+          disabled={calculating || cartItems.length === 0}
+          style={btnDark}
         >
           {calculating ? "Calculating..." : "Calculate Shipping"}
         </button>
 
-        {!!rates.length && (
+        {rates.length > 0 && (
           <div style={{ marginTop: 10 }}>
-            <h3 style={{ marginBottom: 8 }}>Select a shipping option</h3>
-            <div style={{ display: "grid", gap: 8 }}>
-              {rates.map((r) => {
-                const isSelected = String(r.id) === String(selectedRateId);
-                return (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => handleChooseRate(r.id)}
-                    style={{
-                      textAlign: "left",
-                      padding: 12,
-                      borderRadius: 10,
-                      border: isSelected ? "2px solid #7c3aed" : "1px solid #444",
-                      background: isSelected ? "rgba(124,58,237,0.15)" : "transparent",
-                      color: "inherit",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
-                      <span>{r.name}</span>
-                      <span>${Number(r.rate).toFixed(2)}</span>
-                    </div>
-                    {(r.minDays || r.maxDays) && (
-                      <div style={{ opacity: 0.8, fontSize: 14 }}>
-                        Est. {r.minDays || "?"}–{r.maxDays || "?"} days
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            <label style={{ fontWeight: 800 }}>Shipping Options</label>
+            <select
+              value={selectedRateId}
+              onChange={(e) => onSelectRate(e.target.value)}
+              style={{ width: "100%", padding: 12, borderRadius: 10, marginTop: 8 }}
+            >
+              {rates.map((r) => (
+                <option key={String(r.id)} value={String(r.id)}>
+                  {r.name} — ${Number(r.rate).toFixed(2)}
+                  {r.minDays != null && r.maxDays != null ? ` (${r.minDays}-${r.maxDays} days)` : ""}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
         <button
           type="button"
           onClick={handleCheckout}
-          disabled={!selectedRate}
-          style={{
-            marginTop: 16,
-            padding: 16,
-            background: selectedRate ? "#7c3aed" : "#999",
-            color: "#fff",
-            border: "none",
-            fontSize: "1.2em",
-            fontWeight: "bold",
-            borderRadius: 12,
-            cursor: selectedRate ? "pointer" : "not-allowed",
-          }}
+          disabled={!selectedRateId || creating}
+          style={btnPrimary}
         >
-          Checkout with Stripe (${total.toFixed(2)})
+          {creating ? "Redirecting..." : `Pay $${total.toFixed(2)} with Stripe`}
         </button>
       </div>
     </div>
   );
 }
+
+const btnDark = {
+  padding: 14,
+  borderRadius: 12,
+  border: "none",
+  cursor: "pointer",
+  fontWeight: 900,
+  background: "#111827",
+  color: "white",
+};
+
+const btnPrimary = {
+  padding: 16,
+  borderRadius: 12,
+  border: "none",
+  cursor: "pointer",
+  fontWeight: 900,
+  background: "linear-gradient(90deg, #7c3aed, #ec4899)",
+  color: "white",
+  marginTop: 10,
+};
