@@ -13,8 +13,12 @@ export default function ProductPage() {
   const [product, setProduct] = useState(null);
   const [added, setAdded] = useState(false);
 
-  // This is the Printful sync_variant_id
+  // Printful sync_variant_id
   const [selectedVariantId, setSelectedVariantId] = useState(null);
+
+  // Stripe Price ID for selected variant (important!)
+  const [selectedStripePriceId, setSelectedStripePriceId] = useState(null);
+  const [priceLookupError, setPriceLookupError] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -34,7 +38,7 @@ export default function ProductPage() {
 
         setProduct(data);
 
-        // Default to first variant (by sync_variant_id)
+        // Default to first variant
         if (data?.variants?.length) {
           setSelectedVariantId(data.variants[0].sync_variant_id);
         }
@@ -68,6 +72,44 @@ export default function ProductPage() {
     `/${syncProductId}_3.png`,
   ];
 
+  // ✅ Whenever selected variant changes, look up Stripe price id by SKU
+  useEffect(() => {
+    if (!selectedVariant) return;
+
+    // SKU must exist for mapping
+    const sku = (selectedVariant.sku || "").toString().trim();
+    if (!sku) {
+      setSelectedStripePriceId(null);
+      setPriceLookupError("This variant is missing a SKU, so Stripe mapping can’t happen.");
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        setPriceLookupError("");
+        setSelectedStripePriceId(null);
+
+        const res = await fetch(`/api/stripe-price-by-sku?sku=${encodeURIComponent(sku)}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          if (!cancelled) setPriceLookupError(data?.error || "Could not find Stripe price for this SKU.");
+          return;
+        }
+
+        if (!cancelled) setSelectedStripePriceId(data.price_id);
+      } catch (e) {
+        if (!cancelled) setPriceLookupError("Stripe lookup failed. Try again.");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedVariant]);
+
   const handleAddToCart = () => {
     if (!product) return;
 
@@ -82,23 +124,40 @@ export default function ProductPage() {
       return;
     }
 
+    const sku = (v.sku || "").toString().trim();
+    if (!sku) {
+      alert("This variant has no SKU. It can’t be checked out yet.");
+      return;
+    }
+
+    // This is the key to make checkout + Printful fulfillment work
+    if (!selectedStripePriceId) {
+      alert("Stripe price is still loading (or missing). Please wait a second and try again.");
+      return;
+    }
+
     const cartItem = {
-      // Keep both identifiers
+      // Printful identifiers
       sync_product_id: product.sync_product_id,
       sync_variant_id: v.sync_variant_id,
       catalog_variant_id: v.catalog_variant_id,
 
+      // ✅ Stripe mapping
+      sku,
+      stripe_price_id: selectedStripePriceId,
+
       // Display
       name: v.name || product.name,
-      price: v.retail_price,
+      price: Number(v.retail_price),
       image: v.preview_url || product.thumbnail_url || "/Logo.jpeg",
       quantity: 1,
+
       is_synced: true,
     };
 
     const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
     const existing = existingCart.find(
-      (item) => item.sync_variant_id === cartItem.sync_variant_id
+      (item) => item.stripe_price_id === cartItem.stripe_price_id
     );
 
     if (existing) {
@@ -190,7 +249,6 @@ export default function ProductPage() {
         ))}
       </div>
 
-      {/* Product Details */}
       <h1 style={{ fontSize: "3rem", fontWeight: "900", margin: "1.25rem 0" }}>
         {product.name}
       </h1>
@@ -209,12 +267,22 @@ export default function ProductPage() {
         </p>
       )}
 
-      {/* Price */}
       <p style={{ fontSize: "2.4rem", fontWeight: "bold", color: "#ff6b6b", margin: "1.5rem 0" }}>
         ${currentPrice.toFixed(2)}
       </p>
 
-      {/* ✅ Variant Selection (clean labels) */}
+      {/* Stripe mapping status (helpful while testing) */}
+      <div style={{ maxWidth: 720, margin: "0 auto 12px", opacity: 0.9 }}>
+        {priceLookupError ? (
+          <p style={{ color: "#f87171" }}>{priceLookupError}</p>
+        ) : selectedStripePriceId ? (
+          <p style={{ color: "#4ade80" }}>Stripe price linked ✅</p>
+        ) : (
+          <p style={{ color: "#eab308" }}>Linking Stripe price…</p>
+        )}
+      </div>
+
+      {/* Variant Selection */}
       {product.variants?.length > 0 && (
         <div style={{ margin: "2rem auto 2.5rem", maxWidth: "720px" }}>
           <h3 style={{ fontSize: "1.4rem", marginBottom: "1rem", fontWeight: "600" }}>
@@ -228,10 +296,7 @@ export default function ProductPage() {
                 .map((s) => s.trim())
                 .filter(Boolean);
 
-              // always last = size
               const size = parts.length ? parts[parts.length - 1] : "Variant";
-
-              // second-to-last might be color (only if it looks like a real color word)
               const maybeColor = parts.length >= 2 ? parts[parts.length - 2] : null;
               const color =
                 maybeColor && maybeColor.length <= 20 && !maybeColor.includes(" ")
@@ -239,7 +304,6 @@ export default function ProductPage() {
                   : null;
 
               const optionLabel = color ? `${color} / ${size}` : size;
-
               const isSelected = variant.sync_variant_id === selectedVariantId;
 
               return (
@@ -270,19 +334,21 @@ export default function ProductPage() {
       {!added ? (
         <button
           onClick={handleAddToCart}
+          disabled={!selectedStripePriceId}
           style={{
             padding: "1.2rem 3rem",
-            background: "#ff4444",
+            background: !selectedStripePriceId ? "#64748b" : "#ff4444",
             color: "white",
             border: "none",
             borderRadius: "12px",
             fontSize: "1.4rem",
             fontWeight: "bold",
-            cursor: "pointer",
+            cursor: !selectedStripePriceId ? "not-allowed" : "pointer",
             boxShadow: "0 10px 30px rgba(255,68,68,0.4)",
+            opacity: !selectedStripePriceId ? 0.8 : 1,
           }}
         >
-          Add to Cart
+          {selectedStripePriceId ? "Add to Cart" : "Linking Price…"}
         </button>
       ) : (
         <div style={{ margin: "2rem 0" }}>
@@ -307,7 +373,6 @@ export default function ProductPage() {
         </div>
       )}
 
-      {/* Back Button */}
       <div style={{ marginTop: "3rem" }}>
         <button
           onClick={() => router.back()}
