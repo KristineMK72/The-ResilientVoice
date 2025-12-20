@@ -1,5 +1,5 @@
 // pages/checkout.js
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 export default function Checkout() {
@@ -13,13 +13,12 @@ export default function Checkout() {
     zip: "",
   });
 
-  // Shipping rates from Printful
-  const [shippingOptions, setShippingOptions] = useState([]); // [{id,name,rate,currency,delivery_days?...}]
-  const [selectedShippingId, setSelectedShippingId] = useState("");
-  const [shippingCost, setShippingCost] = useState(0);
+  const [rates, setRates] = useState([]);
+  const [selectedRateId, setSelectedRateId] = useState("");
+  const [selectedRateCost, setSelectedRateCost] = useState(0);
+  const [selectedRateName, setSelectedRateName] = useState("");
 
-  const [total, setTotal] = useState(0);
-  const [calculating, setCalculating] = useState(false);
+  const [loadingRates, setLoadingRates] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -27,164 +26,124 @@ export default function Checkout() {
     const items = savedCart ? JSON.parse(savedCart) : [];
     setCartItems(items);
 
-    const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    setTotal(subtotal);
+    // restore shipping selection if present
+    const savedId = localStorage.getItem("shippingRateId") || "";
+    const savedName = localStorage.getItem("shippingRateName") || "";
+    const savedCost = Number(localStorage.getItem("shippingCost") || "0");
+
+    if (savedId && Number.isFinite(savedCost) && savedCost > 0) {
+      setSelectedRateId(savedId);
+      setSelectedRateName(savedName);
+      setSelectedRateCost(savedCost);
+    }
   }, []);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = useMemo(
+    () => cartItems.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0),
+    [cartItems]
+  );
+
+  const total = useMemo(() => subtotal + (Number.isFinite(selectedRateCost) ? selectedRateCost : 0), [
+    subtotal,
+    selectedRateCost,
+  ]);
 
   const handleInputChange = (e) => {
     setAddress((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Helper: build Printful items from cart
-  // IMPORTANT: your cart items must include ONE of:
-  // - item.sync_variant_id (preferred)
-  // - item.variant_id
-  // If you only have SKU in cart, we can map SKU -> sync_variant_id using Supabase later.
-  function buildPrintfulItemsFromCart(items) {
-    return items
-      .map((item) => {
-        const quantity = Number(item.quantity || 0);
-        if (!Number.isFinite(quantity) || quantity <= 0) return null;
-
-        // Try common field names
-        const sync_variant_id =
-          item.sync_variant_id ?? item.syncVariantId ?? item.printful_sync_variant_id ?? null;
-        const variant_id = item.variant_id ?? item.variantId ?? null;
-
-        if (sync_variant_id != null) return { sync_variant_id: Number(sync_variant_id), quantity };
-        if (variant_id != null) return { variant_id: Number(variant_id), quantity };
-
-        return null;
-      })
-      .filter(Boolean);
-  }
-
-  // 1) Calculate shipping (Printful rates)
-  const handleCalculateShipping = async () => {
-    if (cartItems.length === 0) {
-      setError("Your cart is empty");
-      return;
-    }
-
-    if (!address.name || !address.address1 || !address.city || !address.state_code || !address.zip) {
-      setError("Please fill in all required shipping fields");
-      return;
-    }
-
-    const items = buildPrintfulItemsFromCart(cartItems);
-    if (!items.length) {
-      setError(
-        "Your cart items are missing Printful variant IDs. (Need sync_variant_id or variant_id per item.)"
-      );
-      return;
-    }
-
-    setCalculating(true);
+  async function handleGetShippingRates() {
     setError("");
-    setShippingOptions([]);
-    setSelectedShippingId("");
-    setShippingCost(0);
 
+    if (!cartItems.length) {
+      setError("Your cart is empty.");
+      return;
+    }
+
+    // validate address
+    if (!address.name || !address.address1 || !address.city || !address.state_code || !address.zip) {
+      setError("Please fill in all required shipping fields.");
+      return;
+    }
+
+    // Build Printful items from cart (sync_variant_id)
+    const items = cartItems.map((i) => ({
+      sync_variant_id: Number(i.sync_variant_id),
+      quantity: Number(i.quantity),
+    }));
+
+    setLoadingRates(true);
     try {
       const res = await fetch("/api/printful-shipping-rates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           recipient: {
-            name: address.name,
             address1: address.address1,
+            address2: address.address2 || "",
             city: address.city,
             state_code: address.state_code,
             country_code: address.country_code,
             zip: address.zip,
           },
           items,
-          currency: "USD",
         }),
       });
 
       const data = await res.json();
-
       if (!res.ok) {
-        console.error("Shipping rates error:", data);
-        setError(data?.error || "Could not calculate shipping rates.");
+        console.error("Rates error:", data);
+        setError(data?.error || "Could not fetch shipping rates.");
         return;
       }
 
-      const rates = data?.result || [];
-      if (!rates.length) {
-        setError("No shipping rates returned from Printful for this address/items.");
+      const list = Array.isArray(data?.rates) ? data.rates : [];
+      if (!list.length) {
+        setError("No shipping rates returned. Check address/variants.");
         return;
       }
 
-      // Normalize to something easy for UI
-      const normalized = rates.map((r, idx) => ({
-        id: r.id || `${r.name || "rate"}-${idx}`,
-        name: r.name || "Shipping",
-        rate: Number(r.rate || 0),
-        currency: r.currency || "USD",
-        delivery_days: r.delivery_days || r.delivery_days_min || null,
-        minDeliveryDays: r.minDeliveryDays ?? r.min_delivery_days ?? null,
-        maxDeliveryDays: r.maxDeliveryDays ?? r.max_delivery_days ?? null,
-      }));
+      setRates(list);
 
-      setShippingOptions(normalized);
+      // auto select cheapest
+      const cheapest = [...list].sort((a, b) => Number(a.rate) - Number(b.rate))[0];
+      setSelectedRateId(cheapest.id);
+      setSelectedRateCost(Number(cheapest.rate));
+      setSelectedRateName(cheapest.name);
 
-      // Default select cheapest
-      const cheapest = normalized
-        .slice()
-        .sort((a, b) => (a.rate || 0) - (b.rate || 0))[0];
-
-      setSelectedShippingId(cheapest.id);
-      setShippingCost(cheapest.rate);
-
-      setTotal(subtotal + cheapest.rate);
-    } catch (err) {
-      console.error("Shipping API call failed:", err);
-      setError("Could not calculate shipping. Please check your address and try again.");
+      localStorage.setItem("shippingRateId", String(cheapest.id));
+      localStorage.setItem("shippingRateName", String(cheapest.name));
+      localStorage.setItem("shippingCost", String(cheapest.rate));
+    } catch (e) {
+      console.error(e);
+      setError("Could not calculate shipping. Try again.");
     } finally {
-      setCalculating(false);
+      setLoadingRates(false);
     }
-  };
+  }
 
-  // When user chooses a different shipping option
-  const handleSelectShipping = (e) => {
-    const id = e.target.value;
-    setSelectedShippingId(id);
+  function chooseRate(r) {
+    setSelectedRateId(r.id);
+    setSelectedRateCost(Number(r.rate));
+    setSelectedRateName(r.name);
 
-    const choice = shippingOptions.find((o) => o.id === id);
-    const rate = choice ? Number(choice.rate || 0) : 0;
+    localStorage.setItem("shippingRateId", String(r.id));
+    localStorage.setItem("shippingRateName", String(r.name));
+    localStorage.setItem("shippingCost", String(r.rate));
+  }
 
-    setShippingCost(rate);
-    setTotal(subtotal + rate);
-  };
+  async function handleCheckout() {
+    setError("");
 
-  // 2) Initiate Stripe Checkout
-  const handleCheckout = async () => {
-    if (cartItems.length === 0) {
-      alert("Your cart is empty.");
+    if (!cartItems.length) {
+      setError("Your cart is empty.");
       return;
     }
 
-    if (!selectedShippingId || shippingCost <= 0 || Number.isNaN(shippingCost)) {
-      alert('Please click "Calculate Shipping & Taxes" and select a shipping option first.');
+    if (!selectedRateId || !Number.isFinite(selectedRateCost) || selectedRateCost <= 0) {
+      setError("Shipping cost missing/invalid. Please calculate shipping and select an option first.");
       return;
     }
-
-    if (!address.name || !address.address1 || !address.city || !address.state_code || !address.zip) {
-      alert("Please fill in all shipping fields before checking out.");
-      return;
-    }
-
-    const finalTotal = subtotal + shippingCost;
-    if (finalTotal <= 0 || Number.isNaN(finalTotal)) {
-      alert("Order total is invalid. Cannot proceed to payment.");
-      return;
-    }
-
-    const selectedShipping = shippingOptions.find((o) => o.id === selectedShippingId);
 
     try {
       const res = await fetch("/api/create-checkout-session", {
@@ -192,40 +151,33 @@ export default function Checkout() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cart: cartItems,
-          shippingCost, // numeric
-          shippingOption: selectedShipping
-            ? {
-                id: selectedShipping.id,
-                name: selectedShipping.name,
-                rate: selectedShipping.rate,
-                currency: selectedShipping.currency,
-              }
-            : null,
-          address,
+          shipping: {
+            id: selectedRateId,
+            name: selectedRateName || "Shipping",
+            cost: selectedRateCost,
+          },
         }),
       });
 
+      const data = await res.json();
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Stripe Session API Failed:", res.status, errorText);
-        setError(`Failed to create session (Status ${res.status}). See console for details.`);
+        setError(data?.error || "Failed to create checkout session.");
         return;
       }
 
-      const { url } = await res.json();
-      if (url) window.location.href = url;
-      else setError("Could not get Stripe URL from the server response.");
-    } catch (err) {
-      console.error("Failed to start checkout:", err);
-      setError("Failed to start checkout. Check console for technical details.");
+      if (data.url) window.location.href = data.url;
+      else setError("Missing Stripe checkout URL.");
+    } catch (e) {
+      console.error(e);
+      setError("Checkout failed. Try again.");
     }
-  };
+  }
 
   return (
-    <div style={{ maxWidth: "700px", margin: "40px auto", padding: "20px" }}>
+    <div style={{ maxWidth: 720, margin: "40px auto", padding: 20 }}>
       <h1>Checkout</h1>
 
-      <h2>Your Order Summary</h2>
+      <h2>Order Summary</h2>
       {cartItems.length === 0 ? (
         <p>
           Your cart is empty. <Link href="/">Go shopping</Link>
@@ -233,14 +185,11 @@ export default function Checkout() {
       ) : (
         <>
           {cartItems.map((item) => (
-            <div
-              key={item.id}
-              style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}
-            >
+            <div key={item.sync_variant_id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
               <div>
                 <strong>{item.name}</strong> × {item.quantity}
               </div>
-              <div>${(item.price * item.quantity).toFixed(2)}</div>
+              <div>${(Number(item.price) * Number(item.quantity)).toFixed(2)}</div>
             </div>
           ))}
           <hr />
@@ -249,102 +198,92 @@ export default function Checkout() {
             <span>${subtotal.toFixed(2)}</span>
           </div>
 
-          {shippingCost > 0 && (
+          {selectedRateCost > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Shipping</span>
-              <span>${shippingCost.toFixed(2)}</span>
+              <span>Shipping ({selectedRateName || "Selected"})</span>
+              <span>${Number(selectedRateCost).toFixed(2)}</span>
             </div>
           )}
 
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1.3em", marginTop: "16px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1.25em", marginTop: 12 }}>
             <span>Total</span>
             <span>${total.toFixed(2)}</span>
           </div>
         </>
       )}
 
-      <h2>Shipping Address</h2>
-      {error && <p style={{ color: "red", marginBottom: "12px" }}>{error}</p>}
+      <h2 style={{ marginTop: 30 }}>Shipping Address</h2>
+      {error && <p style={{ color: "red" }}>{error}</p>}
 
-      <div style={{ display: "grid", gap: "12px" }}>
-        <input name="name" placeholder="Full Name *" value={address.name} onChange={handleInputChange} required />
-        <input
-          name="address1"
-          placeholder="Address Line 1 *"
-          value={address.address1}
-          onChange={handleInputChange}
-          required
-        />
-        <input name="city" placeholder="City *" value={address.city} onChange={handleInputChange} required />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-          <input
-            name="state_code"
-            placeholder="State (e.g., MN) *"
-            value={address.state_code}
-            onChange={handleInputChange}
-            required
-          />
-          <input name="zip" placeholder="ZIP Code *" value={address.zip} onChange={handleInputChange} required />
+      <div style={{ display: "grid", gap: 10 }}>
+        <input name="name" placeholder="Full Name *" value={address.name} onChange={handleInputChange} />
+        <input name="address1" placeholder="Address Line 1 *" value={address.address1} onChange={handleInputChange} />
+        <input name="city" placeholder="City *" value={address.city} onChange={handleInputChange} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <input name="state_code" placeholder="State (e.g., MN) *" value={address.state_code} onChange={handleInputChange} />
+          <input name="zip" placeholder="ZIP Code *" value={address.zip} onChange={handleInputChange} />
         </div>
-
-        <select name="country_code" value={address.country_code} onChange={handleInputChange}>
-          <option value="US">United States</option>
-        </select>
 
         <button
           type="button"
-          onClick={handleCalculateShipping}
-          disabled={calculating || cartItems.length === 0}
-          style={{
-            padding: "14px",
-            background: "#000",
-            color: "#fff",
-            border: "none",
-            fontSize: "1.1em",
-            cursor: "pointer",
-            marginTop: "12px",
-          }}
+          onClick={handleGetShippingRates}
+          disabled={loadingRates || cartItems.length === 0}
+          style={{ padding: 14, background: "#111", color: "white", border: "none", cursor: "pointer", marginTop: 10 }}
         >
-          {calculating ? "Calculating..." : "Calculate Shipping"}
+          {loadingRates ? "Getting rates..." : "Get Shipping Rates"}
         </button>
 
-        {/* Shipping options */}
-        {shippingOptions.length > 0 && (
-          <div style={{ padding: "12px", border: "1px solid #ddd", borderRadius: "8px" }}>
-            <div style={{ fontWeight: "bold", marginBottom: "8px" }}>Choose shipping:</div>
-
-            <select
-              value={selectedShippingId}
-              onChange={handleSelectShipping}
-              style={{ width: "100%", padding: "12px", fontSize: "1em" }}
-            >
-              {shippingOptions.map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.name} — ${Number(opt.rate || 0).toFixed(2)} {opt.currency}
-                </option>
+        {rates.length > 0 && (
+          <div style={{ marginTop: 12, padding: 12, border: "1px solid #ddd", borderRadius: 10 }}>
+            <p style={{ fontWeight: 700, marginBottom: 8 }}>Choose a shipping option:</p>
+            <div style={{ display: "grid", gap: 8 }}>
+              {rates.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => chooseRate(r)}
+                  style={{
+                    textAlign: "left",
+                    padding: 12,
+                    borderRadius: 10,
+                    border: r.id === selectedRateId ? "2px solid #0070f3" : "1px solid #ccc",
+                    background: r.id === selectedRateId ? "rgba(0,112,243,0.08)" : "white",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
+                    <span>{r.name}</span>
+                    <span>${Number(r.rate).toFixed(2)}</span>
+                  </div>
+                  {(r.minDeliveryDays || r.maxDeliveryDays) && (
+                    <div style={{ fontSize: 12, opacity: 0.8 }}>
+                      Est. {r.minDeliveryDays || "?"}–{r.maxDeliveryDays || "?"} days
+                    </div>
+                  )}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
         )}
 
-        {shippingCost > 0 && (
-          <button
-            type="button"
-            onClick={handleCheckout}
-            style={{
-              padding: "16px",
-              background: "#0070f3",
-              color: "#fff",
-              border: "none",
-              fontSize: "1.3em",
-              fontWeight: "bold",
-              cursor: "pointer",
-              marginTop: "16px",
-            }}
-          >
-            Pay ${total.toFixed(2)} with Stripe
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={handleCheckout}
+          disabled={!selectedRateId || !Number.isFinite(selectedRateCost) || selectedRateCost <= 0}
+          style={{
+            padding: 16,
+            background: "#0070f3",
+            color: "white",
+            border: "none",
+            cursor: "pointer",
+            fontSize: "1.15em",
+            fontWeight: "bold",
+            marginTop: 14,
+            borderRadius: 12,
+          }}
+        >
+          Pay ${total.toFixed(2)} with Stripe
+        </button>
       </div>
     </div>
   );
