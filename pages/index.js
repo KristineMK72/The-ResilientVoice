@@ -9,11 +9,22 @@ import { useEffect, useMemo, useState } from "react";
 const FEATURED_PRODUCT_IDS = [
   "402034024", // Saved By Grace
   "405190886", // Patriot
+
+  // ✅ new featured items
+  "405945273",
+  "405510593",
+  "405369860",
 ];
 
 function getCollectionLabel(id) {
   if (id === "405190886") return "Patriot";
-  return "Saved By Grace";
+  if (id === "402034024") return "Saved By Grace";
+  return "Featured";
+}
+
+function money(n) {
+  const num = Number(n);
+  return Number.isFinite(num) ? num.toFixed(2) : "0.00";
 }
 
 /* ============================
@@ -38,19 +49,31 @@ export default function Home() {
 
     async function loadFeatured() {
       setLoadingFeatured(true);
+
       try {
         const results = await Promise.all(
           FEATURED_PRODUCT_IDS.map(async (id) => {
             const res = await fetch(`/api/printful-product/${id}`);
             if (!res.ok) return null;
             const data = await res.json();
-            return { ...data, collection: getCollectionLabel(id) };
+
+            // Your API returns:
+            // { sync_product_id, name, thumbnail_url, variants:[{ retail_price, preview_url, sku, ...}] }
+            return {
+              ...data,
+              collection: getCollectionLabel(id),
+            };
           })
         );
+
         if (alive) {
-          setFeaturedProducts(results.filter(Boolean));
+          const clean = results.filter(Boolean);
+          setFeaturedProducts(clean);
           setActiveIndex(0);
         }
+      } catch (e) {
+        console.error("Featured load failed:", e);
+        if (alive) setFeaturedProducts([]);
       } finally {
         if (alive) setLoadingFeatured(false);
       }
@@ -77,6 +100,20 @@ export default function Home() {
   const activeProduct = useMemo(() => {
     return featuredProducts[activeIndex] || null;
   }, [featuredProducts, activeIndex]);
+
+  const activeImage = useMemo(() => {
+    if (!activeProduct) return "/gritngrlogo.png";
+    const v0 = activeProduct.variants?.[0];
+    return v0?.preview_url || activeProduct.thumbnail_url || "/gritngrlogo.png";
+  }, [activeProduct]);
+
+  const activePrice = useMemo(() => {
+    if (!activeProduct) return "0.00";
+    const v0 = activeProduct.variants?.[0];
+    return money(v0?.retail_price);
+  }, [activeProduct]);
+
+  const activeProductId = activeProduct?.sync_product_id;
 
   /* ============================
      RENDER
@@ -108,12 +145,7 @@ export default function Home() {
           .glow {
             position: absolute;
             inset: 0;
-            background: conic-gradient(
-              from 180deg,
-              #ff0000,
-              #0000ff,
-              #ff0000
-            );
+            background: conic-gradient(from 180deg, #ff0000, #0000ff, #ff0000);
             opacity: 0.08;
             animation: spin 30s linear infinite;
           }
@@ -162,6 +194,7 @@ export default function Home() {
             text-decoration: none;
             color: white;
             box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+            display: inline-block;
           }
 
           .btnPrimary {
@@ -187,6 +220,7 @@ export default function Home() {
             font-size: 1.4rem;
             font-weight: 900;
             color: #ff6b6b;
+            margin: 0.5rem 0 1rem;
           }
 
           .dots {
@@ -202,6 +236,7 @@ export default function Home() {
             border-radius: 999px;
             background: rgba(255, 255, 255, 0.3);
             border: none;
+            cursor: pointer;
           }
 
           .dotActive {
@@ -239,6 +274,7 @@ export default function Home() {
             padding: 0.8rem 1.2rem;
             border-radius: 10px;
             font-weight: 800;
+            cursor: pointer;
           }
 
           .emailBtn:disabled {
@@ -288,38 +324,51 @@ export default function Home() {
           </div>
 
           {/* Featured */}
-          {activeProduct && (
+          {loadingFeatured ? (
+            <div className="carousel">Loading featured…</div>
+          ) : activeProduct ? (
             <div className="carousel">
-              <div>{activeProduct.collection} Featured</div>
-              <Image
-                src={activeProduct.image || activeProduct.thumbnail_url}
-                alt={activeProduct.name}
-                width={520}
-                height={520}
-              />
-              <div>{activeProduct.name}</div>
-              <div className="price">
-                ${activeProduct?.variants?.[0]?.price}
+              <div style={{ opacity: 0.9, fontWeight: 800 }}>
+                {activeProduct.collection} Featured
               </div>
-              <Link
-                href={`/product/${activeProduct.id}`}
-                className="btn btnPrimary"
-              >
-                View Product
-              </Link>
+
+              <div style={{ margin: "12px 0" }}>
+                <Image
+                  src={activeImage}
+                  alt={activeProduct.name || "Featured product"}
+                  width={520}
+                  height={520}
+                  style={{ borderRadius: 14, objectFit: "contain" }}
+                />
+              </div>
+
+              <div style={{ fontWeight: 900, fontSize: "1.2rem" }}>
+                {activeProduct.name}
+              </div>
+
+              <div className="price">${activePrice}</div>
+
+              {activeProductId ? (
+                <Link href={`/product/${activeProductId}`} className="btn btnPrimary">
+                  View Product
+                </Link>
+              ) : (
+                <div style={{ opacity: 0.8 }}>Product unavailable</div>
+              )}
 
               <div className="dots">
                 {featuredProducts.map((_, i) => (
                   <button
                     key={i}
-                    className={`dot ${
-                      i === activeIndex ? "dotActive" : ""
-                    }`}
+                    className={`dot ${i === activeIndex ? "dotActive" : ""}`}
                     onClick={() => setActiveIndex(i)}
+                    aria-label={`Featured ${i + 1}`}
                   />
                 ))}
               </div>
             </div>
+          ) : (
+            <div className="carousel">No featured products found.</div>
           )}
 
           {/* Email */}
