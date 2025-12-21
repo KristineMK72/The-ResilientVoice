@@ -6,80 +6,92 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 function clean(v) {
-  return (v || "").toString().trim().replace(/\r/g, "");
+  return (v ?? "").toString().trim();
 }
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    const { cart, address, shipping } = req.body || {};
+    const { cart, address, shippingRate } = req.body || {};
 
     if (!Array.isArray(cart) || cart.length === 0) {
       return res.status(400).json({ error: "Cart is empty or invalid" });
     }
 
-    if (!shipping || !Number.isFinite(Number(shipping.amount)) || Number(shipping.amount) <= 0) {
-      return res.status(400).json({ error: "Shipping missing/invalid. Please calculate and select an option first." });
+    // Shipping MUST be selected (from Printful rates)
+    if (!shippingRate || !shippingRate.id || !shippingRate.rate) {
+      return res.status(400).json({
+        error: "Shipping missing/invalid. Please calculate and select an option first.",
+      });
     }
 
-    // Build product line items
-    const lineItems = cart.map((item) => {
-      const unit = Math.round(Number(item.price) * 100);
+    const shippingCents = Math.round(Number(shippingRate.rate) * 100);
+    if (!Number.isFinite(shippingCents) || shippingCents <= 0) {
+      return res.status(400).json({
+        error: "Shipping missing/invalid. Please calculate and select an option first.",
+      });
+    }
+
+    // Build Stripe line items using EXISTING Stripe Prices (best)
+    // Your cart items should already include sku and/or stripe_price_id.
+    // If not, we'll fall back to price_data.
+    const line_items = cart.map((item) => {
       const qty = Number(item.quantity || 1);
+      if (!qty || qty <= 0) throw new Error("Invalid quantity in cart");
 
-      if (!Number.isFinite(unit) || unit <= 0) throw new Error("Invalid item price");
-      if (!Number.isFinite(qty) || qty <= 0) throw new Error("Invalid item quantity");
+      // Preferred: use Stripe price id if you have it
+      if (item.stripe_price_id) {
+        return { price: item.stripe_price_id, quantity: qty };
+      }
 
+      // Fallback: create ad-hoc price_data (works, but won't have price metadata)
+      // If you use this fallback, your webhook MUST use session.metadata.printful_items.
       return {
         price_data: {
           currency: "usd",
           product_data: {
-            name: clean(item.name),
+            name: clean(item.name) || "Item",
             images: item.image ? [item.image] : [],
           },
-          unit_amount: unit,
+          unit_amount: Math.round(Number(item.price) * 100),
         },
         quantity: qty,
       };
     });
 
-    // Add shipping line item
-    lineItems.push({
+    // Add shipping as separate line item (so customer sees it)
+    line_items.push({
       price_data: {
         currency: "usd",
-        product_data: { name: `Shipping (${clean(shipping.name || "Standard")})` },
-        unit_amount: Math.round(Number(shipping.amount) * 100),
+        product_data: {
+          name: `Shipping (${clean(shippingRate.name) || "Standard"})`,
+        },
+        unit_amount: shippingCents,
       },
       quantity: 1,
     });
 
-    // Printful items for webhook fallback (uses sync_variant_id)
+    // Put Printful items + chosen shipping in session metadata
     const printful_items = cart.map((item) => ({
-      sync_variant_id: Number(clean(item.sync_variant_id)),
+      sync_variant_id: Number(item.sync_variant_id),
       quantity: Number(item.quantity || 1),
     }));
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+
       shipping_address_collection: {
-        allowed_countries: ["US", "CA"],
+        allowed_countries: ["US", "CA", "GB", "AU"],
       },
-      line_items: lineItems,
+
+      line_items,
 
       metadata: {
-        shipping_name: clean(shipping.name),
-        shipping_amount: String(Number(shipping.amount)),
         printful_items: JSON.stringify(printful_items),
-        recipient_snapshot: JSON.stringify({
-          name: clean(address?.name),
-          address1: clean(address?.address1),
-          address2: clean(address?.address2),
-          city: clean(address?.city),
-          state_code: clean(address?.state_code),
-          country_code: clean(address?.country_code),
-          zip: clean(address?.zip),
-        }),
+        printful_shipping_id: clean(shippingRate.id),
+        printful_shipping_name: clean(shippingRate.name),
+        printful_shipping_rate: clean(shippingRate.rate),
       },
 
       success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -89,6 +101,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ url: session.url });
   } catch (err) {
     console.error("❌ Stripe checkout error:", err);
-    return res.status(500).json({ error: err.message || "Checkout failed" });
+    return res.status(500).json({ error: err.message || "Server error" });
   }
 }
