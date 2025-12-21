@@ -1,6 +1,12 @@
 // pages/checkout.js
-import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+
+function money(n) {
+  const num = Number(n);
+  return Number.isFinite(num) ? num.toFixed(2) : "0.00";
+}
 
 export default function Checkout() {
   // ----------------------------
@@ -76,24 +82,14 @@ export default function Checkout() {
       return;
     }
 
-    // required fields
-    if (
-      !address.name ||
-      !address.address1 ||
-      !address.city ||
-      !address.state_code ||
-      !address.zip
-    ) {
+    if (!address.name || !address.address1 || !address.city || !address.state_code || !address.zip) {
       setError("Please fill in all required shipping fields.");
       return;
     }
 
-    // Ensure cart has sync_variant_id (Printful rating needs it)
     const missingVariant = cartItems.find((i) => !i.sync_variant_id);
     if (missingVariant) {
-      setError(
-        "A cart item is missing sync_variant_id (Printful variant). Please re-add the product."
-      );
+      setError("A cart item is missing Printful variant info. Please remove it and re-add that product.");
       return;
     }
 
@@ -118,7 +114,6 @@ export default function Checkout() {
       }
 
       const newRates = Array.isArray(data?.rates) ? data.rates : [];
-
       if (!newRates.length) {
         setError("No shipping rates available for this address.");
         setRates([]);
@@ -127,10 +122,8 @@ export default function Checkout() {
         return;
       }
 
-      // Save rates
       setRates(newRates);
 
-      // Default-select first rate
       const first = newRates[0];
       setSelectedRateId(String(first.id));
       setShippingCost(Number(first.rate) || 0);
@@ -145,7 +138,6 @@ export default function Checkout() {
     }
   };
 
-  // When user changes shipping option, update cost
   const handleRateChange = (e) => {
     const id = e.target.value;
     setSelectedRateId(id);
@@ -167,11 +159,10 @@ export default function Checkout() {
     }
 
     if (!selectedRateId || !selectedRate) {
-      setError("Shipping cost missing/invalid. Please calculate and select an option first.");
+      setError("Please calculate shipping and choose a shipping option.");
       return;
     }
 
-    // Basic sanity
     const ship = Number(selectedRate.rate);
     if (!Number.isFinite(ship) || ship <= 0) {
       setError("Shipping cost missing/invalid. Please calculate and select an option first.");
@@ -187,14 +178,13 @@ export default function Checkout() {
         body: JSON.stringify({
           cart: cartItems,
           address,
-          shippingRate: selectedRate, // ✅ send the whole object
+          shippingRate: selectedRate,
         }),
       });
 
       if (!res.ok) {
         const errorText = await res.text();
         console.error("Create checkout session failed:", res.status, errorText);
-        // try parse
         try {
           const parsed = JSON.parse(errorText);
           setError(parsed?.error || `Failed to create checkout session (Status ${res.status}).`);
@@ -205,11 +195,8 @@ export default function Checkout() {
       }
 
       const data = await res.json();
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        setError("Could not get Stripe URL from server.");
-      }
+      if (data?.url) window.location.href = data.url;
+      else setError("Could not get Stripe URL from server.");
     } catch (err) {
       console.error("Checkout error:", err);
       setError("Failed to start checkout. Please try again.");
@@ -224,9 +211,14 @@ export default function Checkout() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <h1 style={styles.h1}>Checkout</h1>
+        <div style={styles.topRow}>
+          <h1 style={styles.h1}>Checkout</h1>
+          <Link href="/cart" style={styles.backLink}>
+            ← Back to Cart
+          </Link>
+        </div>
 
-        {/* Cart Summary */}
+        {/* Order */}
         <h2 style={styles.h2}>Your Order</h2>
 
         {cartItems.length === 0 ? (
@@ -235,37 +227,53 @@ export default function Checkout() {
           </p>
         ) : (
           <>
-            <div style={{ marginBottom: 12 }}>
-              {cartItems.map((item, idx) => (
-                <div key={`${item.sync_variant_id || item.id || idx}`} style={styles.row}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700 }}>{item.name}</div>
-                    <div style={{ opacity: 0.8, fontSize: 13 }}>
-                      Qty: {Number(item.quantity || 1)}
+            <div style={{ display: "grid", gap: 12, marginBottom: 12 }}>
+              {cartItems.map((item, idx) => {
+                const lineTotal = Number(item.price || 0) * Number(item.quantity || 1);
+                return (
+                  <div key={`${item.sync_variant_id || item.id || idx}`} style={styles.itemRow}>
+                    <div style={styles.imgBox}>
+                      {item.image ? (
+                        <Image
+                          src={item.image}
+                          alt={item.name || "Product"}
+                          width={92}
+                          height={92}
+                          style={{ borderRadius: 14, objectFit: "cover" }}
+                        />
+                      ) : (
+                        <div style={styles.imgPlaceholder}>No image</div>
+                      )}
                     </div>
+
+                    <div style={{ minWidth: 0 }}>
+                      <div style={styles.itemName}>{item.name}</div>
+                      <div style={styles.itemMeta}>
+                        Qty: {Number(item.quantity || 1)} • ${money(item.price)} each
+                      </div>
+                    </div>
+
+                    <div style={styles.itemTotal}>${money(lineTotal)}</div>
                   </div>
-                  <div style={{ fontWeight: 700 }}>
-                    ${(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div style={styles.hr} />
 
             <div style={styles.totalsRow}>
               <span>Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>${money(subtotal)}</span>
             </div>
 
             <div style={styles.totalsRow}>
               <span>Shipping</span>
-              <span>{shippingCost > 0 ? `$${shippingCost.toFixed(2)}` : "—"}</span>
+              <span>{shippingCost > 0 ? `$${money(shippingCost)}` : "—"}</span>
             </div>
 
             <div style={{ ...styles.totalsRow, fontSize: 18, fontWeight: 900 }}>
               <span>Total</span>
-              <span>${total.toFixed(2)}</span>
+              <span>${money(total)}</span>
             </div>
           </>
         )}
@@ -276,61 +284,17 @@ export default function Checkout() {
         {error ? <div style={styles.errorBox}>{error}</div> : null}
 
         <div style={styles.formGrid}>
-          <input
-            name="name"
-            placeholder="Full Name *"
-            value={address.name}
-            onChange={handleInputChange}
-            style={styles.input}
-          />
-
-          <input
-            name="address1"
-            placeholder="Address Line 1 *"
-            value={address.address1}
-            onChange={handleInputChange}
-            style={styles.input}
-          />
-
-          <input
-            name="address2"
-            placeholder="Address Line 2"
-            value={address.address2}
-            onChange={handleInputChange}
-            style={styles.input}
-          />
-
-          <input
-            name="city"
-            placeholder="City *"
-            value={address.city}
-            onChange={handleInputChange}
-            style={styles.input}
-          />
+          <input name="name" placeholder="Full Name *" value={address.name} onChange={handleInputChange} style={styles.input} />
+          <input name="address1" placeholder="Address Line 1 *" value={address.address1} onChange={handleInputChange} style={styles.input} />
+          <input name="address2" placeholder="Address Line 2" value={address.address2} onChange={handleInputChange} style={styles.input} />
+          <input name="city" placeholder="City *" value={address.city} onChange={handleInputChange} style={styles.input} />
 
           <div style={styles.twoCol}>
-            <input
-              name="state_code"
-              placeholder="State (e.g., MN) *"
-              value={address.state_code}
-              onChange={handleInputChange}
-              style={styles.input}
-            />
-            <input
-              name="zip"
-              placeholder="ZIP Code *"
-              value={address.zip}
-              onChange={handleInputChange}
-              style={styles.input}
-            />
+            <input name="state_code" placeholder="State (e.g., MN) *" value={address.state_code} onChange={handleInputChange} style={styles.input} />
+            <input name="zip" placeholder="ZIP Code *" value={address.zip} onChange={handleInputChange} style={styles.input} />
           </div>
 
-          <select
-            name="country_code"
-            value={address.country_code}
-            onChange={handleInputChange}
-            style={styles.input}
-          >
+          <select name="country_code" value={address.country_code} onChange={handleInputChange} style={styles.input}>
             <option value="US">United States</option>
             <option value="CA">Canada</option>
             <option value="GB">United Kingdom</option>
@@ -341,23 +305,15 @@ export default function Checkout() {
             type="button"
             onClick={handleCalculateShipping}
             disabled={calculating || cartItems.length === 0}
-            style={{
-              ...styles.primaryBtn,
-              opacity: calculating ? 0.7 : 1,
-            }}
+            style={{ ...styles.primaryBtn, opacity: calculating ? 0.7 : 1 }}
           >
             {calculating ? "Calculating..." : "Calculate Shipping"}
           </button>
 
-          {/* Shipping Options Dropdown */}
           {rates.length > 0 && (
             <div style={{ marginTop: 6 }}>
               <label style={styles.label}>Shipping option</label>
-              <select
-                value={selectedRateId}
-                onChange={handleRateChange}
-                style={styles.input}
-              >
+              <select value={selectedRateId} onChange={handleRateChange} style={styles.input}>
                 {rates.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name} — ${Number(r.rate).toFixed(2)}
@@ -372,16 +328,13 @@ export default function Checkout() {
             type="button"
             onClick={handleCheckout}
             disabled={!selectedRate || startingCheckout || cartItems.length === 0}
-            style={{
-              ...styles.checkoutBtn,
-              opacity: !selectedRate || startingCheckout ? 0.7 : 1,
-            }}
+            style={{ ...styles.checkoutBtn, opacity: !selectedRate || startingCheckout ? 0.7 : 1 }}
           >
-            {startingCheckout ? "Starting Stripe..." : `Pay $${total.toFixed(2)} with Stripe`}
+            {startingCheckout ? "Starting Stripe..." : `Pay $${money(total)} with Stripe`}
           </button>
 
-          <div style={{ marginTop: 10, fontSize: 13, opacity: 0.75 }}>
-            Tip: If shipping fails, it usually means a cart item is missing <b>sync_variant_id</b>.
+          <div style={styles.safeNote}>
+            By clicking “Pay”, you’ll be redirected to Stripe to complete your purchase securely.
           </div>
         </div>
       </div>
@@ -400,7 +353,7 @@ const styles = {
   },
   card: {
     width: "100%",
-    maxWidth: 720,
+    maxWidth: 780,
     background: "rgba(255,255,255,0.06)",
     border: "1px solid rgba(255,255,255,0.10)",
     borderRadius: 18,
@@ -408,26 +361,62 @@ const styles = {
     boxShadow: "0 20px 80px rgba(0,0,0,0.55)",
     backdropFilter: "blur(10px)",
   },
+  topRow: {
+    display: "flex",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 8,
+  },
+  backLink: {
+    textDecoration: "none",
+    fontWeight: 800,
+    color: "rgba(255,255,255,0.85)",
+    padding: "8px 10px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.06)",
+  },
   h1: { margin: 0, fontSize: 28, fontWeight: 900 },
   h2: { margin: "16px 0 10px", fontSize: 18, fontWeight: 800 },
   p: { opacity: 0.9 },
-  row: {
-    display: "flex",
-    justifyContent: "space-between",
+
+  itemRow: {
+    display: "grid",
+    gridTemplateColumns: "92px 1fr auto",
     gap: 12,
-    padding: "10px 0",
-    borderBottom: "1px solid rgba(255,255,255,0.06)",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(0,0,0,0.20)",
   },
-  hr: {
-    height: 1,
-    background: "rgba(255,255,255,0.10)",
-    margin: "12px 0",
+  imgBox: { width: 92, height: 92, borderRadius: 14, overflow: "hidden" },
+  imgPlaceholder: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 14,
+    display: "grid",
+    placeItems: "center",
+    background: "rgba(255,255,255,0.06)",
+    color: "rgba(255,255,255,0.7)",
+    fontWeight: 800,
+    fontSize: 12,
   },
-  totalsRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    padding: "6px 0",
+  itemName: {
+    fontWeight: 900,
+    fontSize: 16,
+    lineHeight: 1.2,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
+  itemMeta: { opacity: 0.8, fontSize: 13, marginTop: 6 },
+  itemTotal: { fontWeight: 900, fontSize: 16 },
+
+  hr: { height: 1, background: "rgba(255,255,255,0.10)", margin: "12px 0" },
+  totalsRow: { display: "flex", justifyContent: "space-between", padding: "6px 0" },
+
   errorBox: {
     margin: "10px 0 12px",
     padding: 12,
@@ -435,17 +424,12 @@ const styles = {
     background: "rgba(255,0,0,0.14)",
     border: "1px solid rgba(255,0,0,0.35)",
     color: "#ffd6d6",
-    fontWeight: 600,
+    fontWeight: 700,
   },
-  formGrid: {
-    display: "grid",
-    gap: 12,
-  },
-  twoCol: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 12,
-  },
+
+  formGrid: { display: "grid", gap: 12 },
+  twoCol: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
+
   input: {
     width: "100%",
     padding: "14px 14px",
@@ -456,12 +440,8 @@ const styles = {
     outline: "none",
     fontSize: 16,
   },
-  label: {
-    display: "block",
-    marginBottom: 6,
-    fontWeight: 700,
-    opacity: 0.9,
-  },
+  label: { display: "block", marginBottom: 6, fontWeight: 800, opacity: 0.9 },
+
   primaryBtn: {
     padding: "14px",
     borderRadius: 14,
@@ -469,7 +449,7 @@ const styles = {
     background: "rgba(255,255,255,0.12)",
     color: "white",
     fontSize: 16,
-    fontWeight: 800,
+    fontWeight: 900,
     cursor: "pointer",
   },
   checkoutBtn: {
@@ -482,5 +462,11 @@ const styles = {
     fontWeight: 900,
     cursor: "pointer",
     marginTop: 6,
+  },
+  safeNote: {
+    marginTop: 10,
+    fontSize: 13,
+    opacity: 0.75,
+    lineHeight: 1.4,
   },
 };
