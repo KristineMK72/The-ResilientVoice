@@ -11,7 +11,10 @@ export default function CartPage() {
   }, []);
 
   const subtotal = useMemo(() => {
-    return cart.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
+    return cart.reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1),
+      0
+    );
   }, [cart]);
 
   function save(next) {
@@ -21,18 +24,19 @@ export default function CartPage() {
 
   function inc(sync_variant_id) {
     const next = cart.map((i) =>
-      i.sync_variant_id === sync_variant_id ? { ...i, quantity: (Number(i.quantity) || 1) + 1 } : i
+      i.sync_variant_id === sync_variant_id
+        ? { ...i, quantity: (Number(i.quantity) || 1) + 1 }
+        : i
     );
     save(next);
   }
 
   function dec(sync_variant_id) {
-    const next = cart
-      .map((i) =>
-        i.sync_variant_id === sync_variant_id
-          ? { ...i, quantity: Math.max(1, (Number(i.quantity) || 1) - 1) }
-          : i
-      );
+    const next = cart.map((i) =>
+      i.sync_variant_id === sync_variant_id
+        ? { ...i, quantity: Math.max(1, (Number(i.quantity) || 1) - 1) }
+        : i
+    );
     save(next);
   }
 
@@ -42,79 +46,93 @@ export default function CartPage() {
   }
 
   return (
-    <div style={{ maxWidth: 820, margin: "40px auto", padding: 20 }}>
-      <h1 style={{ marginBottom: 10 }}>Your Cart</h1>
+    <div style={{ maxWidth: 920, margin: "40px auto", padding: 20 }}>
+      <h1 style={{ marginBottom: 14, fontSize: 34, fontWeight: 950 }}>
+        Your Cart
+      </h1>
 
       {cart.length === 0 ? (
-        <p>
+        <p style={{ opacity: 0.9 }}>
           Your cart is empty. <Link href="/">Go shopping</Link>
         </p>
       ) : (
         <>
           <div style={{ display: "grid", gap: 14 }}>
-            {cart.map((item) => (
-              <div
-                key={item.sync_variant_id}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr auto",
-                  gap: 12,
-                  padding: 14,
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(0,0,0,0.25)",
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: 18 }}>{item.name}</div>
-                  <div style={{ opacity: 0.85, marginTop: 6 }}>
-                    ${Number(item.price || 0).toFixed(2)} each
+            {cart.map((item) => {
+              const qty = Number(item.quantity || 1);
+              const price = Number(item.price || 0);
+              const lineTotal = price * qty;
+
+              return (
+                <div key={item.sync_variant_id} style={card}>
+                  {/* LEFT: image */}
+                  <div style={thumbWrap}>
+                    <img
+                      src={item.image || "/gritngrlogo.png"}
+                      alt={item.name || "Product"}
+                      style={thumb}
+                      onError={(e) => {
+                        e.currentTarget.src = "/gritngrlogo.png";
+                      }}
+                    />
                   </div>
 
-                  {/* Useful debug (optional): */}
-                  <div style={{ opacity: 0.65, marginTop: 6, fontSize: 12 }}>
-                    sync_variant_id: {String(item.sync_variant_id || "")}
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gap: 10, justifyItems: "end" }}>
-                  <div style={{ fontWeight: 800 }}>
-                    ${(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <button onClick={() => dec(item.sync_variant_id)} style={btnSmall}>
-                      −
-                    </button>
-                    <div style={{ minWidth: 28, textAlign: "center", fontWeight: 700 }}>
-                      {Number(item.quantity || 1)}
+                  {/* MIDDLE: details */}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={titleRow}>
+                      <div style={title}>{item.name || "Item"}</div>
+                      <div style={linePrice}>${lineTotal.toFixed(2)}</div>
                     </div>
-                    <button onClick={() => inc(item.sync_variant_id)} style={btnSmall}>
-                      +
-                    </button>
-                  </div>
 
-                  <button onClick={() => remove(item.sync_variant_id)} style={btnDanger}>
-                    Remove
-                  </button>
+                    <div style={metaRow}>
+                      <span style={eachPrice}>${price.toFixed(2)} each</span>
+                      {/* ✅ sync_variant_id removed from UI */}
+                    </div>
+
+                    <div style={controlsRow}>
+                      <div style={qtyRow}>
+                        <button
+                          onClick={() => dec(item.sync_variant_id)}
+                          style={btnSmall}
+                          aria-label="Decrease quantity"
+                        >
+                          −
+                        </button>
+                        <div style={qtyPill}>{qty}</div>
+                        <button
+                          onClick={() => inc(item.sync_variant_id)}
+                          style={btnSmall}
+                          aria-label="Increase quantity"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => remove(item.sync_variant_id)}
+                        style={btnDanger}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <hr style={{ margin: "22px 0", opacity: 0.2 }} />
 
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 18 }}>
-            <strong>Subtotal</strong>
-            <strong>${subtotal.toFixed(2)}</strong>
+          <div style={totalsRow}>
+            <strong style={{ fontSize: 18 }}>Subtotal</strong>
+            <strong style={{ fontSize: 18 }}>${subtotal.toFixed(2)}</strong>
           </div>
 
-          <div style={{ marginTop: 18, display: "flex", gap: 12, justifyContent: "flex-end" }}>
-            <Link href="/">
-              <a style={btnGhost}>Keep shopping</a>
+          <div style={actionsRow}>
+            <Link href="/" style={btnGhost}>
+              Keep shopping
             </Link>
 
-            {/* ✅ IMPORTANT: cart NEVER goes to Stripe */}
             <button
               onClick={() => (window.location.href = "/checkout")}
               style={btnPrimary}
@@ -127,6 +145,109 @@ export default function CartPage() {
     </div>
   );
 }
+
+/* =========================
+   STYLES
+========================= */
+
+const card = {
+  display: "grid",
+  gridTemplateColumns: "92px 1fr",
+  gap: 14,
+  padding: 14,
+  borderRadius: 16,
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(0,0,0,0.25)",
+};
+
+const thumbWrap = {
+  width: 92,
+  height: 92,
+  borderRadius: 14,
+  overflow: "hidden",
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.06)",
+};
+
+const thumb = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  display: "block",
+};
+
+const titleRow = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 12,
+};
+
+const title = {
+  fontWeight: 900,
+  fontSize: 18,
+  lineHeight: 1.2,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+const linePrice = {
+  fontWeight: 900,
+  fontSize: 18,
+  whiteSpace: "nowrap",
+};
+
+const metaRow = {
+  marginTop: 8,
+  opacity: 0.9,
+  display: "flex",
+  gap: 10,
+  flexWrap: "wrap",
+};
+
+const eachPrice = {
+  opacity: 0.85,
+};
+
+const controlsRow = {
+  marginTop: 12,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  flexWrap: "wrap",
+};
+
+const qtyRow = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+};
+
+const qtyPill = {
+  minWidth: 34,
+  textAlign: "center",
+  fontWeight: 900,
+  padding: "6px 10px",
+  borderRadius: 999,
+  border: "1px solid rgba(255,255,255,0.18)",
+  background: "rgba(255,255,255,0.06)",
+};
+
+const totalsRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+};
+
+const actionsRow = {
+  marginTop: 18,
+  display: "flex",
+  gap: 12,
+  justifyContent: "flex-end",
+  flexWrap: "wrap",
+};
 
 const btnPrimary = {
   padding: "14px 18px",
@@ -146,26 +267,27 @@ const btnGhost = {
   color: "white",
   fontWeight: 800,
   textDecoration: "none",
+  display: "inline-block",
 };
 
 const btnSmall = {
-  width: 34,
-  height: 34,
-  borderRadius: 10,
+  width: 38,
+  height: 38,
+  borderRadius: 12,
   border: "1px solid rgba(255,255,255,0.18)",
   background: "rgba(255,255,255,0.06)",
   color: "white",
   cursor: "pointer",
   fontSize: 18,
-  fontWeight: 800,
+  fontWeight: 900,
 };
 
 const btnDanger = {
-  padding: "8px 12px",
-  borderRadius: 10,
+  padding: "10px 14px",
+  borderRadius: 12,
   border: "1px solid rgba(255,255,255,0.14)",
   background: "rgba(239,68,68,0.18)",
   color: "white",
   cursor: "pointer",
-  fontWeight: 800,
+  fontWeight: 900,
 };
