@@ -5,101 +5,90 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-06-30.basil",
 });
 
-function num(v) {
-  const n = Number(String(v ?? "").trim());
-  return Number.isFinite(n) ? n : NaN;
+function clean(v) {
+  return (v || "").toString().trim().replace(/\r/g, "");
 }
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return res.status(500).json({ error: "Missing STRIPE_SECRET_KEY" });
-    }
-
-    const { cart, shippingCost, address } = req.body || {};
+    const { cart, address, shipping } = req.body || {};
 
     if (!Array.isArray(cart) || cart.length === 0) {
       return res.status(400).json({ error: "Cart is empty or invalid" });
     }
 
-    const shipping = num(shippingCost);
-    if (!Number.isFinite(shipping) || shipping <= 0) {
-      return res.status(400).json({ error: "Shipping cost missing/invalid" });
+    if (!shipping || !Number.isFinite(Number(shipping.amount)) || Number(shipping.amount) <= 0) {
+      return res.status(400).json({ error: "Shipping missing/invalid. Please calculate and select an option first." });
     }
 
-    // Build Stripe line items from cart (simple + reliable)
+    // Build product line items
     const lineItems = cart.map((item) => {
-      const price = num(item.price);
-      const qty = Math.max(1, num(item.quantity || 1));
+      const unit = Math.round(Number(item.price) * 100);
+      const qty = Number(item.quantity || 1);
 
-      if (!Number.isFinite(price) || price <= 0) {
-        throw new Error(`Invalid item price for "${item?.name || "item"}"`);
-      }
-      if (!item.sync_variant_id) {
-        throw new Error(`Missing sync_variant_id for "${item?.name || "item"}"`);
-      }
+      if (!Number.isFinite(unit) || unit <= 0) throw new Error("Invalid item price");
+      if (!Number.isFinite(qty) || qty <= 0) throw new Error("Invalid item quantity");
 
       return {
         price_data: {
           currency: "usd",
           product_data: {
-            name: String(item.name || "Item"),
-            images: item.image ? [String(item.image)] : undefined,
+            name: clean(item.name),
+            images: item.image ? [item.image] : [],
           },
-          unit_amount: Math.round(price * 100),
+          unit_amount: unit,
         },
         quantity: qty,
       };
     });
 
-    // Add shipping as a line item
+    // Add shipping line item
     lineItems.push({
       price_data: {
         currency: "usd",
-        product_data: { name: "Shipping (Standard)" },
-        unit_amount: Math.round(shipping * 100),
+        product_data: { name: `Shipping (${clean(shipping.name || "Standard")})` },
+        unit_amount: Math.round(Number(shipping.amount) * 100),
       },
       quantity: 1,
     });
 
-    // Absolute URLs (Vercel-safe)
-    const origin =
-      (req.headers["x-forwarded-proto"] ? `${req.headers["x-forwarded-proto"]}://` : "https://") +
-      req.headers.host;
-
-    // Put Printful fulfillment payload in metadata (your webhook can read this)
-    const printfulItems = cart.map((item) => ({
-      sync_variant_id: Number(item.sync_variant_id),
+    // Printful items for webhook fallback (uses sync_variant_id)
+    const printful_items = cart.map((item) => ({
+      sync_variant_id: Number(clean(item.sync_variant_id)),
       quantity: Number(item.quantity || 1),
     }));
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      shipping_address_collection: {
+        allowed_countries: ["US", "CA"],
+      },
       line_items: lineItems,
 
-      // Optional: let Stripe also collect address if you ever remove your form
-      shipping_address_collection: { allowed_countries: ["US", "CA"] },
-
       metadata: {
-        printful_items: JSON.stringify(printfulItems),
-        shipping_cost: String(shipping),
+        shipping_name: clean(shipping.name),
+        shipping_amount: String(Number(shipping.amount)),
+        printful_items: JSON.stringify(printful_items),
+        recipient_snapshot: JSON.stringify({
+          name: clean(address?.name),
+          address1: clean(address?.address1),
+          address2: clean(address?.address2),
+          city: clean(address?.city),
+          state_code: clean(address?.state_code),
+          country_code: clean(address?.country_code),
+          zip: clean(address?.zip),
+        }),
       },
 
-      success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/cart`,
+      success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.origin}/cart`,
     });
 
     return res.status(200).json({ url: session.url });
   } catch (err) {
-    // Return useful details so we can see EXACT Stripe 400 reason
     console.error("❌ Stripe checkout error:", err);
-    return res.status(400).json({
-      error: err?.raw?.message || err.message || "Stripe error",
-      param: err?.raw?.param || null,
-      type: err?.raw?.type || null,
-      code: err?.raw?.code || null,
-    });
+    return res.status(500).json({ error: err.message || "Checkout failed" });
   }
 }
