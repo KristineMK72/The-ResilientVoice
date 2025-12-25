@@ -14,6 +14,18 @@ const FEATURED_PRODUCT_IDS = [
   "405945273",
   "405510593",
   "405369860",
+   const FEATURED_PRODUCT_IDS = [
+  "402034024", // Saved By Grace
+  "405190886", // Patriot
+
+  // ✅ new social featured items
+  "408880904", // Messy
+  "408880721", // Accidental Cheerleader
+  "408880474", // Men’s Heavy Tee
+  "408880393", // Heavy Long Sleeve
+  "408875632", // The Climb/Unforgettable
+];
+
 ];
 
 function getCollectionLabel(id) {
