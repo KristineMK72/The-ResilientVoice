@@ -69,29 +69,83 @@ export default function Patriot() {
     return () => clearInterval(intervalId);
   }, []);
 
-  // Load products
+  // ✅ FAST product loading: parallel fetch + client cache + graceful timeout
   useEffect(() => {
     let cancelled = false;
 
-    async function loadProducts() {
+    async function loadProductsFast() {
       try {
         setLoading(true);
         setError(null);
 
+        if (!PATRIOT_PRODUCT_IDS.length) {
+          setProducts([]);
+          setLoading(false);
+          setError("No PATRIOT product IDs found in PRINTFUL_PRODUCTS map.");
+          return;
+        }
+
+        // Optional: quick client-side cache (session) to avoid re-fetch on back/forward
+        const cacheKey = `patriot_products_${PATRIOT_PRODUCT_IDS.join("_")}`;
+        try {
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (!cancelled && Array.isArray(parsed) && parsed.length) {
+              setProducts(parsed);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch {
+          // ignore cache errors
+        }
+
+        // Timeout helper so we don't hang forever on slow networks
+        const withTimeout = async (promise, ms = 12000) => {
+          const controller = new AbortController();
+          const t = setTimeout(() => controller.abort(), ms);
+
+          try {
+            // promise must accept signal; we wrap fetch below
+            const result = await promise(controller.signal);
+            return result;
+          } finally {
+            clearTimeout(t);
+          }
+        };
+
+        const fetchOne = (id) =>
+          withTimeout(
+            async (signal) => {
+              const res = await fetch(`/api/printful-product/${id}`, { signal });
+              if (!res.ok) {
+                return { __error: true, id, status: res.status };
+              }
+              const data = await res.json();
+              return data;
+            },
+            15000
+          );
+
+        // ✅ Parallel (but don’t melt the browser): simple concurrency limiter
+        const CONCURRENCY = 6;
+        const ids = [...PATRIOT_PRODUCT_IDS];
         const results = [];
 
-        for (const id of PATRIOT_PRODUCT_IDS) {
-          try {
-            const res = await fetch(`/api/printful-product/${id}`);
-            if (!res.ok) {
-              console.warn(`Failed to load ${id}: ${res.status}`);
-              continue;
+        for (let i = 0; i < ids.length; i += CONCURRENCY) {
+          const chunk = ids.slice(i, i + CONCURRENCY);
+          const chunkResults = await Promise.allSettled(chunk.map(fetchOne));
+
+          chunkResults.forEach((r) => {
+            if (r.status === "fulfilled" && r.value && !r.value.__error) {
+              results.push(r.value);
+            } else if (r.status === "fulfilled" && r.value?.__error) {
+              console.warn(`⚠️ Product failed ${r.value.id}: ${r.value.status}`);
+            } else {
+              console.warn("⚠️ Product fetch failed:", r.reason?.message || r.reason);
             }
-            const data = await res.json();
-            results.push(data);
-          } catch (err) {
-            console.error(`Error loading ${id}:`, err);
-          }
+          });
         }
 
         results.sort((a, b) => (a?.name || "").localeCompare(b?.name || ""));
@@ -102,19 +156,30 @@ export default function Patriot() {
 
           if (results.length === 0) {
             setError(
-              "No Patriot products loaded — check /api/printful-product/:id responses."
+              "No Patriot products loaded. Check Vercel logs and /api/printful-product/:id responses."
             );
+          } else {
+            // save to session cache
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify(results));
+            } catch {
+              // ignore storage quota errors
+            }
           }
         }
       } catch (e) {
         if (!cancelled) {
           setLoading(false);
-          setError("Failed to load products — check console.");
+          setError(
+            e?.name === "AbortError"
+              ? "Loading timed out — your connection may be slow. Please refresh."
+              : "Failed to load products — check console."
+          );
         }
       }
     }
 
-    loadProducts();
+    loadProductsFast();
     return () => {
       cancelled = true;
     };
@@ -136,7 +201,6 @@ export default function Patriot() {
           position: "relative",
           overflow: "hidden",
           color: "white",
-          // ✅ black + red + blue background (clean + premium)
           background:
             "radial-gradient(circle at 20% 15%, rgba(59,130,246,0.28) 0%, rgba(2,6,23,1) 45%, rgba(0,0,0,1) 100%), radial-gradient(circle at 80% 20%, rgba(239,68,68,0.22) 0%, rgba(0,0,0,0) 55%)",
         }}
@@ -164,7 +228,7 @@ export default function Patriot() {
           }
         `}</style>
 
-        {/* Hero (same sizing system as SavedByGrace/Social) */}
+        {/* Hero */}
         <div
           style={{
             textAlign: "center",
@@ -190,7 +254,6 @@ export default function Patriot() {
               overflow: "hidden",
             }}
           >
-            {/* You can swap this image to a Patriot-specific one anytime */}
             <Image
               src="/gritngrlogo.png"
               alt="Grit & Grace"
@@ -256,7 +319,7 @@ export default function Patriot() {
           </div>
         </div>
 
-        {/* Sticky phrase rotation (soft + premium like SavedByGrace) */}
+        {/* Sticky phrase rotation */}
         <div
           style={{
             textAlign: "center",
@@ -318,15 +381,49 @@ export default function Patriot() {
 
         {/* Status */}
         {loading && (
-          <div style={{ textAlign: "center", padding: "2rem 1rem", position: "relative", zIndex: 10 }}>
-            <p style={{ fontSize: "1.8rem", color: "#93c5fd" }}>Loading Patriot collection…</p>
+          <div
+            style={{
+              textAlign: "center",
+              padding: "2rem 1rem",
+              position: "relative",
+              zIndex: 10,
+            }}
+          >
+            <p style={{ fontSize: "1.8rem", color: "#93c5fd" }}>
+              Loading Patriot collection…
+            </p>
+            <p style={{ color: "#cbd5e1", marginTop: "0.5rem" }}>
+              Tip: After the first load, it should be faster (cached).
+            </p>
           </div>
         )}
 
         {error && (
-          <div style={{ textAlign: "center", padding: "2rem 1rem", position: "relative", zIndex: 10 }}>
+          <div
+            style={{
+              textAlign: "center",
+              padding: "2rem 1rem",
+              position: "relative",
+              zIndex: 10,
+            }}
+          >
             <p style={{ fontSize: "1.4rem", color: "#ff6b6b" }}>{error}</p>
-            <p style={{ color: "#bdbdbd" }}>Check browser console for details.</p>
+            <div style={{ marginTop: "1rem" }}>
+              <button
+                onClick={() => location.reload()}
+                style={{
+                  padding: "0.85rem 1.2rem",
+                  borderRadius: "999px",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  background: "rgba(255,255,255,0.12)",
+                  color: "white",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Retry
+              </button>
+            </div>
           </div>
         )}
 
@@ -344,7 +441,7 @@ export default function Patriot() {
               zIndex: 10,
             }}
           >
-            {products.map((product) => {
+            {products.map((product, idx) => {
               const productId = String(product?.sync_product_id ?? product?.id ?? "");
               if (!productId) return null;
 
@@ -371,16 +468,22 @@ export default function Patriot() {
                   }}
                 >
                   <Link href={`/product/${productId}`}>
-                    <div style={{ height: "460px", position: "relative", background: "#0b1220" }}>
+                    <div
+                      style={{
+                        height: "460px",
+                        position: "relative",
+                        background: "#0b1220",
+                      }}
+                    >
                       <Image
                         src={product.thumbnail_url || product.preview_url}
                         alt={product.name}
                         fill
                         style={{ objectFit: "contain", padding: "40px" }}
-                        priority
+                        // ✅ only preload the first couple images
+                        priority={idx < 2}
                       />
 
-                      {/* corner badge */}
                       <div
                         style={{
                           position: "absolute",
@@ -401,11 +504,25 @@ export default function Patriot() {
                   </Link>
 
                   <div style={{ padding: "2.2rem", textAlign: "center" }}>
-                    <h3 style={{ margin: "0 0 0.75rem", fontSize: "1.55rem", fontWeight: "900", color: "#1f2937" }}>
+                    <h3
+                      style={{
+                        margin: "0 0 0.75rem",
+                        fontSize: "1.55rem",
+                        fontWeight: "900",
+                        color: "#1f2937",
+                      }}
+                    >
                       {product.name}
                     </h3>
 
-                    <p style={{ margin: "0.9rem 0 1.3rem", fontSize: "2rem", fontWeight: "900", color: "#0f172a" }}>
+                    <p
+                      style={{
+                        margin: "0.9rem 0 1.3rem",
+                        fontSize: "2rem",
+                        fontWeight: "900",
+                        color: "#0f172a",
+                      }}
+                    >
                       {formatPrice(price)}
                     </p>
 
@@ -415,7 +532,8 @@ export default function Patriot() {
                         display: "inline-block",
                         width: "100%",
                         padding: "1.15rem",
-                        background: "linear-gradient(135deg, #ef4444 0%, #ffffff 50%, #3b82f6 115%)",
+                        background:
+                          "linear-gradient(135deg, #ef4444 0%, #ffffff 50%, #3b82f6 115%)",
                         color: "#0b1220",
                         borderRadius: "16px",
                         fontSize: "1.15rem",
