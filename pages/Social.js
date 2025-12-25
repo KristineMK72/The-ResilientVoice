@@ -43,34 +43,13 @@ export default function Social() {
 
   const [currentPhrase, setCurrentPhrase] = useState(0);
 
+  // ✅ Pull ALL products tagged category: "social" from the map
   const SOCIAL_PRODUCT_IDS = useMemo(() => {
-    const idsFromMap = [
-      PRINTFUL_PRODUCTS.your_story?.sync_product_id,
-      PRINTFUL_PRODUCTS.retro_ringer?.sync_product_id,
-      PRINTFUL_PRODUCTS.the_climb?.sync_product_id,
-      PRINTFUL_PRODUCTS.safe?.sync_product_id,
-      PRINTFUL_PRODUCTS.mind?.sync_product_id,
-      PRINTFUL_PRODUCTS.multi_color_joggers_social?.sync_product_id,
-      PRINTFUL_PRODUCTS.multicolor_sweatshirt_social?.sync_product_id,
-      PRINTFUL_PRODUCTS.testproduct_can_cooler?.sync_product_id,
-    ]
-      .filter(Boolean)
-      .map(String);
+    const ids = Object.values(PRINTFUL_PRODUCTS)
+      .filter((p) => p?.category === "social" && p?.sync_product_id)
+      .map((p) => String(p.sync_product_id));
 
-    // ✅ fallback if the map keys aren’t present yet
-    const fallback = [
-      "405949039", // Your Story
-      "405945273", // Retro ringer
-      "406331944", // The Climb
-      "406332650", // Safe
-      "406370294", // Mind
-      "406371194", // Multi Color Joggers
-      "406372796", // Multi Color Sweatshirt
-      "407453890", // TestProduct Can Cooler
-    ];
-
-    const finalIds = idsFromMap.length ? idsFromMap : fallback;
-    return Array.from(new Set(finalIds.map(String)));
+    return Array.from(new Set(ids));
   }, []);
 
   // ✅ Phrase rotation
@@ -147,7 +126,6 @@ export default function Social() {
           position: "relative",
           overflow: "hidden",
           color: "white",
-          // ✅ Indigo / charcoal background
           background:
             "radial-gradient(circle at 25% 15%, #312e81 0%, #1e293b 45%, #020617 100%)",
         }}
@@ -175,7 +153,7 @@ export default function Social() {
           }
         `}</style>
 
-        {/* Hero (SavedByGrace sizing system) */}
+        {/* Hero */}
         <div
           style={{
             textAlign: "center",
@@ -235,9 +213,9 @@ export default function Social() {
               color: "#d1d5db",
             }}
           >
-            This collection is dedicated to healing and hope. Every piece is designed to spark conversation,
-            raise awareness, and give back to nonprofits tackling mental health, housing insecurity,
-            homelessness, and suicide prevention.
+            This collection is dedicated to healing and hope. Every piece is designed to spark
+            conversation, raise awareness, and give back to nonprofits tackling mental health,
+            housing insecurity, homelessness, and suicide prevention.
             <br />
             <span style={{ color: "#9ca3af" }}>
               Wear compassion. Spark conversation. Give with purpose.
@@ -266,7 +244,7 @@ export default function Social() {
           </div>
         </div>
 
-        {/* Sticky phrase rotation (SavedByGrace style) */}
+        {/* Sticky phrase rotation */}
         <div
           style={{
             textAlign: "center",
@@ -329,7 +307,9 @@ export default function Social() {
         {/* Status */}
         {loading && (
           <div style={{ textAlign: "center", padding: "2rem 1rem", position: "relative", zIndex: 10 }}>
-            <p style={{ fontSize: "1.8rem", color: "#93c5fd" }}>Loading Social Impact collection…</p>
+            <p style={{ fontSize: "1.8rem", color: "#93c5fd" }}>
+              Loading Social Impact collection…
+            </p>
           </div>
         )}
 
@@ -409,7 +389,14 @@ export default function Social() {
                   </Link>
 
                   <div style={{ padding: "2.2rem", textAlign: "center" }}>
-                    <h3 style={{ margin: "0 0 0.75rem", fontSize: "1.55rem", fontWeight: "900", color: "#1f2937" }}>
+                    <h3
+                      style={{
+                        margin: "0 0 0.75rem",
+                        fontSize: "1.55rem",
+                        fontWeight: "900",
+                        color: "#1f2937",
+                      }}
+                    >
                       {product.name}
                     </h3>
 
