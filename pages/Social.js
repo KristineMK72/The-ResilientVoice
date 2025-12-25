@@ -1,4 +1,7 @@
 // pages/Social.js
+// ✅ Same look, faster loading (parallel fetch + timeout + session cache)
+// ✅ Only first 2 product images are priority (better performance)
+
 "use client";
 
 import { PRINTFUL_PRODUCTS } from "../lib/printfulMap";
@@ -61,29 +64,73 @@ export default function Social() {
     return () => clearInterval(intervalId);
   }, []);
 
-  // ✅ Load products
+  // ✅ FAST product loading: parallel fetch + client cache + timeout
   useEffect(() => {
     let cancelled = false;
 
-    async function loadProducts() {
+    async function loadProductsFast() {
       try {
         setLoading(true);
         setError(null);
 
+        if (!SOCIAL_PRODUCT_IDS.length) {
+          setProducts([]);
+          setLoading(false);
+          setError("No Social products configured — check PRINTFUL_PRODUCTS map categories.");
+          return;
+        }
+
+        // session cache (makes back/forward instant)
+        const cacheKey = `social_products_${SOCIAL_PRODUCT_IDS.join("_")}`;
+        try {
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (!cancelled && Array.isArray(parsed) && parsed.length) {
+              setProducts(parsed);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch {
+          // ignore cache errors
+        }
+
+        const withTimeout = async (fn, ms = 15000) => {
+          const controller = new AbortController();
+          const t = setTimeout(() => controller.abort(), ms);
+          try {
+            return await fn(controller.signal);
+          } finally {
+            clearTimeout(t);
+          }
+        };
+
+        const fetchOne = (id) =>
+          withTimeout(async (signal) => {
+            const res = await fetch(`/api/printful-product/${id}`, { signal });
+            if (!res.ok) return { __error: true, id, status: res.status };
+            return await res.json();
+          });
+
+        // concurrency limiter
+        const CONCURRENCY = 6;
+        const ids = [...SOCIAL_PRODUCT_IDS];
         const results = [];
 
-        for (const id of SOCIAL_PRODUCT_IDS) {
-          try {
-            const res = await fetch(`/api/printful-product/${id}`);
-            if (!res.ok) {
-              console.warn(`Failed to load ${id}: ${res.status}`);
-              continue;
+        for (let i = 0; i < ids.length; i += CONCURRENCY) {
+          const chunk = ids.slice(i, i + CONCURRENCY);
+          const settled = await Promise.allSettled(chunk.map(fetchOne));
+
+          settled.forEach((r) => {
+            if (r.status === "fulfilled" && r.value && !r.value.__error) {
+              results.push(r.value);
+            } else if (r.status === "fulfilled" && r.value?.__error) {
+              console.warn(`⚠️ Failed ${r.value.id}: ${r.value.status}`);
+            } else {
+              console.warn("⚠️ Fetch error:", r.reason?.message || r.reason);
             }
-            const data = await res.json();
-            results.push(data);
-          } catch (err) {
-            console.error(`Error loading ${id}:`, err);
-          }
+          });
         }
 
         results.sort((a, b) => (a?.name || "").localeCompare(b?.name || ""));
@@ -94,17 +141,27 @@ export default function Social() {
 
           if (results.length === 0) {
             setError("No Social products loaded — check /api/printful-product/:id responses.");
+          } else {
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify(results));
+            } catch {
+              // ignore
+            }
           }
         }
       } catch (e) {
         if (!cancelled) {
           setLoading(false);
-          setError("Failed to load products — check console.");
+          setError(
+            e?.name === "AbortError"
+              ? "Loading timed out — please refresh."
+              : "Failed to load products — check console."
+          );
         }
       }
     }
 
-    loadProducts();
+    loadProductsFast();
     return () => {
       cancelled = true;
     };
@@ -306,17 +363,50 @@ export default function Social() {
 
         {/* Status */}
         {loading && (
-          <div style={{ textAlign: "center", padding: "2rem 1rem", position: "relative", zIndex: 10 }}>
+          <div
+            style={{
+              textAlign: "center",
+              padding: "2rem 1rem",
+              position: "relative",
+              zIndex: 10,
+            }}
+          >
             <p style={{ fontSize: "1.8rem", color: "#93c5fd" }}>
               Loading Social Impact collection…
+            </p>
+            <p style={{ color: "#cbd5e1", marginTop: "0.5rem" }}>
+              Tip: after first load it should be faster (cached).
             </p>
           </div>
         )}
 
         {error && (
-          <div style={{ textAlign: "center", padding: "2rem 1rem", position: "relative", zIndex: 10 }}>
+          <div
+            style={{
+              textAlign: "center",
+              padding: "2rem 1rem",
+              position: "relative",
+              zIndex: 10,
+            }}
+          >
             <p style={{ fontSize: "1.4rem", color: "#ff6b6b" }}>{error}</p>
             <p style={{ color: "#bdbdbd" }}>Check browser console for details.</p>
+            <div style={{ marginTop: "1rem" }}>
+              <button
+                onClick={() => location.reload()}
+                style={{
+                  padding: "0.85rem 1.2rem",
+                  borderRadius: "999px",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  background: "rgba(255,255,255,0.12)",
+                  color: "white",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Retry
+              </button>
+            </div>
           </div>
         )}
 
@@ -334,7 +424,7 @@ export default function Social() {
               zIndex: 10,
             }}
           >
-            {products.map((product) => {
+            {products.map((product, idx) => {
               const productId = String(product?.sync_product_id ?? "");
               if (!productId) return null;
 
@@ -367,7 +457,8 @@ export default function Social() {
                         alt={product.name}
                         fill
                         style={{ objectFit: "contain", padding: "40px" }}
-                        priority
+                        // ✅ only preload a couple images
+                        priority={idx < 2}
                       />
                       <div
                         style={{
@@ -400,7 +491,14 @@ export default function Social() {
                       {product.name}
                     </h3>
 
-                    <p style={{ margin: "0.9rem 0 1.3rem", fontSize: "2rem", fontWeight: "900", color: "#0f172a" }}>
+                    <p
+                      style={{
+                        margin: "0.9rem 0 1.3rem",
+                        fontSize: "2rem",
+                        fontWeight: "900",
+                        color: "#0f172a",
+                      }}
+                    >
                       {formatPrice(price)}
                     </p>
 
@@ -410,7 +508,8 @@ export default function Social() {
                         display: "inline-block",
                         width: "100%",
                         padding: "1.15rem",
-                        background: "linear-gradient(135deg, #6ee7b7 0%, #3b82f6 55%, #9333ea 115%)",
+                        background:
+                          "linear-gradient(135deg, #6ee7b7 0%, #3b82f6 55%, #9333ea 115%)",
                         color: "#0b1220",
                         borderRadius: "16px",
                         fontSize: "1.15rem",
