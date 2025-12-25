@@ -1,4 +1,3 @@
-// scripts/apply-printful-variant-metadata-from-csv.js
 import fs from "fs";
 import csv from "csv-parser";
 import Stripe from "stripe";
@@ -10,10 +9,10 @@ if (!process.env.STRIPE_SECRET_KEY) {
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-const CSV_PATH = process.env.CSV_PATH || "printful_variants.csv";
+const CSV_PATH = "printful_variants.csv";
 
-function clean(s) {
-  return String(s ?? "").trim();
+function cleanSku(s) {
+  return String(s || "").trim();
 }
 
 async function findPriceByLookupKey(lookupKey) {
@@ -38,56 +37,48 @@ async function main() {
   console.log(`Found ${rows.length} rows in ${CSV_PATH}`);
 
   let updated = 0;
-  let missingPrice = 0;
-  let missingVariant = 0;
+  let missing = 0;
 
   for (const row of rows) {
-    const sku = clean(row.sku);
-    const syncProductId = clean(row.sync_product_id);
-    const syncVariantId = clean(row.sync_variant_id);
-    const color = clean(row.color);
-    const size = clean(row.size);
+    const printfulSyncProductId = row.sync_product_id || row.sync_product;
+    const printfulSyncVariantId = row.sync_variant_id || row.sync_variant;
+    const color = row.color;
+    const size = row.size;
+    const sku = cleanSku(row.sku);
 
-    if (!sku) continue;
-
-    if (!syncVariantId) {
-      console.warn(`⚠️ Missing sync_variant_id in CSV for sku=${sku}`);
-      missingVariant++;
-      continue;
-    }
+    if (!sku || !printfulSyncVariantId) continue;
 
     const price = await findPriceByLookupKey(sku);
 
     if (!price) {
-      console.warn(`⚠️ No Stripe price found for lookup_key=${sku}`);
-      missingPrice++;
+      console.warn(`⚠️ No Stripe price found for lookup_key (sku) = ${sku}`);
+      missing++;
       continue;
     }
 
     const newMeta = {
       ...(price.metadata || {}),
+      printful_sync_variant_id: String(printfulSyncVariantId),
+      ...(printfulSyncProductId
+        ? { printful_sync_product_id: String(printfulSyncProductId) }
+        : {}),
+      ...(color ? { printful_color: String(color) } : {}),
+      ...(size ? { printful_size: String(size) } : {}),
       printful_sku: sku,
-      printful_sync_product_id: syncProductId || undefined,
-      printful_sync_variant_id: syncVariantId, // keep as string (full ID)
-      printful_color: color || undefined,
-      printful_size: size || undefined,
     };
-
-    // remove undefined keys (Stripe metadata must be strings)
-    Object.keys(newMeta).forEach((k) => {
-      if (newMeta[k] === undefined) delete newMeta[k];
-      else newMeta[k] = String(newMeta[k]);
-    });
 
     await stripe.prices.update(price.id, { metadata: newMeta });
 
     updated++;
-    console.log(`✅ ${price.id} sku=${sku} -> variant=${syncVariantId}`);
+    console.log(
+      `✅ Updated ${price.id} (sku=${sku}) -> variant=${printfulSyncVariantId}`
+    );
+
+    // light throttle
+    await new Promise((r) => setTimeout(r, 120));
   }
 
-  console.log(
-    `\nDone. Updated: ${updated}, Missing Stripe price: ${missingPrice}, Missing variant in CSV: ${missingVariant}`
-  );
+  console.log(`\nDone. Updated: ${updated}, Missing Stripe price: ${missing}`);
 }
 
 main().catch((e) => {
