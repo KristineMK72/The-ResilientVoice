@@ -110,12 +110,8 @@ export default function Home() {
   const activeImage = useMemo(() => {
     if (!activeProduct) return "/gritngrlogo.png";
     const v0 = activeProduct.variants?.[0];
-    // Prefer thumbnail (most reliable), fallback to preview_url
-    return (
-      activeProduct.thumbnail_url ||
-      v0?.preview_url ||
-      "/gritngrlogo.png"
-    );
+    // Prefer thumbnail (most reliable), fallback to variant preview
+    return activeProduct.thumbnail_url || v0?.preview_url || "/gritngrlogo.png";
   }, [activeProduct]);
 
   const activePrice = useMemo(() => {
@@ -133,7 +129,6 @@ export default function Home() {
     e.preventDefault();
     const form = e.currentTarget;
     const email = form.email.value?.trim();
-
     if (!email) return;
 
     setEmailStatus({ state: "loading", message: "" });
@@ -146,19 +141,13 @@ export default function Home() {
       });
 
       if (res.ok) {
-        setEmailStatus({
-          state: "success",
-          message: "You’re in! Welcome ♥️",
-        });
+        setEmailStatus({ state: "success", message: "You’re in! Welcome ♥️" });
         form.reset();
         setTimeout(() => {
           window.location.href = "/welcome";
         }, 900);
       } else {
-        setEmailStatus({
-          state: "error",
-          message: "Something went wrong.",
-        });
+        setEmailStatus({ state: "error", message: "Something went wrong." });
       }
     } catch (err) {
       console.error(err);
@@ -169,9 +158,6 @@ export default function Home() {
     }
   }
 
-  /* ============================
-     RENDER
-  ============================ */
   return (
     <>
       <Head>
@@ -190,7 +176,7 @@ export default function Home() {
             min-height: 100vh;
             background: radial-gradient(circle at center, #0f172a 0%, #000 100%);
             color: white;
-            padding: 2.5rem 1.25rem;
+            padding: 2rem 1.25rem 2.5rem;
             text-align: center;
             position: relative;
             overflow: hidden;
@@ -216,6 +202,30 @@ export default function Home() {
             z-index: 10;
             max-width: 1100px;
             margin: 0 auto;
+          }
+
+          /* ===== Top Video ===== */
+          .heroVideoWrap {
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto 1.5rem;
+            border-radius: 22px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.06);
+            box-shadow: 0 0 35px rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+          }
+
+          .heroVideo {
+            width: 100%;
+            height: auto;
+            display: block;
+          }
+
+          .logoRow {
+            display: grid;
+            place-items: center;
+            margin-top: 1.25rem;
           }
 
           .heroTitle {
@@ -270,6 +280,7 @@ export default function Home() {
             background: rgba(255, 255, 255, 0.08);
             border-radius: 18px;
             padding: 1.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.12);
           }
 
           .price {
@@ -308,6 +319,7 @@ export default function Home() {
             max-width: 520px;
             margin-left: auto;
             margin-right: auto;
+            border: 1px solid rgba(255, 255, 255, 0.12);
           }
 
           .emailForm {
@@ -351,13 +363,30 @@ export default function Home() {
         `}</style>
 
         <div className="content">
-          <Image
-            src="/gritngrlogo.png"
-            alt="Grit & Grace Logo"
-            width={520}
-            height={520}
-            priority
-          />
+          {/* ✅ TOP VIDEO (no text overlay) */}
+          <div className="heroVideoWrap">
+            <video
+              className="heroVideo"
+              src="/GritStyle.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls={false}
+              preload="metadata"
+            />
+          </div>
+
+          {/* Logo */}
+          <div className="logoRow">
+            <Image
+              src="/gritngrlogo.png"
+              alt="Grit & Grace Logo"
+              width={520}
+              height={520}
+              priority
+            />
+          </div>
 
           <h1 className="heroTitle">GRIT & GRACE</h1>
 
@@ -405,10 +434,7 @@ export default function Home() {
               <div className="price">${activePrice}</div>
 
               {activeProductId ? (
-                <Link
-                  href={`/product/${activeProductId}`}
-                  className="btn btnPrimary"
-                >
+                <Link href={`/product/${activeProductId}`} className="btn btnPrimary">
                   View Product
                 </Link>
               ) : (
