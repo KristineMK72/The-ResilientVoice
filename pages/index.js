@@ -10,15 +10,7 @@ const FEATURED_PRODUCT_IDS = [
   "402034024", // Saved By Grace
   "405190886", // Patriot
 
-  // ✅ new featured items
-  "405945273",
-  "405510593",
-  "405369860",
-   const FEATURED_PRODUCT_IDS = [
-  "402034024", // Saved By Grace
-  "405190886", // Patriot
-
-  // ✅ new social featured items
+  // ✅ Social featured items (new)
   "408880904", // Messy
   "408880721", // Accidental Cheerleader
   "408880474", // Men’s Heavy Tee
@@ -26,11 +18,18 @@ const FEATURED_PRODUCT_IDS = [
   "408875632", // The Climb/Unforgettable
 ];
 
-];
+const SOCIAL_IDS = new Set([
+  "408880904",
+  "408880721",
+  "408880474",
+  "408880393",
+  "408875632",
+]);
 
 function getCollectionLabel(id) {
   if (id === "405190886") return "Patriot";
   if (id === "402034024") return "Saved By Grace";
+  if (SOCIAL_IDS.has(id)) return "Social";
   return "Featured";
 }
 
@@ -39,19 +38,15 @@ function money(n) {
   return Number.isFinite(num) ? num.toFixed(2) : "0.00";
 }
 
-/* ============================
-   PAGE
-============================ */
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const [emailStatus, setEmailStatus] = useState({
-    state: "idle",
+    state: "idle", // idle | loading | success | error
     message: "",
   });
-  // idle | loading | success | error
 
   /* ============================
      LOAD FEATURED PRODUCTS
@@ -69,8 +64,6 @@ export default function Home() {
             if (!res.ok) return null;
             const data = await res.json();
 
-            // Your API returns:
-            // { sync_product_id, name, thumbnail_url, variants:[{ retail_price, preview_url, sku, ...}] }
             return {
               ...data,
               collection: getCollectionLabel(id),
@@ -78,11 +71,11 @@ export default function Home() {
           })
         );
 
-        if (alive) {
-          const clean = results.filter(Boolean);
-          setFeaturedProducts(clean);
-          setActiveIndex(0);
-        }
+        if (!alive) return;
+
+        const clean = results.filter(Boolean);
+        setFeaturedProducts(clean);
+        setActiveIndex(0);
       } catch (e) {
         console.error("Featured load failed:", e);
         if (alive) setFeaturedProducts([]);
@@ -109,14 +102,20 @@ export default function Home() {
     return () => clearInterval(t);
   }, [featuredProducts.length]);
 
-  const activeProduct = useMemo(() => {
-    return featuredProducts[activeIndex] || null;
-  }, [featuredProducts, activeIndex]);
+  const activeProduct = useMemo(
+    () => featuredProducts[activeIndex] || null,
+    [featuredProducts, activeIndex]
+  );
 
   const activeImage = useMemo(() => {
     if (!activeProduct) return "/gritngrlogo.png";
     const v0 = activeProduct.variants?.[0];
-    return v0?.preview_url || activeProduct.thumbnail_url || "/gritngrlogo.png";
+    // Prefer thumbnail (most reliable), fallback to preview_url
+    return (
+      activeProduct.thumbnail_url ||
+      v0?.preview_url ||
+      "/gritngrlogo.png"
+    );
   }, [activeProduct]);
 
   const activePrice = useMemo(() => {
@@ -126,6 +125,49 @@ export default function Home() {
   }, [activeProduct]);
 
   const activeProductId = activeProduct?.sync_product_id;
+
+  /* ============================
+     EMAIL SIGNUP
+  ============================ */
+  async function onEmailSubmit(e) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const email = form.email.value?.trim();
+
+    if (!email) return;
+
+    setEmailStatus({ state: "loading", message: "" });
+
+    try {
+      const res = await fetch("/api/email-signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (res.ok) {
+        setEmailStatus({
+          state: "success",
+          message: "You’re in! Welcome ♥️",
+        });
+        form.reset();
+        setTimeout(() => {
+          window.location.href = "/welcome";
+        }, 900);
+      } else {
+        setEmailStatus({
+          state: "error",
+          message: "Something went wrong.",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      setEmailStatus({
+        state: "error",
+        message: "Network error — try again.",
+      });
+    }
+  }
 
   /* ============================
      RENDER
@@ -160,6 +202,7 @@ export default function Home() {
             background: conic-gradient(from 180deg, #ff0000, #0000ff, #ff0000);
             opacity: 0.08;
             animation: spin 30s linear infinite;
+            pointer-events: none;
           }
 
           @keyframes spin {
@@ -182,6 +225,7 @@ export default function Home() {
             background: linear-gradient(90deg, #ff4444, #fff, #4444ff);
             -webkit-background-clip: text;
             color: transparent;
+            margin: 0.75rem 0 0.25rem;
           }
 
           .heroTagline {
@@ -361,7 +405,10 @@ export default function Home() {
               <div className="price">${activePrice}</div>
 
               {activeProductId ? (
-                <Link href={`/product/${activeProductId}`} className="btn btnPrimary">
+                <Link
+                  href={`/product/${activeProductId}`}
+                  className="btn btnPrimary"
+                >
                   View Product
                 </Link>
               ) : (
@@ -388,34 +435,7 @@ export default function Home() {
             <h2>Join the Grit & Grace Family</h2>
             <p>Get encouragement, new releases, and impact updates.</p>
 
-            <form
-              className="emailForm"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const email = e.target.email.value;
-                setEmailStatus({ state: "loading", message: "" });
-
-                const res = await fetch("/api/email-signup", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ email }),
-                });
-
-                if (res.ok) {
-                  setEmailStatus({
-                    state: "success",
-                    message: "You’re in! Welcome ♥️",
-                  });
-                  e.target.reset();
-                  setTimeout(() => (window.location.href = "/welcome"), 900);
-                } else {
-                  setEmailStatus({
-                    state: "error",
-                    message: "Something went wrong.",
-                  });
-                }
-              }}
-            >
+            <form className="emailForm" onSubmit={onEmailSubmit}>
               <input
                 type="email"
                 name="email"
