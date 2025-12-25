@@ -4,6 +4,11 @@
  * - Global components (header/footer)
  * - Layout utilities
  * - Responsive adjustments
+ *
+ * Notes:
+ * - Slightly larger container default (1400px) for bigger hero/video layouts
+ * - Adds consistent focus styles + smoother typography defaults
+ * - Keeps your brand tokens + gradients intact
  */
 
 /* ---------------------------------- */
@@ -12,6 +17,7 @@
 :root {
   --bg: #0b1020;
   --bg2: #000;
+
   --surface: rgba(255, 255, 255, 0.06);
   --surface-strong: rgba(255, 255, 255, 0.10);
   --border: rgba(255, 255, 255, 0.12);
@@ -26,10 +32,15 @@
 
   --radius: 16px;
   --radius-sm: 12px;
+  --radius-lg: 22px;
 
   --shadow: 0 0 25px rgba(255, 255, 255, 0.18);
 
-  --container: 1100px;
+  /* Wider default container for modern hero layouts */
+  --container: 1400px;
+
+  /* Focus ring */
+  --focus: rgba(110, 231, 183, 0.55);
 }
 
 /* ---------------------------------- */
@@ -52,9 +63,12 @@ body {
     "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
   line-height: 1.6;
 
-  /* Default site background */
   color: var(--text);
   background: radial-gradient(circle at center, var(--bg) 0%, var(--bg2) 100%);
+
+  /* Slightly nicer text rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
@@ -66,9 +80,13 @@ a:hover {
   opacity: 0.95;
 }
 
-img {
+img,
+video {
   max-width: 100%;
   height: auto;
+}
+
+img {
   object-fit: cover;
 }
 
@@ -81,6 +99,13 @@ select {
 
 ::selection {
   background: rgba(255, 68, 68, 0.35);
+}
+
+/* Consistent, accessible focus */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 10px;
 }
 
 /* Container utility */
@@ -97,6 +122,10 @@ select {
 
 /* Header styles (components/Header.js) */
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
   background: rgba(0, 0, 0, 0.55);
   border-bottom: 1px solid var(--border);
   color: white;
@@ -106,13 +135,15 @@ select {
   justify-content: space-between;
   align-items: center;
 
-  /* Adds subtle blur like your homepage cards */
   backdrop-filter: blur(10px);
 }
 
 .header .brand {
   font-weight: 900;
   letter-spacing: 0.06em;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .header nav {
@@ -123,7 +154,6 @@ select {
 
 .header nav a {
   color: white;
-  text-decoration: none;
   padding: 8px 12px;
   border-radius: 12px;
   border: 1px solid transparent;
@@ -161,7 +191,7 @@ select {
   backdrop-filter: blur(10px);
 }
 
-/* Global button utilities (optional use anywhere) */
+/* Global button utilities */
 .btn {
   display: inline-block;
   padding: 0.95rem 1.2rem;
@@ -260,10 +290,6 @@ select {
     gap: 8px;
   }
 
-  .header nav a {
-    width: auto;
-  }
-
   /* Grid collapse */
   .main-grid {
     grid-template-columns: 1fr;
@@ -276,10 +302,10 @@ select {
     gap: 1rem;
   }
 
-  /* Button stack (if you want true stacking, uncomment the next 2 lines)
-     Otherwise it wraps nicely in rows. */
-  /* .center-on-mobile { flex-direction: column; align-items: stretch; } */
-  /* .center-on-mobile a, .center-on-mobile button { width: 100%; } */
+  /* Container padding tweak */
+  .container {
+    padding: 0 1rem;
+  }
 }
 
 /* Reduce motion for accessibility */
