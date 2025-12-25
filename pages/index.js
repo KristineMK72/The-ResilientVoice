@@ -10,7 +10,7 @@ const FEATURED_PRODUCT_IDS = [
   "402034024", // Saved By Grace
   "405190886", // Patriot
 
-  // ✅ Social featured items (new)
+  // ✅ Social new items
   "408880904", // Messy
   "408880721", // Accidental Cheerleader
   "408880474", // Men’s Heavy Tee
@@ -18,18 +18,17 @@ const FEATURED_PRODUCT_IDS = [
   "408875632", // The Climb/Unforgettable
 ];
 
-const SOCIAL_IDS = new Set([
-  "408880904",
-  "408880721",
-  "408880474",
-  "408880393",
-  "408875632",
-]);
-
 function getCollectionLabel(id) {
   if (id === "405190886") return "Patriot";
   if (id === "402034024") return "Saved By Grace";
-  if (SOCIAL_IDS.has(id)) return "Social";
+  if (
+    id === "408880904" ||
+    id === "408880721" ||
+    id === "408880474" ||
+    id === "408880393" ||
+    id === "408875632"
+  )
+    return "Social";
   return "Featured";
 }
 
@@ -43,8 +42,10 @@ export default function Home() {
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const [videoError, setVideoError] = useState(false);
+
   const [emailStatus, setEmailStatus] = useState({
-    state: "idle", // idle | loading | success | error
+    state: "idle",
     message: "",
   });
 
@@ -63,19 +64,15 @@ export default function Home() {
             const res = await fetch(`/api/printful-product/${id}`);
             if (!res.ok) return null;
             const data = await res.json();
-
-            return {
-              ...data,
-              collection: getCollectionLabel(id),
-            };
+            return { ...data, collection: getCollectionLabel(id) };
           })
         );
 
-        if (!alive) return;
-
-        const clean = results.filter(Boolean);
-        setFeaturedProducts(clean);
-        setActiveIndex(0);
+        if (alive) {
+          const clean = results.filter(Boolean);
+          setFeaturedProducts(clean);
+          setActiveIndex(0);
+        }
       } catch (e) {
         console.error("Featured load failed:", e);
         if (alive) setFeaturedProducts([]);
@@ -102,16 +99,14 @@ export default function Home() {
     return () => clearInterval(t);
   }, [featuredProducts.length]);
 
-  const activeProduct = useMemo(
-    () => featuredProducts[activeIndex] || null,
-    [featuredProducts, activeIndex]
-  );
+  const activeProduct = useMemo(() => {
+    return featuredProducts[activeIndex] || null;
+  }, [featuredProducts, activeIndex]);
 
   const activeImage = useMemo(() => {
     if (!activeProduct) return "/gritngrlogo.png";
     const v0 = activeProduct.variants?.[0];
-    // Prefer thumbnail (most reliable), fallback to variant preview
-    return activeProduct.thumbnail_url || v0?.preview_url || "/gritngrlogo.png";
+    return v0?.preview_url || activeProduct.thumbnail_url || "/gritngrlogo.png";
   }, [activeProduct]);
 
   const activePrice = useMemo(() => {
@@ -121,42 +116,6 @@ export default function Home() {
   }, [activeProduct]);
 
   const activeProductId = activeProduct?.sync_product_id;
-
-  /* ============================
-     EMAIL SIGNUP
-  ============================ */
-  async function onEmailSubmit(e) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const email = form.email.value?.trim();
-    if (!email) return;
-
-    setEmailStatus({ state: "loading", message: "" });
-
-    try {
-      const res = await fetch("/api/email-signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      if (res.ok) {
-        setEmailStatus({ state: "success", message: "You’re in! Welcome ♥️" });
-        form.reset();
-        setTimeout(() => {
-          window.location.href = "/welcome";
-        }, 900);
-      } else {
-        setEmailStatus({ state: "error", message: "Something went wrong." });
-      }
-    } catch (err) {
-      console.error(err);
-      setEmailStatus({
-        state: "error",
-        message: "Network error — try again.",
-      });
-    }
-  }
 
   return (
     <>
@@ -176,7 +135,7 @@ export default function Home() {
             min-height: 100vh;
             background: radial-gradient(circle at center, #0f172a 0%, #000 100%);
             color: white;
-            padding: 2rem 1.25rem 2.5rem;
+            padding: 2.5rem 1.25rem;
             text-align: center;
             position: relative;
             overflow: hidden;
@@ -188,7 +147,6 @@ export default function Home() {
             background: conic-gradient(from 180deg, #ff0000, #0000ff, #ff0000);
             opacity: 0.08;
             animation: spin 30s linear infinite;
-            pointer-events: none;
           }
 
           @keyframes spin {
@@ -204,38 +162,29 @@ export default function Home() {
             margin: 0 auto;
           }
 
-          /* ===== Top Video ===== */
           .heroVideoWrap {
-            width: 100%;
             max-width: 1100px;
             margin: 0 auto 1.5rem;
-            border-radius: 22px;
-            overflow: hidden;
-            background: rgba(255, 255, 255, 0.06);
-            box-shadow: 0 0 35px rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.12);
           }
 
           .heroVideo {
             width: 100%;
-            height: auto;
+            height: 62vh;
+            border-radius: 18px;
+            object-fit: cover;
             display: block;
-          }
-
-          .logoRow {
-            display: grid;
-            place-items: center;
-            margin-top: 1.25rem;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.06);
           }
 
           .heroTitle {
-            font-size: clamp(2.8rem, 6vw, 4.6rem);
+            font-size: clamp(2.6rem, 6vw, 4.6rem);
             font-weight: 950;
             letter-spacing: 0.08em;
             background: linear-gradient(90deg, #ff4444, #fff, #4444ff);
             -webkit-background-clip: text;
             color: transparent;
-            margin: 0.75rem 0 0.25rem;
+            margin-top: 1rem;
           }
 
           .heroTagline {
@@ -273,14 +222,12 @@ export default function Home() {
             background: #ff6b6b;
           }
 
-          /* ===== Carousel ===== */
           .carousel {
             max-width: 560px;
             margin: 2rem auto;
             background: rgba(255, 255, 255, 0.08);
             border-radius: 18px;
             padding: 1.25rem;
-            border: 1px solid rgba(255, 255, 255, 0.12);
           }
 
           .price {
@@ -310,7 +257,6 @@ export default function Home() {
             background: white;
           }
 
-          /* ===== Email ===== */
           .emailBox {
             margin-top: 2.5rem;
             padding: 1.5rem;
@@ -319,7 +265,6 @@ export default function Home() {
             max-width: 520px;
             margin-left: auto;
             margin-right: auto;
-            border: 1px solid rgba(255, 255, 255, 0.12);
           }
 
           .emailForm {
@@ -360,33 +305,48 @@ export default function Home() {
           .error {
             color: #ffb4b4;
           }
+
+          .tinyNote {
+            opacity: 0.8;
+            font-size: 0.95rem;
+            margin-top: 0.75rem;
+          }
         `}</style>
 
         <div className="content">
-          {/* ✅ TOP VIDEO (no text overlay) */}
+          {/* ✅ HERO VIDEO FIRST */}
           <div className="heroVideoWrap">
-            <video
-              className="heroVideo"
-              src="/GritStyle.mp4"
-              autoPlay
-              muted
-              loop
-              playsInline
-              controls={false}
-              preload="metadata"
-            />
+            {!videoError ? (
+              <video
+                className="heroVideo"
+                src="/GritStyle.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                onError={() => setVideoError(true)}
+              />
+            ) : (
+              <div className="carousel">
+                <div style={{ fontWeight: 900, marginBottom: 6 }}>
+                  Video couldn’t load
+                </div>
+                <div className="tinyNote">
+                  Make sure the file is in <code>public/GritStyle.mp4</code> and
+                  that you can open <code>/GritStyle.mp4</code> in the browser.
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Logo */}
-          <div className="logoRow">
-            <Image
-              src="/gritngrlogo.png"
-              alt="Grit & Grace Logo"
-              width={520}
-              height={520}
-              priority
-            />
-          </div>
+          <Image
+            src="/gritngrlogo.png"
+            alt="Grit & Grace Logo"
+            width={420}
+            height={420}
+            priority
+          />
 
           <h1 className="heroTitle">GRIT & GRACE</h1>
 
@@ -408,7 +368,7 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* Featured */}
+          {/* Featured carousel */}
           {loadingFeatured ? (
             <div className="carousel">Loading featured…</div>
           ) : activeProduct ? (
@@ -434,7 +394,10 @@ export default function Home() {
               <div className="price">${activePrice}</div>
 
               {activeProductId ? (
-                <Link href={`/product/${activeProductId}`} className="btn btnPrimary">
+                <Link
+                  href={`/product/${activeProductId}`}
+                  className="btn btnPrimary"
+                >
                   View Product
                 </Link>
               ) : (
@@ -461,7 +424,34 @@ export default function Home() {
             <h2>Join the Grit & Grace Family</h2>
             <p>Get encouragement, new releases, and impact updates.</p>
 
-            <form className="emailForm" onSubmit={onEmailSubmit}>
+            <form
+              className="emailForm"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const email = e.target.email.value;
+                setEmailStatus({ state: "loading", message: "" });
+
+                const res = await fetch("/api/email-signup", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ email }),
+                });
+
+                if (res.ok) {
+                  setEmailStatus({
+                    state: "success",
+                    message: "You’re in! Welcome ♥️",
+                  });
+                  e.target.reset();
+                  setTimeout(() => (window.location.href = "/welcome"), 900);
+                } else {
+                  setEmailStatus({
+                    state: "error",
+                    message: "Something went wrong.",
+                  });
+                }
+              }}
+            >
               <input
                 type="email"
                 name="email"
