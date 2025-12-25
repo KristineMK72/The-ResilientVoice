@@ -6,6 +6,9 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
+/* -----------------------------
+   Variant parsing helpers
+------------------------------ */
 function splitVariantParts(name = "") {
   return String(name)
     .split("/")
@@ -19,19 +22,26 @@ function parseSizeFromVariantName(name = "") {
 }
 
 function parseColorFromVariantName(name = "") {
+  // Expected formats:
+  // - "Product / Black / L"
+  // - "Product / L" (no color)
   const parts = splitVariantParts(name);
   if (parts.length >= 3) return parts[parts.length - 2];
   return "Default";
 }
 
-// Build candidate local image URLs for a product.
-// We don't know how many you have, so we try a few common slots.
-function buildLocalCandidates(productId) {
-  if (!productId) return [];
-  const maxSlots = 6; // adjust if you ever want more
-  const out = [];
-  for (let i = 1; i <= maxSlots; i++) out.push(`/${productId}_${i}.png`);
-  return out;
+/* -----------------------------
+   Local image convention
+   /public/{id}_1.png  (front)
+   /public/{id}_2.png  (back)
+------------------------------ */
+function localFront(syncProductId) {
+  if (!syncProductId) return null;
+  return `/${syncProductId}_1.png`;
+}
+function localBack(syncProductId) {
+  if (!syncProductId) return null;
+  return `/${syncProductId}_2.png`;
 }
 
 export default function ProductPage() {
@@ -41,18 +51,31 @@ export default function ProductPage() {
   const [product, setProduct] = useState(null);
   const [added, setAdded] = useState(false);
 
+  // Selected Printful sync_variant_id (fulfillment id)
   const [selectedSyncVariantId, setSelectedSyncVariantId] = useState(null);
+
+  // Color selection (derived from variant naming)
   const [selectedColor, setSelectedColor] = useState(null);
 
+  // Optional Stripe availability map: { [sku]: { available: boolean, price_id?: string } }
   const [availability, setAvailability] = useState({});
   const [checking, setChecking] = useState(false);
 
-  // Gallery state
-  const [localGallery, setLocalGallery] = useState([]); // confirmed existing local images
-  const [activeImage, setActiveImage] = useState(null); // string url
+  // Front/back view
+  const [view, setView] = useState("front"); // "front" | "back"
 
+  // Image sources with fallback behavior
+  const [frontSrc, setFrontSrc] = useState("/fallback.png");
+  const [backSrc, setBackSrc] = useState(null); // if null, no back toggle
+  const [frontTriedLocal, setFrontTriedLocal] = useState(false);
+  const [backTriedLocal, setBackTriedLocal] = useState(false);
+
+  /* -----------------------------
+     Fetch product
+  ------------------------------ */
   useEffect(() => {
     if (!id) return;
+
     let cancelled = false;
 
     (async () => {
@@ -68,13 +91,14 @@ export default function ProductPage() {
 
         setProduct(data);
 
+        // Default selection: first variant
         if (data?.variants?.length) {
           const first = data.variants[0];
           setSelectedSyncVariantId(first.sync_variant_id);
           setSelectedColor(parseColorFromVariantName(first.name));
         }
 
-        // OPTIONAL: Stripe sku checks
+        // OPTIONAL: check Stripe mapping for SKUs
         setChecking(true);
         try {
           const skus = (data.variants || [])
@@ -96,7 +120,7 @@ export default function ProductPage() {
             }
           }
         } catch (e) {
-          // ignore
+          // ignore if endpoint doesn't exist yet
         } finally {
           if (!cancelled) setChecking(false);
         }
@@ -112,6 +136,9 @@ export default function ProductPage() {
 
   const variants = product?.variants || [];
 
+  /* -----------------------------
+     Group variants by color
+  ------------------------------ */
   const variantsByColor = useMemo(() => {
     const map = {};
     for (const v of variants) {
@@ -120,6 +147,7 @@ export default function ProductPage() {
       map[color].push(v);
     }
 
+    // Nice size ordering when possible
     const sizeOrder = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"];
     for (const color of Object.keys(map)) {
       map[color].sort((a, b) => {
@@ -139,6 +167,7 @@ export default function ProductPage() {
 
   const availableColors = useMemo(() => Object.keys(variantsByColor), [variantsByColor]);
 
+  // Keep selectedColor valid
   useEffect(() => {
     if (!variants.length) return;
 
@@ -157,6 +186,7 @@ export default function ProductPage() {
     return variantsByColor[selectedColor] || [];
   }, [variants, variantsByColor, selectedColor]);
 
+  // Keep selected variant aligned with selectedColor
   useEffect(() => {
     if (!filteredVariants.length) return;
     const match = filteredVariants.find((v) => v.sync_variant_id === selectedSyncVariantId);
@@ -169,52 +199,48 @@ export default function ProductPage() {
     return variants.find((v) => v.sync_variant_id === selectedSyncVariantId) || null;
   }, [variants, selectedSyncVariantId]);
 
+  /* -----------------------------
+     Image logic:
+     - front: local {id}_1.png -> remote Printful -> fallback
+     - back: local {id}_2.png -> if missing hide back
+  ------------------------------ */
   const remoteSrc =
     selectedVariant?.preview_url || product?.thumbnail_url || "/fallback.png";
 
-  // Build/validate local gallery images whenever product changes
+  const frontLocal = localFront(product?.sync_product_id);
+  const backLocal = localBack(product?.sync_product_id);
+
   useEffect(() => {
-    const pid = product?.sync_product_id;
-    if (!pid) return;
+    // default view
+    setView("front");
 
-    let alive = true;
-    const candidates = buildLocalCandidates(pid);
+    // FRONT: local first, then remote
+    if (frontLocal) {
+      setFrontSrc(frontLocal);
+      setFrontTriedLocal(true);
+    } else {
+      setFrontSrc(remoteSrc);
+      setFrontTriedLocal(false);
+    }
 
-    // Validate existence by trying to load images in the browser
-    (async () => {
-      const checks = await Promise.all(
-        candidates.map(
-          (src) =>
-            new Promise((resolve) => {
-              const img = new window.Image();
-              img.onload = () => resolve(src);
-              img.onerror = () => resolve(null);
-              img.src = src;
-            })
-        )
-      );
+    // BACK: local first; if it fails, we'll hide it
+    if (backLocal) {
+      setBackSrc(backLocal);
+      setBackTriedLocal(true);
+    } else {
+      setBackSrc(null);
+      setBackTriedLocal(false);
+    }
+  }, [frontLocal, backLocal, remoteSrc]);
 
-      const existing = checks.filter(Boolean);
+  const activeImgSrc = useMemo(() => {
+    if (view === "back" && backSrc) return backSrc;
+    return frontSrc;
+  }, [view, backSrc, frontSrc]);
 
-      if (!alive) return;
-      setLocalGallery(existing);
-
-      // Set active image:
-      // prefer remote (variant-specific) for accuracy; if user clicks thumb it changes
-      setActiveImage(remoteSrc);
-    })();
-
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product?.sync_product_id]);
-
-  // When variant changes, reset to accurate remote image (unless user intentionally chose a local thumb)
-  useEffect(() => {
-    setActiveImage(remoteSrc);
-  }, [remoteSrc]);
-
+  /* -----------------------------
+     Price + availability
+  ------------------------------ */
   const displayPrice = useMemo(() => {
     const p = selectedVariant?.retail_price ?? filteredVariants?.[0]?.retail_price ?? "0";
     const n = Number(p);
@@ -222,12 +248,13 @@ export default function ProductPage() {
   }, [selectedVariant, filteredVariants]);
 
   const selectedSku = useMemo(() => (selectedVariant?.sku || "").trim(), [selectedVariant]);
+
   const selectedIsMissingSku = !selectedSku;
 
   const selectedIsUnavailable = useMemo(() => {
     if (!selectedSku) return true;
     const entry = availability[selectedSku];
-    if (!entry) return false;
+    if (!entry) return false; // unknown = allow
     return entry.available === false;
   }, [selectedSku, availability]);
 
@@ -250,12 +277,15 @@ export default function ProductPage() {
       sync_product_id: product.sync_product_id,
       sync_variant_id: selectedVariant.sync_variant_id,
       catalog_variant_id: selectedVariant.catalog_variant_id,
+
       sku,
       name: selectedVariant.name || product.name,
       price: Number(selectedVariant.retail_price || 0),
       image: remoteSrc || "/fallback.png",
       quantity: 1,
       is_synced: true,
+
+      // helpful for cart UI
       color: parseColorFromVariantName(selectedVariant.name),
       size: parseSizeFromVariantName(selectedVariant.name),
     };
@@ -292,13 +322,6 @@ export default function ProductPage() {
     availableColors.length > 1 ||
     (availableColors.length === 1 && availableColors[0] !== "Default");
 
-  // Gallery list: remote first (accurate), then local extras
-  const galleryList = useMemo(() => {
-    const list = [remoteSrc, ...localGallery];
-    // de-dupe
-    return Array.from(new Set(list.filter(Boolean)));
-  }, [remoteSrc, localGallery]);
-
   return (
     <div
       style={{
@@ -309,11 +332,45 @@ export default function ProductPage() {
         textAlign: "center",
       }}
     >
-      {/* Product Image */}
-      <div style={{ maxWidth: "560px", margin: "0 auto 1rem" }}>
+      {/* Product Image + Front/Back toggle */}
+      <div style={{ maxWidth: "560px", margin: "0 auto 1.5rem" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 12 }}>
+          <button
+            onClick={() => setView("front")}
+            style={{
+              padding: "8px 14px",
+              borderRadius: "999px",
+              border: view === "front" ? "2px solid #ff4444" : "1px solid rgba(148,163,184,0.35)",
+              background: view === "front" ? "rgba(255,68,68,0.16)" : "rgba(255,255,255,0.02)",
+              color: view === "front" ? "#ff6b6b" : "white",
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            Front
+          </button>
+
+          {backSrc && (
+            <button
+              onClick={() => setView("back")}
+              style={{
+                padding: "8px 14px",
+                borderRadius: "999px",
+                border: view === "back" ? "2px solid #ff4444" : "1px solid rgba(148,163,184,0.35)",
+                background: view === "back" ? "rgba(255,68,68,0.16)" : "rgba(255,255,255,0.02)",
+                color: view === "back" ? "#ff6b6b" : "white",
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              Back
+            </button>
+          )}
+        </div>
+
         <Image
-          src={activeImage || remoteSrc}
-          alt={product.name}
+          src={activeImgSrc}
+          alt={`${product.name} ${view}`}
           width={700}
           height={700}
           priority
@@ -322,54 +379,51 @@ export default function ProductPage() {
             boxShadow: "0 0 50px rgba(255,255,255,0.14)",
             objectFit: "contain",
           }}
-          onError={() => setActiveImage("/fallback.png")}
-        />
+          onError={() => {
+            // FRONT: local -> remote -> fallback
+            if (view === "front") {
+              if (frontTriedLocal && frontSrc !== remoteSrc) {
+                setFrontSrc(remoteSrc);
+                setFrontTriedLocal(false);
+                return;
+              }
+              setFrontSrc("/fallback.png");
+              return;
+            }
 
-        {/* Thumbnails */}
-        {galleryList.length > 1 && (
-          <div
-            style={{
-              marginTop: 12,
-              display: "flex",
-              gap: 10,
-              justifyContent: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            {galleryList.map((src) => {
-              const isActive = (activeImage || remoteSrc) === src;
-              return (
-                <button
-                  key={src}
-                  onClick={() => setActiveImage(src)}
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 12,
-                    overflow: "hidden",
-                    border: isActive ? "2px solid #ff4444" : "1px solid rgba(255,255,255,0.18)",
-                    background: "rgba(255,255,255,0.06)",
-                    padding: 0,
-                    cursor: "pointer",
-                  }}
-                  aria-label="Preview image"
-                >
-                  <img
-                    src={src}
-                    alt="thumb"
-                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                  />
-                </button>
-              );
-            })}
-          </div>
-        )}
+            // BACK: if local back fails, hide it (toggle disappears)
+            if (view === "back") {
+              if (backTriedLocal) {
+                setBackSrc(null);
+                setBackTriedLocal(false);
+                setView("front");
+                return;
+              }
+              setBackSrc(null);
+              setView("front");
+            }
+          }}
+        />
       </div>
 
       {/* Title */}
       <h1 style={{ fontSize: "2.2rem", fontWeight: 900, margin: "1rem 0" }}>
         {product.name}
       </h1>
+
+      {!!product.description && (
+        <p
+          style={{
+            fontSize: "1.05rem",
+            maxWidth: "840px",
+            margin: "0.75rem auto 1.25rem",
+            lineHeight: 1.6,
+            opacity: 0.9,
+          }}
+        >
+          {product.description}
+        </p>
+      )}
 
       {/* Price */}
       <p style={{ fontSize: "2rem", fontWeight: "bold", color: "#ff6b6b", margin: "1rem 0 1.25rem" }}>
@@ -449,6 +503,7 @@ export default function ProductPage() {
             {filteredVariants.map((variant) => {
               const size = parseSizeFromVariantName(variant.name);
               const sku = (variant.sku || "").trim();
+
               const known = sku ? availability[sku] : null;
               const disabled = !sku || (known && known.available === false);
 
@@ -473,8 +528,10 @@ export default function ProductPage() {
                     fontSize: "1rem",
                     fontWeight: 700,
                     opacity: disabled ? 0.7 : 1,
+                    transform: isSelected ? "translateY(-1px)" : "none",
                     transition: "all 0.15s ease",
                   }}
+                  title={!sku ? "SKU missing for this size" : known?.available === false ? "Not available" : ""}
                 >
                   {size}
                 </button>
@@ -482,6 +539,7 @@ export default function ProductPage() {
             })}
           </div>
 
+          {/* Messaging */}
           <div style={{ marginTop: 12, minHeight: 22 }}>
             {selectedIsMissingSku ? (
               <p style={{ color: "#fbbf24", margin: 0, fontWeight: 700 }}>
@@ -495,7 +553,9 @@ export default function ProductPage() {
               <p style={{ opacity: 0.75, margin: 0 }}>
                 Selected:{" "}
                 <span style={{ fontWeight: 800 }}>
-                  {showColorPicker && selectedVariant ? `${parseColorFromVariantName(selectedVariant.name)} / ` : ""}
+                  {showColorPicker && selectedVariant
+                    ? `${parseColorFromVariantName(selectedVariant.name)} / `
+                    : ""}
                   {parseSizeFromVariantName(selectedVariant?.name)}
                 </span>
               </p>
@@ -519,6 +579,7 @@ export default function ProductPage() {
             fontWeight: 900,
             cursor: selectedIsMissingSku || selectedIsUnavailable ? "not-allowed" : "pointer",
             boxShadow: "0 10px 26px rgba(255,68,68,0.28)",
+            transition: "transform 0.12s ease",
           }}
         >
           Add to Cart
