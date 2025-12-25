@@ -1,3 +1,7 @@
+// pages/saved-by-grace.js (or pages/SavedByGrace.js — keep your existing filename)
+// ✅ Same exact look, faster loading (parallel fetch + timeout + session cache)
+// ✅ Also fixes the Next.js <Link><a> nesting issue (Next 13/14)
+
 "use client";
 
 import { PRINTFUL_PRODUCTS } from "../lib/printfulMap";
@@ -46,28 +50,74 @@ export default function SavedByGrace() {
     return () => clearInterval(interval);
   }, []);
 
+  // ✅ FAST load (parallel fetch + concurrency limit + timeout + session cache)
   useEffect(() => {
     let cancelled = false;
 
-    async function loadProducts() {
+    async function loadProductsFast() {
       try {
         setLoading(true);
         setError(null);
 
+        if (!YOUR_PRODUCT_IDS.length) {
+          setProducts([]);
+          setLoading(false);
+          setError("No products configured — check PRINTFUL_PRODUCTS map.");
+          return;
+        }
+
+        // quick client cache so back/forward feels instant
+        const cacheKey = `saved_by_grace_${YOUR_PRODUCT_IDS.join("_")}`;
+        try {
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (!cancelled && Array.isArray(parsed) && parsed.length) {
+              setProducts(parsed);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch {
+          // ignore cache errors
+        }
+
+        // timeout wrapper
+        const withTimeout = async (fn, ms = 15000) => {
+          const controller = new AbortController();
+          const t = setTimeout(() => controller.abort(), ms);
+          try {
+            return await fn(controller.signal);
+          } finally {
+            clearTimeout(t);
+          }
+        };
+
+        const fetchOne = (id) =>
+          withTimeout(async (signal) => {
+            const res = await fetch(`/api/printful-product/${id}`, { signal });
+            if (!res.ok) return { __error: true, id, status: res.status };
+            return await res.json();
+          });
+
+        // concurrency limiter (keeps things snappy on mobile)
+        const CONCURRENCY = 6;
+        const ids = [...YOUR_PRODUCT_IDS];
         const results = [];
 
-        for (const id of YOUR_PRODUCT_IDS) {
-          try {
-            const res = await fetch(`/api/printful-product/${id}`);
-            if (!res.ok) {
-              console.warn(`Failed to load ${id}: ${res.status}`);
-              continue;
+        for (let i = 0; i < ids.length; i += CONCURRENCY) {
+          const chunk = ids.slice(i, i + CONCURRENCY);
+          const settled = await Promise.allSettled(chunk.map(fetchOne));
+
+          settled.forEach((r) => {
+            if (r.status === "fulfilled" && r.value && !r.value.__error) {
+              results.push(r.value);
+            } else if (r.status === "fulfilled" && r.value?.__error) {
+              console.warn(`⚠️ Failed ${r.value.id}: ${r.value.status}`);
+            } else {
+              console.warn("⚠️ Fetch error:", r.reason?.message || r.reason);
             }
-            const data = await res.json();
-            results.push(data);
-          } catch (err) {
-            console.error(`Error loading ${id}:`, err);
-          }
+          });
         }
 
         results.sort((a, b) => (a?.name || "").localeCompare(b?.name || ""));
@@ -77,20 +127,28 @@ export default function SavedByGrace() {
           setLoading(false);
 
           if (results.length === 0) {
-            setError(
-              "No products loaded — check /api/printful-product/:id responses."
-            );
+            setError("No products loaded — check /api/printful-product/:id responses.");
+          } else {
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify(results));
+            } catch {
+              // ignore
+            }
           }
         }
       } catch (e) {
         if (!cancelled) {
           setLoading(false);
-          setError("Failed to load products — check console.");
+          setError(
+            e?.name === "AbortError"
+              ? "Loading timed out — please refresh."
+              : "Failed to load products — check console."
+          );
         }
       }
     }
 
-    loadProducts();
+    loadProductsFast();
     return () => {
       cancelled = true;
     };
@@ -111,6 +169,22 @@ export default function SavedByGrace() {
       <div style={{ textAlign: "center", padding: "10rem 1rem" }}>
         <p style={{ fontSize: "1.8rem", color: "#ff6b6b" }}>{error}</p>
         <p style={{ color: "#aaa" }}>Check browser console for details.</p>
+        <div style={{ marginTop: "1rem" }}>
+          <button
+            onClick={() => location.reload()}
+            style={{
+              padding: "0.85rem 1.2rem",
+              borderRadius: "999px",
+              border: "1px solid rgba(0,0,0,0.10)",
+              background: "rgba(255,255,255,0.7)",
+              color: "#7a4f85",
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -212,7 +286,7 @@ export default function SavedByGrace() {
 
           <h1
             style={{
-              fontSize: "clamp(2.6rem, 5vw, 4rem)", // ✅ smaller + responsive
+              fontSize: "clamp(2.6rem, 5vw, 4rem)",
               fontWeight: "900",
               color: "#9f6baa",
               margin: "0 0 0.9rem",
@@ -345,13 +419,10 @@ export default function SavedByGrace() {
             zIndex: 2,
           }}
         >
-          {products.map((product) => {
-            const productId = String(
-              product?.sync_product_id ?? product?.id ?? ""
-            );
+          {products.map((product, idx) => {
+            const productId = String(product?.sync_product_id ?? product?.id ?? "");
             const firstVariant = product?.variants?.[0];
-            const price =
-              firstVariant?.retail_price ?? firstVariant?.price ?? "0";
+            const price = firstVariant?.retail_price ?? firstVariant?.price ?? "0";
 
             return (
               <div
@@ -365,13 +436,11 @@ export default function SavedByGrace() {
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "translateY(-4px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 24px 70px rgba(0,0,0,0.16)";
+                  e.currentTarget.style.boxShadow = "0 24px 70px rgba(0,0,0,0.16)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow =
-                    "0 18px 55px rgba(0,0,0,0.12)";
+                  e.currentTarget.style.boxShadow = "0 18px 55px rgba(0,0,0,0.12)";
                 }}
               >
                 <Link href={`/product/${productId}`}>
@@ -388,10 +457,10 @@ export default function SavedByGrace() {
                       alt={product.name}
                       fill
                       style={{ objectFit: "contain", padding: "36px" }}
-                      priority
+                      // ✅ do NOT preload every image
+                      priority={idx < 2}
                     />
 
-                    {/* corner badge */}
                     <div
                       style={{
                         position: "absolute",
@@ -434,24 +503,23 @@ export default function SavedByGrace() {
                     {formatPrice(price)}
                   </p>
 
-                  <Link href={`/product/${productId}`}>
-                    <a
-                      style={{
-                        display: "inline-block",
-                        width: "100%",
-                        padding: "1.15rem",
-                        background:
-                          "linear-gradient(135deg, #9f6baa 0%, #c08bd0 100%)",
-                        color: "white",
-                        borderRadius: "16px",
-                        fontSize: "1.15rem",
-                        fontWeight: "900",
-                        textDecoration: "none",
-                        boxShadow: "0 14px 30px rgba(159,107,170,0.28)",
-                      }}
-                    >
-                      View Details →
-                    </a>
+                  <Link
+                    href={`/product/${productId}`}
+                    style={{
+                      display: "inline-block",
+                      width: "100%",
+                      padding: "1.15rem",
+                      background:
+                        "linear-gradient(135deg, #9f6baa 0%, #c08bd0 100%)",
+                      color: "white",
+                      borderRadius: "16px",
+                      fontSize: "1.15rem",
+                      fontWeight: "900",
+                      textDecoration: "none",
+                      boxShadow: "0 14px 30px rgba(159,107,170,0.28)",
+                    }}
+                  >
+                    View Details →
                   </Link>
                 </div>
               </div>
