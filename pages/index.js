@@ -176,8 +176,11 @@ export default function Home() {
          /* ===== HERO VIDEO (responsive, no clipping) ===== */
 .heroVideoWrap {
   width: 100%;
-  max-width: 1100px;
+  max-width: 520px;
+  max-height: 70vh;
   margin: 0 auto 1.5rem;
+
+  aspect-ratio: 9 / 16;
   border-radius: 18px;
   overflow: hidden;
 
