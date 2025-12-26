@@ -173,26 +173,28 @@ export default function Home() {
             margin: 0 auto;
           }
 
-          /* ===== HERO VIDEO (responsive, no clipping) ===== */
-          .heroVideoWrap {
-            width: 100%;
-            max-width: 1100px;
-            margin: 0 auto 1.5rem;
-            border-radius: 18px;
-            overflow: hidden;
-            background: rgba(255, 255, 255, 0.06);
-            box-shadow: 0 0 40px rgba(255, 255, 255, 0.08);
+         /* ===== HERO VIDEO (responsive, no clipping) ===== */
+.heroVideoWrap {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto 1.5rem;
+  border-radius: 18px;
+  overflow: hidden;
 
-            /* 🔥 Fix: always scales correctly */
-            aspect-ratio: 16 / 9;
-          }
+  background: #000; /* ✅ better letterboxing */
+  box-shadow: 0 0 40px rgba(255, 255, 255, 0.08);
 
-          .heroVideo {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-          }
+  aspect-ratio: 9 / 16;
+}
+
+.heroVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* ✅ no cropping */
+  display: block;
+  background: #000; /* ✅ consistent */
+}
+
 
           .heroFallback {
             width: 100%;
