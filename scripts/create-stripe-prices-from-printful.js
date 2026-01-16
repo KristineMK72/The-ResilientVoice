@@ -33,7 +33,7 @@ async function findOrCreateProduct(sync_product_id, product_name) {
 async function findPriceBySku(sku) {
   // 1) lookup_key is the best
   try {
-    const byLookup = await stripe.prices.list({ lookup_keys: [sku], limit: 1 });
+    const byLookup = await stripe.prices.list({ lookup_keys: [`${sku}-v2`], limit: 1 });
     if (byLookup.data?.length) return byLookup.data[0];
   } catch {
     // ignore
@@ -136,7 +136,7 @@ fs.createReadStream("printful_variants.csv")
 
         // IMPORTANT: if amount/currency changed, Stripe requires a NEW price
         if (amountChanged || currencyChanged) {
-          const idem = `pfv3-${sync_variant_id}-${unit_amount}-${currency}`;
+          const idem = `pfv3v2-${sync_variant_id}-${unit_amount}-${currency}`;
 
           try {
             // Create new price
@@ -146,7 +146,7 @@ fs.createReadStream("printful_variants.csv")
                 unit_amount,
                 currency,
                 nickname: `${color} / ${size}`,
-                lookup_key: sku,
+                lookup_key: `${sku}-v2`,
                 metadata,
               },
               { idempotencyKey: idem }
@@ -170,7 +170,7 @@ fs.createReadStream("printful_variants.csv")
       }
 
       // 3) Create new price if missing
-      const idem = `pfv3-${sync_variant_id}-${unit_amount}-${currency}`;
+      const idem = `pfv3v2-${sync_variant_id}-${unit_amount}-${currency}`;
       try {
         const price = await stripe.prices.create(
           {
@@ -178,7 +178,7 @@ fs.createReadStream("printful_variants.csv")
             unit_amount,
             currency,
             nickname: `${color} / ${size}`,
-            lookup_key: sku,
+            lookup_key: `${sku}-v2`,
             metadata,
           },
           { idempotencyKey: idem }
