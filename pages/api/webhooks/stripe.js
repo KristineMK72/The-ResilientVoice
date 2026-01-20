@@ -275,8 +275,8 @@ export default async function handler(req, res) {
     }
 
     // Create Printful order with SAFE external_id
-    const safeExternalId = generateSafeExternalId(session.id);
-    console.log(`Creating Printful order | external_id: ${safeExternalId} | items: ${JSON.stringify(printfulItems)}`);
+    //const safeExternalId = generateSafeExternalId(session.id);
+    //console.log(`Creating Printful order | external_id: ${safeExternalId} | items: ${JSON.stringify(printfulItems)}`);
 
     const printfulRes = await fetch("https://api.printful.com/orders?update_existing=true", {  // ← Added update_existing for safety
       method: "POST",
@@ -285,7 +285,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        external_id: safeExternalId,          // ← FIXED HERE
+        //external_id: safeExternalId,          
         recipient,
         items: printfulItems,
         confirm: true,
