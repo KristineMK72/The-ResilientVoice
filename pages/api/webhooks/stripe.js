@@ -2,7 +2,6 @@
 import Stripe from "stripe";
 import { buffer } from "micro";
 import { createClient } from "@supabase/supabase-js";
-import crypto from 'crypto'; // ← Added for safe external_id
 
 export const config = {
   api: { bodyParser: false },
