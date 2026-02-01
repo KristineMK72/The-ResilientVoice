@@ -40,11 +40,11 @@ export default function SavedByGrace() {
     const ids = [
       // existing grace items
       PRINTFUL_PRODUCTS.joy?.sync_product_id,
-      PRINTFUL_PRODUCTS.strength?.sync_product_id,
+      PRINTFUL_PRODUCTS.seasonal_joy?.sync_product_id,
+      PRINTFUL_PRODUCTS.strong?.sync_product_id,
       PRINTFUL_PRODUCTS.courageous?.sync_product_id,
+      PRINTFUL_PRODUCTS.watchman?.sync_product_id,
       PRINTFUL_PRODUCTS.builder?.sync_product_id,
-      PRINTFUL_PRODUCTS.power?.sync_product_id,
-      PRINTFUL_PRODUCTS.redeemed?.sync_product_id,
       PRINTFUL_PRODUCTS.unshaken?.sync_product_id,
       PRINTFUL_PRODUCTS.radiant?.sync_product_id,
       PRINTFUL_PRODUCTS.love?.sync_product_id,
