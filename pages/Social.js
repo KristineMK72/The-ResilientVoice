@@ -1,7 +1,4 @@
 // pages/Social.js
-// ✅ Same look, faster loading (parallel fetch + timeout + session cache)
-// ✅ Only first 2 product images are priority (better performance)
-
 "use client";
 
 import { PRINTFUL_PRODUCTS } from "../lib/printfulMap";
@@ -11,7 +8,6 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { formatPrice } from "../lib/formatPrice";
 
-// --- Phrases + Buzzwords ---
 const SOCIAL_PHRASES = [
   "Take a deep breath. You are enough.",
   "Community is our greatest resource.",
@@ -46,25 +42,40 @@ export default function Social() {
 
   const [currentPhrase, setCurrentPhrase] = useState(0);
 
-  // ✅ Pull ALL products tagged category: "social" from the map
-  const SOCIAL_PRODUCT_IDS = useMemo(() => {
-    const ids = Object.values(PRINTFUL_PRODUCTS)
-      .filter((p) => p?.category === "social" && p?.sync_product_id)
-      .map((p) => String(p.sync_product_id));
-
-    return Array.from(new Set(ids));
+  // id -> title (your short titles)
+  const TITLE_BY_ID = useMemo(() => {
+    const entries = Object.values(PRINTFUL_PRODUCTS)
+      .filter((p) => p?.sync_product_id && p?.title)
+      .map((p) => [String(p.sync_product_id), p.title]);
+    return Object.fromEntries(entries);
   }, []);
 
-  // ✅ Phrase rotation
+  // Pull all category: "social" in a stable order (map order OR sort if provided)
+  const SOCIAL_PRODUCT_IDS = useMemo(() => {
+    const list = Object.values(PRINTFUL_PRODUCTS)
+      .filter((p) => p?.category === "social" && p?.sync_product_id)
+      .map((p) => ({
+        id: String(p.sync_product_id),
+        sort: typeof p.sort === "number" ? p.sort : null,
+      }));
+
+    const hasSort = list.some((x) => x.sort !== null);
+    const ordered = hasSort
+      ? [...list].sort((a, b) => (a.sort ?? 9999) - (b.sort ?? 9999))
+      : list;
+
+    return Array.from(new Set(ordered.map((x) => x.id)));
+  }, []);
+
+  // Phrase rotation
   useEffect(() => {
     const intervalId = setInterval(() => {
       setCurrentPhrase((prev) => (prev + 1) % SOCIAL_PHRASES.length);
     }, 5000);
-
     return () => clearInterval(intervalId);
   }, []);
 
-  // ✅ FAST product loading: parallel fetch + client cache + timeout
+  // FAST load (parallel fetch + concurrency + cache)
   useEffect(() => {
     let cancelled = false;
 
@@ -76,12 +87,13 @@ export default function Social() {
         if (!SOCIAL_PRODUCT_IDS.length) {
           setProducts([]);
           setLoading(false);
-          setError("No Social products configured — check PRINTFUL_PRODUCTS map categories.");
+          setError("No Social products configured — check PRINTFUL_PRODUCTS category='social'.");
           return;
         }
 
-        // session cache (makes back/forward instant)
-        const cacheKey = `social_products_${SOCIAL_PRODUCT_IDS.join("_")}`;
+        const CACHE_VERSION = "v2";
+        const cacheKey = `social_products_${CACHE_VERSION}_${SOCIAL_PRODUCT_IDS.join("_")}`;
+
         try {
           const cached = sessionStorage.getItem(cacheKey);
           if (cached) {
@@ -93,7 +105,7 @@ export default function Social() {
             }
           }
         } catch {
-          // ignore cache errors
+          // ignore
         }
 
         const withTimeout = async (fn, ms = 15000) => {
@@ -113,7 +125,6 @@ export default function Social() {
             return await res.json();
           });
 
-        // concurrency limiter
         const CONCURRENCY = 6;
         const ids = [...SOCIAL_PRODUCT_IDS];
         const results = [];
@@ -133,7 +144,13 @@ export default function Social() {
           });
         }
 
-        results.sort((a, b) => (a?.name || "").localeCompare(b?.name || ""));
+        // Keep the order of SOCIAL_PRODUCT_IDS
+        const orderIndex = new Map(ids.map((id, i) => [String(id), i]));
+        results.sort((a, b) => {
+          const aId = String(a?.sync_product_id ?? a?.id ?? "");
+          const bId = String(b?.sync_product_id ?? b?.id ?? "");
+          return (orderIndex.get(aId) ?? 9999) - (orderIndex.get(bId) ?? 9999);
+        });
 
         if (!cancelled) {
           setProducts(results);
@@ -187,7 +204,7 @@ export default function Social() {
             "radial-gradient(circle at 25% 15%, #312e81 0%, #1e293b 45%, #020617 100%)",
         }}
       >
-        {/* animated calming glow */}
+        {/* animated glow */}
         <div
           style={{
             position: "absolute",
@@ -221,7 +238,6 @@ export default function Social() {
             margin: "0 auto",
           }}
         >
-          {/* logo */}
           <div
             style={{
               width: "92px",
@@ -279,7 +295,6 @@ export default function Social() {
             </span>
           </p>
 
-          {/* small pill */}
           <div
             style={{
               marginTop: "1.8rem",
@@ -363,32 +378,16 @@ export default function Social() {
 
         {/* Status */}
         {loading && (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "2rem 1rem",
-              position: "relative",
-              zIndex: 10,
-            }}
-          >
-            <p style={{ fontSize: "1.8rem", color: "#93c5fd" }}>
-              Loading Social Impact collection…
-            </p>
+          <div style={{ textAlign: "center", padding: "2rem 1rem", position: "relative", zIndex: 10 }}>
+            <p style={{ fontSize: "1.8rem", color: "#93c5fd" }}>Loading Social Impact collection…</p>
             <p style={{ color: "#cbd5e1", marginTop: "0.5rem" }}>
-              Tip: after first load it should be faster (cached).
+              Tip: after the first load, it should be faster (cached).
             </p>
           </div>
         )}
 
         {error && (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "2rem 1rem",
-              position: "relative",
-              zIndex: 10,
-            }}
-          >
+          <div style={{ textAlign: "center", padding: "2rem 1rem", position: "relative", zIndex: 10 }}>
             <p style={{ fontSize: "1.4rem", color: "#ff6b6b" }}>{error}</p>
             <p style={{ color: "#bdbdbd" }}>Check browser console for details.</p>
             <div style={{ marginTop: "1rem" }}>
@@ -425,11 +424,14 @@ export default function Social() {
             }}
           >
             {products.map((product, idx) => {
-              const productId = String(product?.sync_product_id ?? "");
+              const productId = String(product?.sync_product_id ?? product?.id ?? "");
               if (!productId) return null;
 
               const firstVariant = product?.variants?.[0];
               const price = firstVariant?.retail_price ?? firstVariant?.price ?? "0";
+
+              const displayName = TITLE_BY_ID[productId] || product?.name || "Product";
+              const imgSrc = product?.thumbnail_url || product?.preview_url || "/faithLogo.png";
 
               return (
                 <div
@@ -453,11 +455,10 @@ export default function Social() {
                   <Link href={`/product/${productId}`}>
                     <div style={{ height: "460px", position: "relative", background: "#0b1220" }}>
                       <Image
-                        src={product.thumbnail_url || product.preview_url}
-                        alt={product.name}
+                        src={imgSrc}
+                        alt={displayName}
                         fill
                         style={{ objectFit: "contain", padding: "40px" }}
-                        // ✅ only preload a couple images
                         priority={idx < 2}
                       />
                       <div
@@ -483,12 +484,13 @@ export default function Social() {
                     <h3
                       style={{
                         margin: "0 0 0.75rem",
-                        fontSize: "1.55rem",
-                        fontWeight: "900",
+                        fontSize: "1.45rem",
+                        fontWeight: 500, // ✅ lighter, not bold
                         color: "#1f2937",
+                        letterSpacing: "0.01em",
                       }}
                     >
-                      {product.name}
+                      {displayName}
                     </h3>
 
                     <p
