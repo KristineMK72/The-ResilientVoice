@@ -1,6 +1,8 @@
-// pages/saved-by-grace.js (or pages/SavedByGrace.js — keep your existing filename)
-// ✅ Same exact look, faster loading (parallel fetch + timeout + session cache)
-// ✅ Also fixes the Next.js <Link><a> nesting issue (Next 13/14)
+// pages/saved-by-grace.js
+// ✅ Same look, faster loading (parallel fetch + timeout + session cache)
+// ✅ Fixes Next.js <Link><a> nesting issue (Next 13/14)
+// ✅ Adds new Grace items + uses your short titles from PRINTFUL_PRODUCTS
+// ✅ Product title font is lighter (not bold)
 
 "use client";
 
@@ -24,8 +26,19 @@ export default function SavedByGrace() {
   ];
   const [currentScripture, setCurrentScripture] = useState(0);
 
+  // Map sync_product_id -> your short title from printfulMap
+  const TITLE_BY_ID = useMemo(() => {
+    const entries = Object.values(PRINTFUL_PRODUCTS)
+      .filter((p) => p?.sync_product_id && p?.title)
+      .map((p) => [String(p.sync_product_id), p.title]);
+
+    return Object.fromEntries(entries);
+  }, []);
+
+  // ✅ Grace collection IDs (existing + newly added)
   const YOUR_PRODUCT_IDS = useMemo(() => {
     const ids = [
+      // existing grace items
       PRINTFUL_PRODUCTS.joy?.sync_product_id,
       PRINTFUL_PRODUCTS.strength?.sync_product_id,
       PRINTFUL_PRODUCTS.courageous?.sync_product_id,
@@ -36,6 +49,15 @@ export default function SavedByGrace() {
       PRINTFUL_PRODUCTS.radiant?.sync_product_id,
       PRINTFUL_PRODUCTS.love?.sync_product_id,
       PRINTFUL_PRODUCTS.faith?.sync_product_id,
+
+      // NEW grace items (from your latest Printful IDs)
+      PRINTFUL_PRODUCTS.chosen_tee?.sync_product_id,
+      PRINTFUL_PRODUCTS.truth_tee_alt?.sync_product_id,
+      PRINTFUL_PRODUCTS.faith_tee_alt?.sync_product_id, // keep if you want both Faith versions
+      PRINTFUL_PRODUCTS.saved_garment_dyed_long_sleeve?.sync_product_id,
+      PRINTFUL_PRODUCTS.forgiven_free_garment_dyed_long_sleeve?.sync_product_id,
+      PRINTFUL_PRODUCTS.saved_redeemed_garment_dyed_long_sleeve?.sync_product_id,
+      PRINTFUL_PRODUCTS.saved_redeemed_garment_dyed_hoodie?.sync_product_id,
     ]
       .filter(Boolean)
       .map(String);
@@ -120,7 +142,13 @@ export default function SavedByGrace() {
           });
         }
 
-        results.sort((a, b) => (a?.name || "").localeCompare(b?.name || ""));
+        // Keep your preferred order (based on YOUR_PRODUCT_IDS), not alphabetical
+        const orderIndex = new Map(ids.map((id, i) => [String(id), i]));
+        results.sort((a, b) => {
+          const aId = String(a?.sync_product_id ?? a?.id ?? "");
+          const bId = String(b?.sync_product_id ?? b?.id ?? "");
+          return (orderIndex.get(aId) ?? 9999) - (orderIndex.get(bId) ?? 9999);
+        });
 
         if (!cancelled) {
           setProducts(results);
@@ -424,9 +452,15 @@ export default function SavedByGrace() {
             const firstVariant = product?.variants?.[0];
             const price = firstVariant?.retail_price ?? firstVariant?.price ?? "0";
 
+            // Use your short title when available (falls back to API name)
+            const displayName = TITLE_BY_ID[productId] || product?.name || "Product";
+
+            // Image fallback (avoid Next/Image crashing on undefined)
+            const imgSrc = product?.thumbnail_url || product?.preview_url || "/faithLogo.png";
+
             return (
               <div
-                key={productId}
+                key={productId || idx}
                 style={{
                   borderRadius: "28px",
                   overflow: "hidden",
@@ -453,11 +487,10 @@ export default function SavedByGrace() {
                     }}
                   >
                     <Image
-                      src={product.thumbnail_url || product.preview_url}
-                      alt={product.name}
+                      src={imgSrc}
+                      alt={displayName}
                       fill
                       style={{ objectFit: "contain", padding: "36px" }}
-                      // ✅ do NOT preload every image
                       priority={idx < 2}
                     />
 
@@ -484,19 +517,20 @@ export default function SavedByGrace() {
                   <h3
                     style={{
                       margin: "0 0 0.75rem",
-                      fontSize: "1.55rem",
-                      fontWeight: "800",
+                      fontSize: "1.45rem",
+                      fontWeight: 500, // ✅ not bold
                       color: "#2b2b2b",
+                      letterSpacing: "0.01em",
                     }}
                   >
-                    {product.name}
+                    {displayName}
                   </h3>
 
                   <p
                     style={{
                       margin: "0.9rem 0 1.3rem",
                       fontSize: "2rem",
-                      fontWeight: "900",
+                      fontWeight: 900,
                       color: "#9f6baa",
                     }}
                   >
@@ -514,7 +548,7 @@ export default function SavedByGrace() {
                       color: "white",
                       borderRadius: "16px",
                       fontSize: "1.15rem",
-                      fontWeight: "900",
+                      fontWeight: 900,
                       textDecoration: "none",
                       boxShadow: "0 14px 30px rgba(159,107,170,0.28)",
                     }}
