@@ -1,17 +1,17 @@
 // pages/saved-by-grace.js
 // ✅ Same look, faster loading (parallel fetch + timeout + session cache)
-// ✅ Fixes Next.js <Link><a> nesting issue (Next 13/14)
-// ✅ Adds new Grace items + uses your short titles from PRINTFUL_PRODUCTS
+// ✅ Uses your short titles from lib/printfulMap.js (so Printful long descriptions never show)
+// ✅ Keeps correct order + fixes “Builder=Courageous” swap by using corrected IDs
 // ✅ Product title font is lighter (not bold)
 
 "use client";
 
-import { PRINTFUL_PRODUCTS } from "../lib/printfulMap";
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { formatPrice } from "../lib/formatPrice";
+import { PRINTFUL_PRODUCTS } from "../lib/printfulMap";
 
 export default function SavedByGrace() {
   const [products, setProducts] = useState([]);
@@ -26,43 +26,23 @@ export default function SavedByGrace() {
   ];
   const [currentScripture, setCurrentScripture] = useState(0);
 
-  // Map sync_product_id -> your short title from printfulMap
+  // ✅ Keep your desired order here (keys from PRINTFUL_PRODUCTS)
+  const GRACE_KEYS = useMemo(() => ["joy", "seasonal_joy", "strong", "courageous", "watchman", "builder", "power", "redeemed", "unshaken", "radiant", "chosen_tee", "love_tee", "faith_tee", "truth_tee", "saved_long_sleeve", "forgiven_free_long_sleeve", "saved_redeemed_long_sleeve", "saved_redeemed_hoodie"], []);
+
+  // ✅ IDs in the same order as GRACE_KEYS
+  const YOUR_PRODUCT_IDS = useMemo(() => {
+    return GRACE_KEYS
+      .map((k) => PRINTFUL_PRODUCTS[k]?.sync_product_id)
+      .filter(Boolean)
+      .map(String);
+  }, [GRACE_KEYS]);
+
+  // sync_product_id -> short title
   const TITLE_BY_ID = useMemo(() => {
     const entries = Object.values(PRINTFUL_PRODUCTS)
       .filter((p) => p?.sync_product_id && p?.title)
       .map((p) => [String(p.sync_product_id), p.title]);
-
     return Object.fromEntries(entries);
-  }, []);
-
-  // ✅ Grace collection IDs (existing + newly added)
-  const YOUR_PRODUCT_IDS = useMemo(() => {
-    const ids = [
-      // existing grace items
-      PRINTFUL_PRODUCTS.joy?.sync_product_id,
-      PRINTFUL_PRODUCTS.seasonal_joy?.sync_product_id,
-      PRINTFUL_PRODUCTS.strong?.sync_product_id,
-      PRINTFUL_PRODUCTS.courageous?.sync_product_id,
-      PRINTFUL_PRODUCTS.watchman?.sync_product_id,
-      PRINTFUL_PRODUCTS.builder?.sync_product_id,
-      PRINTFUL_PRODUCTS.unshaken?.sync_product_id,
-      PRINTFUL_PRODUCTS.radiant?.sync_product_id,
-      PRINTFUL_PRODUCTS.love?.sync_product_id,
-      PRINTFUL_PRODUCTS.faith?.sync_product_id,
-
-      // NEW grace items (from your latest Printful IDs)
-      PRINTFUL_PRODUCTS.chosen_tee?.sync_product_id,
-      PRINTFUL_PRODUCTS.truth_tee_alt?.sync_product_id,
-      PRINTFUL_PRODUCTS.faith_tee_alt?.sync_product_id, // keep if you want both Faith versions
-      PRINTFUL_PRODUCTS.saved_garment_dyed_long_sleeve?.sync_product_id,
-      PRINTFUL_PRODUCTS.forgiven_free_garment_dyed_long_sleeve?.sync_product_id,
-      PRINTFUL_PRODUCTS.saved_redeemed_garment_dyed_long_sleeve?.sync_product_id,
-      PRINTFUL_PRODUCTS.saved_redeemed_garment_dyed_hoodie?.sync_product_id,
-    ]
-      .filter(Boolean)
-      .map(String);
-
-    return Array.from(new Set(ids));
   }, []);
 
   useEffect(() => {
@@ -72,7 +52,6 @@ export default function SavedByGrace() {
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ FAST load (parallel fetch + concurrency limit + timeout + session cache)
   useEffect(() => {
     let cancelled = false;
 
@@ -84,12 +63,14 @@ export default function SavedByGrace() {
         if (!YOUR_PRODUCT_IDS.length) {
           setProducts([]);
           setLoading(false);
-          setError("No products configured — check PRINTFUL_PRODUCTS map.");
+          setError("No products configured — check PRINTFUL_PRODUCTS (Grace IDs).");
           return;
         }
 
+        // ✅ cache version bump so old wrong-name caches don't persist
+        const cacheKey = `saved_by_grace_v3_${YOUR_PRODUCT_IDS.join("_")}`;
+
         // quick client cache so back/forward feels instant
-        const cacheKey = `saved_by_grace_${YOUR_PRODUCT_IDS.join("_")}`;
         try {
           const cached = sessionStorage.getItem(cacheKey);
           if (cached) {
@@ -104,7 +85,6 @@ export default function SavedByGrace() {
           // ignore cache errors
         }
 
-        // timeout wrapper
         const withTimeout = async (fn, ms = 15000) => {
           const controller = new AbortController();
           const t = setTimeout(() => controller.abort(), ms);
@@ -142,7 +122,7 @@ export default function SavedByGrace() {
           });
         }
 
-        // Keep your preferred order (based on YOUR_PRODUCT_IDS), not alphabetical
+        // ✅ keep order the same as YOUR_PRODUCT_IDS
         const orderIndex = new Map(ids.map((id, i) => [String(id), i]));
         results.sort((a, b) => {
           const aId = String(a?.sync_product_id ?? a?.id ?? "");
@@ -388,52 +368,6 @@ export default function SavedByGrace() {
           {scriptures[currentScripture]}
         </div>
 
-        {/* Buzzword cloud */}
-        <div
-          style={{
-            maxWidth: "980px",
-            margin: "0 auto 3.5rem",
-            padding: "0 1rem",
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            gap: "0.75rem",
-            position: "relative",
-            zIndex: 2,
-          }}
-        >
-          {[
-            "Redeemed",
-            "Chosen",
-            "Grace",
-            "Hope",
-            "Strength",
-            "Beloved",
-            "Restored",
-            "Faith",
-            "Light",
-            "Courage",
-            "Mercy",
-            "Peace",
-          ].map((word) => (
-            <span
-              key={word}
-              style={{
-                padding: "0.55rem 1rem",
-                background: "rgba(255,255,255,0.9)",
-                borderRadius: "999px",
-                fontSize: "1rem",
-                color: "#7a4f85",
-                boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
-                fontWeight: "700",
-                border: "1px solid rgba(159,107,170,0.12)",
-              }}
-            >
-              {word}
-            </span>
-          ))}
-        </div>
-
         {/* Product grid */}
         <div
           style={{
@@ -452,10 +386,7 @@ export default function SavedByGrace() {
             const firstVariant = product?.variants?.[0];
             const price = firstVariant?.retail_price ?? firstVariant?.price ?? "0";
 
-            // Use your short title when available (falls back to API name)
             const displayName = TITLE_BY_ID[productId] || product?.name || "Product";
-
-            // Image fallback (avoid Next/Image crashing on undefined)
             const imgSrc = product?.thumbnail_url || product?.preview_url || "/faithLogo.png";
 
             return (
@@ -482,8 +413,7 @@ export default function SavedByGrace() {
                     style={{
                       height: "430px",
                       position: "relative",
-                      background:
-                        "linear-gradient(180deg, #faf7ff 0%, #f6f1fb 100%)",
+                      background: "linear-gradient(180deg, #faf7ff 0%, #f6f1fb 100%)",
                     }}
                   >
                     <Image
@@ -518,7 +448,7 @@ export default function SavedByGrace() {
                     style={{
                       margin: "0 0 0.75rem",
                       fontSize: "1.45rem",
-                      fontWeight: 500, // ✅ not bold
+                      fontWeight: 500, // ✅ lighter (not bold)
                       color: "#2b2b2b",
                       letterSpacing: "0.01em",
                     }}
@@ -543,8 +473,7 @@ export default function SavedByGrace() {
                       display: "inline-block",
                       width: "100%",
                       padding: "1.15rem",
-                      background:
-                        "linear-gradient(135deg, #9f6baa 0%, #c08bd0 100%)",
+                      background: "linear-gradient(135deg, #9f6baa 0%, #c08bd0 100%)",
                       color: "white",
                       borderRadius: "16px",
                       fontSize: "1.15rem",
