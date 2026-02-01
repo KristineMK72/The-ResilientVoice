@@ -39,26 +39,32 @@ export default function Patriot() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [currentPhrase, setCurrentPhrase] = useState(0);
 
-  const PATRIOT_PRODUCT_IDS = useMemo(() => {
-    const ids = [
-      PRINTFUL_PRODUCTS.freedom_long_sleeve?.sync_product_id,
-      PRINTFUL_PRODUCTS.patriot_sweatshirt?.sync_product_id,
-      PRINTFUL_PRODUCTS.womens_patriot_tee?.sync_product_id,
-      PRINTFUL_PRODUCTS.patriot_crew_neck?.sync_product_id,
-      PRINTFUL_PRODUCTS.patriot_hoodie?.sync_product_id,
-      PRINTFUL_PRODUCTS.we_the_people?.sync_product_id,
-      PRINTFUL_PRODUCTS.patriot_leggings?.sync_product_id,
-      PRINTFUL_PRODUCTS.patriot_boxy_jersey?.sync_product_id,
-      PRINTFUL_PRODUCTS.multi_color_joggers?.sync_product_id,
-      PRINTFUL_PRODUCTS.multicolor_sweatshirt?.sync_product_id,
-    ]
-      .filter(Boolean)
-      .map(String);
+  // id -> title (your short titles)
+  const TITLE_BY_ID = useMemo(() => {
+    const entries = Object.values(PRINTFUL_PRODUCTS)
+      .filter((p) => p?.sync_product_id && p?.title)
+      .map((p) => [String(p.sync_product_id), p.title]);
+    return Object.fromEntries(entries);
+  }, []);
 
-    return Array.from(new Set(ids));
+  // Keep a stable order: use PRINTFUL_PRODUCTS order, or p.sort if you add it.
+  const PATRIOT_PRODUCT_IDS = useMemo(() => {
+    const list = Object.values(PRINTFUL_PRODUCTS)
+      .filter((p) => p?.category === "patriot" && p?.sync_product_id)
+      .map((p) => ({
+        id: String(p.sync_product_id),
+        sort: typeof p.sort === "number" ? p.sort : null,
+      }));
+
+    // If any items have sort numbers, sort by sort; otherwise keep object order.
+    const hasSort = list.some((x) => x.sort !== null);
+    const ordered = hasSort
+      ? [...list].sort((a, b) => (a.sort ?? 9999) - (b.sort ?? 9999))
+      : list;
+
+    return Array.from(new Set(ordered.map((x) => x.id)));
   }, []);
 
   // Phrase rotation
@@ -69,7 +75,7 @@ export default function Patriot() {
     return () => clearInterval(intervalId);
   }, []);
 
-  // ✅ FAST product loading: parallel fetch + client cache + graceful timeout
+  // FAST product loading: parallel fetch + cache + timeout + stable order
   useEffect(() => {
     let cancelled = false;
 
@@ -81,12 +87,14 @@ export default function Patriot() {
         if (!PATRIOT_PRODUCT_IDS.length) {
           setProducts([]);
           setLoading(false);
-          setError("No PATRIOT product IDs found in PRINTFUL_PRODUCTS map.");
+          setError("No Patriot products configured — check PRINTFUL_PRODUCTS category='patriot'.");
           return;
         }
 
-        // Optional: quick client-side cache (session) to avoid re-fetch on back/forward
-        const cacheKey = `patriot_products_${PATRIOT_PRODUCT_IDS.join("_")}`;
+        // bump this if you want to force-refresh cache across deploys
+        const CACHE_VERSION = "v2";
+        const cacheKey = `patriot_products_${CACHE_VERSION}_${PATRIOT_PRODUCT_IDS.join("_")}`;
+
         try {
           const cached = sessionStorage.getItem(cacheKey);
           if (cached) {
@@ -98,72 +106,64 @@ export default function Patriot() {
             }
           }
         } catch {
-          // ignore cache errors
+          // ignore
         }
 
-        // Timeout helper so we don't hang forever on slow networks
-        const withTimeout = async (promise, ms = 12000) => {
+        const withTimeout = async (fn, ms = 15000) => {
           const controller = new AbortController();
           const t = setTimeout(() => controller.abort(), ms);
-
           try {
-            // promise must accept signal; we wrap fetch below
-            const result = await promise(controller.signal);
-            return result;
+            return await fn(controller.signal);
           } finally {
             clearTimeout(t);
           }
         };
 
         const fetchOne = (id) =>
-          withTimeout(
-            async (signal) => {
-              const res = await fetch(`/api/printful-product/${id}`, { signal });
-              if (!res.ok) {
-                return { __error: true, id, status: res.status };
-              }
-              const data = await res.json();
-              return data;
-            },
-            15000
-          );
+          withTimeout(async (signal) => {
+            const res = await fetch(`/api/printful-product/${id}`, { signal });
+            if (!res.ok) return { __error: true, id, status: res.status };
+            return await res.json();
+          });
 
-        // ✅ Parallel (but don’t melt the browser): simple concurrency limiter
         const CONCURRENCY = 6;
         const ids = [...PATRIOT_PRODUCT_IDS];
         const results = [];
 
         for (let i = 0; i < ids.length; i += CONCURRENCY) {
           const chunk = ids.slice(i, i + CONCURRENCY);
-          const chunkResults = await Promise.allSettled(chunk.map(fetchOne));
+          const settled = await Promise.allSettled(chunk.map(fetchOne));
 
-          chunkResults.forEach((r) => {
+          settled.forEach((r) => {
             if (r.status === "fulfilled" && r.value && !r.value.__error) {
               results.push(r.value);
             } else if (r.status === "fulfilled" && r.value?.__error) {
-              console.warn(`⚠️ Product failed ${r.value.id}: ${r.value.status}`);
+              console.warn(`⚠️ Failed ${r.value.id}: ${r.value.status}`);
             } else {
-              console.warn("⚠️ Product fetch failed:", r.reason?.message || r.reason);
+              console.warn("⚠️ Fetch error:", r.reason?.message || r.reason);
             }
           });
         }
 
-        results.sort((a, b) => (a?.name || "").localeCompare(b?.name || ""));
+        // Keep the order of PATRIOT_PRODUCT_IDS
+        const orderIndex = new Map(ids.map((id, i) => [String(id), i]));
+        results.sort((a, b) => {
+          const aId = String(a?.sync_product_id ?? a?.id ?? "");
+          const bId = String(b?.sync_product_id ?? b?.id ?? "");
+          return (orderIndex.get(aId) ?? 9999) - (orderIndex.get(bId) ?? 9999);
+        });
 
         if (!cancelled) {
           setProducts(results);
           setLoading(false);
 
           if (results.length === 0) {
-            setError(
-              "No Patriot products loaded. Check Vercel logs and /api/printful-product/:id responses."
-            );
+            setError("No Patriot products loaded — check /api/printful-product/:id responses.");
           } else {
-            // save to session cache
             try {
               sessionStorage.setItem(cacheKey, JSON.stringify(results));
             } catch {
-              // ignore storage quota errors
+              // ignore
             }
           }
         }
@@ -172,7 +172,7 @@ export default function Patriot() {
           setLoading(false);
           setError(
             e?.name === "AbortError"
-              ? "Loading timed out — your connection may be slow. Please refresh."
+              ? "Loading timed out — please refresh."
               : "Failed to load products — check console."
           );
         }
@@ -239,7 +239,6 @@ export default function Patriot() {
             margin: "0 auto",
           }}
         >
-          {/* logo block */}
           <div
             style={{
               width: "92px",
@@ -297,7 +296,6 @@ export default function Patriot() {
             </span>
           </p>
 
-          {/* pill note */}
           <div
             style={{
               marginTop: "1.8rem",
@@ -381,32 +379,16 @@ export default function Patriot() {
 
         {/* Status */}
         {loading && (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "2rem 1rem",
-              position: "relative",
-              zIndex: 10,
-            }}
-          >
-            <p style={{ fontSize: "1.8rem", color: "#93c5fd" }}>
-              Loading Patriot collection…
-            </p>
+          <div style={{ textAlign: "center", padding: "2rem 1rem", position: "relative", zIndex: 10 }}>
+            <p style={{ fontSize: "1.8rem", color: "#93c5fd" }}>Loading Patriot collection…</p>
             <p style={{ color: "#cbd5e1", marginTop: "0.5rem" }}>
-              Tip: After the first load, it should be faster (cached).
+              Tip: after the first load, it should be faster (cached).
             </p>
           </div>
         )}
 
         {error && (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "2rem 1rem",
-              position: "relative",
-              zIndex: 10,
-            }}
-          >
+          <div style={{ textAlign: "center", padding: "2rem 1rem", position: "relative", zIndex: 10 }}>
             <p style={{ fontSize: "1.4rem", color: "#ff6b6b" }}>{error}</p>
             <div style={{ marginTop: "1rem" }}>
               <button
@@ -448,6 +430,9 @@ export default function Patriot() {
               const firstVariant = product?.variants?.[0];
               const price = firstVariant?.retail_price ?? firstVariant?.price ?? "0";
 
+              const displayName = TITLE_BY_ID[productId] || product?.name || "Product";
+              const imgSrc = product?.thumbnail_url || product?.preview_url || "/gritngrlogo.png";
+
               return (
                 <div
                   key={productId}
@@ -468,19 +453,12 @@ export default function Patriot() {
                   }}
                 >
                   <Link href={`/product/${productId}`}>
-                    <div
-                      style={{
-                        height: "460px",
-                        position: "relative",
-                        background: "#0b1220",
-                      }}
-                    >
+                    <div style={{ height: "460px", position: "relative", background: "#0b1220" }}>
                       <Image
-                        src={product.thumbnail_url || product.preview_url}
-                        alt={product.name}
+                        src={imgSrc}
+                        alt={displayName}
                         fill
                         style={{ objectFit: "contain", padding: "40px" }}
-                        // ✅ only preload the first couple images
                         priority={idx < 2}
                       />
 
@@ -507,12 +485,13 @@ export default function Patriot() {
                     <h3
                       style={{
                         margin: "0 0 0.75rem",
-                        fontSize: "1.55rem",
-                        fontWeight: "900",
+                        fontSize: "1.45rem",
+                        fontWeight: 500, // ✅ lighter, not bold
                         color: "#1f2937",
+                        letterSpacing: "0.01em",
                       }}
                     >
-                      {product.name}
+                      {displayName}
                     </h3>
 
                     <p
