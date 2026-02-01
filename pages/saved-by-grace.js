@@ -1,7 +1,7 @@
 // pages/saved-by-grace.js
 // ✅ Same look, faster loading (parallel fetch + timeout + session cache)
 // ✅ Uses your short titles from lib/printfulMap.js (so Printful long descriptions never show)
-// ✅ Keeps correct order + fixes “Builder=Courageous” swap by using corrected IDs
+// ✅ Keeps correct order + avoids "wrong name" issues by always using map titles
 // ✅ Product title font is lighter (not bold)
 
 "use client";
@@ -26,18 +26,38 @@ export default function SavedByGrace() {
   ];
   const [currentScripture, setCurrentScripture] = useState(0);
 
-  // ✅ Keep your desired order here (keys from PRINTFUL_PRODUCTS)
-  const GRACE_KEYS = useMemo(() => ["joy", "seasonal_joy", "strong", "courageous", "watchman", "builder", "power", "redeemed", "unshaken", "radiant", "chosen_tee", "love_tee", "faith_tee", "truth_tee", "saved_long_sleeve", "forgiven_free_long_sleeve", "saved_redeemed_long_sleeve", "saved_redeemed_hoodie"], []);
+  // ✅ Your preferred order (keys from PRINTFUL_PRODUCTS)
+  const GRACE_KEYS = useMemo(
+    () => [
+      "joy",
+      "seasonal_joy",
+      "strong",
+      "courageous",
+      "watchman",
+      "builder",
+      "power",
+      "redeemed",
+      "unshaken",
+      "radiant",
+      "chosen_tee",
+      "love_tee",
+      "faith_tee",
+      "truth_tee",
 
-  // ✅ IDs in the same order as GRACE_KEYS
-  const YOUR_PRODUCT_IDS = useMemo(() => {
-    return GRACE_KEYS
-      .map((k) => PRINTFUL_PRODUCTS[k]?.sync_product_id)
-      .filter(Boolean)
-      .map(String);
-  }, [GRACE_KEYS]);
+      // ✅ These 3 were showing on Social but should be Grace:
+      "light_classic_tee",
+      "saved_messy_heavyweight_tee",
+      "messy_fine_jersey_tee",
 
-  // sync_product_id -> short title
+      "saved_long_sleeve",
+      "forgiven_free_long_sleeve",
+      "saved_redeemed_long_sleeve",
+      "saved_redeemed_hoodie",
+    ],
+    []
+  );
+
+  // sync_product_id -> short title from PRINTFUL_PRODUCTS
   const TITLE_BY_ID = useMemo(() => {
     const entries = Object.values(PRINTFUL_PRODUCTS)
       .filter((p) => p?.sync_product_id && p?.title)
@@ -45,12 +65,27 @@ export default function SavedByGrace() {
     return Object.fromEntries(entries);
   }, []);
 
+  // ✅ IDs in the same order as GRACE_KEYS (ignore missing keys safely)
+  const YOUR_PRODUCT_IDS = useMemo(() => {
+    const ids = GRACE_KEYS.map((k) => PRINTFUL_PRODUCTS[k]?.sync_product_id)
+      .filter(Boolean)
+      .map(String);
+
+    // also include any other items tagged grace that aren't in GRACE_KEYS yet
+    const extraGrace = Object.values(PRINTFUL_PRODUCTS)
+      .filter((p) => p?.category === "grace" && p?.sync_product_id)
+      .map((p) => String(p.sync_product_id))
+      .filter((id) => !ids.includes(id));
+
+    return Array.from(new Set([...ids, ...extraGrace]));
+  }, [GRACE_KEYS]);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentScripture((prev) => (prev + 1) % scriptures.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [scriptures.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,7 +103,7 @@ export default function SavedByGrace() {
         }
 
         // ✅ cache version bump so old wrong-name caches don't persist
-        const cacheKey = `saved_by_grace_v3_${YOUR_PRODUCT_IDS.join("_")}`;
+        const cacheKey = `saved_by_grace_v4_${YOUR_PRODUCT_IDS.join("_")}`;
 
         // quick client cache so back/forward feels instant
         try {
@@ -387,7 +422,8 @@ export default function SavedByGrace() {
             const price = firstVariant?.retail_price ?? firstVariant?.price ?? "0";
 
             const displayName = TITLE_BY_ID[productId] || product?.name || "Product";
-            const imgSrc = product?.thumbnail_url || product?.preview_url || "/faithLogo.png";
+            const imgSrc =
+              product?.thumbnail_url || product?.preview_url || "/faithLogo.png";
 
             return (
               <div
@@ -413,7 +449,8 @@ export default function SavedByGrace() {
                     style={{
                       height: "430px",
                       position: "relative",
-                      background: "linear-gradient(180deg, #faf7ff 0%, #f6f1fb 100%)",
+                      background:
+                        "linear-gradient(180deg, #faf7ff 0%, #f6f1fb 100%)",
                     }}
                   >
                     <Image
@@ -473,7 +510,8 @@ export default function SavedByGrace() {
                       display: "inline-block",
                       width: "100%",
                       padding: "1.15rem",
-                      background: "linear-gradient(135deg, #9f6baa 0%, #c08bd0 100%)",
+                      background:
+                        "linear-gradient(135deg, #9f6baa 0%, #c08bd0 100%)",
                       color: "white",
                       borderRadius: "16px",
                       fontSize: "1.15rem",
