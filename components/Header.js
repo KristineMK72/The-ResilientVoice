@@ -100,7 +100,7 @@ export default function Header() {
                   letterSpacing: "0.15em",
                 }}
               >
-                A Resilient Voice
+                For A Resilient Voice
               </span>
             </div>
           </Link>
