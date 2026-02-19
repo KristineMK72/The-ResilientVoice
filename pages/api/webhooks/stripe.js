@@ -2,13 +2,16 @@
 import Stripe from "stripe";
 import { buffer } from "micro";
 import { createClient } from "@supabase/supabase-js";
+import crypto from "crypto"; // ✅ needed if/when you enable external_id hashing
 
 export const config = {
   api: { bodyParser: false },
 };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-06-30.basil",
+  // Keep this stable for reliability. If your account is set to a newer pinned version, use that.
+  // Your Printful flow already works, so changing this is optional, but this one is proven stable.
+  apiVersion: "2022-11-15",
 });
 
 const supabase = createClient(
@@ -33,7 +36,8 @@ function envOk() {
   if (!process.env.STRIPE_SECRET_KEY) missing.push("STRIPE_SECRET_KEY");
   if (!process.env.STRIPE_WEBHOOK_SECRET) missing.push("STRIPE_WEBHOOK_SECRET");
   if (!process.env.SUPABASE_URL) missing.push("SUPABASE_URL");
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY)
+    missing.push("SUPABASE_SERVICE_ROLE_KEY");
   return { ok: missing.length === 0, missing };
 }
 
@@ -58,23 +62,28 @@ function parsePrintfulItemsFromSession(session) {
           i.quantity > 0
       );
   } catch (e) {
-    console.warn("⚠️ Failed to parse session.metadata.printful_items:", e.message);
+    console.warn(
+      "⚠️ Failed to parse session.metadata.printful_items:",
+      e.message
+    );
     return [];
   }
 }
 
 function generateSafeExternalId(sessionId) {
-  // Creates a short, valid, deterministic ID: max 16 chars, only allowed characters
+  // deterministic, short, safe string
   const hash = crypto
-    .createHash('sha256')
+    .createHash("sha256")
     .update(sessionId)
-    .digest('hex')
+    .digest("hex")
     .slice(0, 12);
   return `ord_${hash}`;
 }
 
 function looksLikeShipping(lineItem, productName, nickname) {
-  const hay = `${lineItem?.description || ""} ${productName || ""} ${nickname || ""}`.toLowerCase();
+  const hay = `${lineItem?.description || ""} ${productName || ""} ${
+    nickname || ""
+  }`.toLowerCase();
   return hay.includes("shipping");
 }
 
@@ -139,20 +148,45 @@ export default async function handler(req, res) {
       expand: ["data.price", "data.price.product"],
     });
 
-    // Save main order
+    // ✅ Supabase order payload (MATCHES YOUR REAL TABLE SCHEMA)
     const orderRow = {
       stripe_session_id: session.id,
-      email: clean(customer.email) || null,
+
+      payment_intent_id: session.payment_intent ?? null,
+      status: session.payment_status ?? null,
+
+      customer_email: clean(customer.email) || null,
+      customer_name: clean(recipient.name) || null,
+
       amount_total: session.amount_total ?? null,
       currency: session.currency ?? null,
-      payment_status: session.payment_status ?? null,
-      stripe_customer_id: session.customer ?? null,
-      shipping_name: recipient.name || null,
+
+      ship_name: clean(recipient.name) || null,
+      ship_line1: clean(recipient.address1) || null,
+      ship_line2: clean(recipient.address2) || null,
+      ship_city: clean(recipient.city) || null,
+      ship_state: clean(recipient.state_code) || null,
+      ship_postal: clean(recipient.zip) || null,
+      ship_country: clean(recipient.country_code) || null,
+
       shipping_address: safeJson(recipient),
-      stripe_payment_intent: session.payment_intent ?? null,
-      stripe_mode: session.mode ?? null,
-      fulfillment_status: 'pending', // ← Default value
-      created_at: new Date().toISOString(),
+      fulfillment_status: "pending",
+
+      // Optional: store line items JSON in your "items" column (it exists)
+      items: safeJson(
+        (lineItems.data || []).map((li) => ({
+          description: li.description,
+          quantity: li.quantity,
+          amount_total: li.amount_total,
+          currency: li.currency,
+          price_id: li.price?.id ?? null,
+          product_id:
+            typeof li.price?.product === "string"
+              ? li.price.product
+              : li.price?.product?.id ?? null,
+        }))
+      ),
+
       updated_at: new Date().toISOString(),
     };
 
@@ -160,9 +194,14 @@ export default async function handler(req, res) {
       .from("orders")
       .upsert(orderRow, { onConflict: "stripe_session_id" });
 
-    if (orderError) console.error("❌ Supabase orders upsert failed:", orderError);
+    if (orderError) {
+      console.error(
+        "❌ Supabase orders upsert failed:",
+        JSON.stringify(orderError, null, 2)
+      );
+    }
 
-    // Build order_items + fallback Printful mapping
+    // Build order_items + fallback Printful mapping (UNCHANGED)
     const orderItems = [];
     const printfulItemsFromStripe = [];
 
@@ -195,19 +234,19 @@ export default async function handler(req, res) {
 
       const sku = clean(
         priceObj.lookup_key ||
-        priceMeta.printful_sku ||
-        priceMeta.sku ||
-        productMeta.printful_sku ||
-        productMeta.sku ||
-        ""
+          priceMeta.printful_sku ||
+          priceMeta.sku ||
+          productMeta.printful_sku ||
+          productMeta.sku ||
+          ""
       );
 
       const syncVariantIdRaw = clean(
         priceMeta.printful_sync_variant_id ||
-        productMeta.printful_sync_variant_id ||
-        priceMeta.sync_variant_id ||
-        productMeta.sync_variant_id ||
-        ""
+          productMeta.printful_sync_variant_id ||
+          priceMeta.sync_variant_id ||
+          productMeta.sync_variant_id ||
+          ""
       );
 
       orderItems.push({
@@ -233,109 +272,153 @@ export default async function handler(req, res) {
         .from("order_items")
         .upsert(orderItems, { onConflict: "stripe_session_id,sku" });
 
-      if (itemsError) console.error("❌ Supabase order_items upsert failed:", itemsError);
+      if (itemsError) {
+        console.error(
+          "❌ Supabase order_items upsert failed:",
+          JSON.stringify(itemsError, null, 2)
+        );
+      }
     }
 
     // Prefer session metadata → fallback to Stripe metadata
     const printfulItemsFromMeta = parsePrintfulItemsFromSession(session);
-    const printfulItems = printfulItemsFromMeta.length > 0 ? printfulItemsFromMeta : printfulItemsFromStripe;
+    const printfulItems =
+      printfulItemsFromMeta.length > 0
+        ? printfulItemsFromMeta
+        : printfulItemsFromStripe;
 
     // Early return if no Printful token
     if (!process.env.PRINTFUL_ACCESS_TOKEN) {
       console.warn("⚠️ PRINTFUL_ACCESS_TOKEN missing — skipping fulfillment");
-      await supabase.from("orders").upsert({
-        stripe_session_id: session.id,
-        fulfillment_status: "skipped_no_printful_token",
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "stripe_session_id" });
+      await supabase.from("orders").upsert(
+        {
+          stripe_session_id: session.id,
+          fulfillment_status: "skipped_no_printful_token",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "stripe_session_id" }
+      );
       return res.status(200).json({ success: true, fulfillment: "skipped" });
     }
 
     // No items → mark as needs mapping
     if (!printfulItems.length) {
       console.warn("⚠️ No Printful items found — skipping fulfillment");
-      await supabase.from("orders").upsert({
-        stripe_session_id: session.id,
-        fulfillment_status: "needs_mapping",
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "stripe_session_id" });
-      return res.status(200).json({ success: true, fulfillment: "needs_mapping" });
+      await supabase.from("orders").upsert(
+        {
+          stripe_session_id: session.id,
+          fulfillment_status: "needs_mapping",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "stripe_session_id" }
+      );
+      return res
+        .status(200)
+        .json({ success: true, fulfillment: "needs_mapping" });
     }
 
     // Validate required recipient fields
-    if (!recipient.name || !recipient.address1 || !recipient.city || !recipient.country_code || !recipient.zip) {
+    if (
+      !recipient.name ||
+      !recipient.address1 ||
+      !recipient.city ||
+      !recipient.country_code ||
+      !recipient.zip
+    ) {
       console.error("❌ Missing required shipping info — skipping");
-      await supabase.from("orders").upsert({
-        stripe_session_id: session.id,
-        fulfillment_status: "skipped_missing_shipping",
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "stripe_session_id" });
-      return res.status(200).json({ success: true, fulfillment: "skipped_missing_shipping" });
+      await supabase.from("orders").upsert(
+        {
+          stripe_session_id: session.id,
+          fulfillment_status: "skipped_missing_shipping",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "stripe_session_id" }
+      );
+      return res
+        .status(200)
+        .json({ success: true, fulfillment: "skipped_missing_shipping" });
     }
 
-    // Create Printful order with SAFE external_id
-    //const safeExternalId = generateSafeExternalId(session.id);
-    //console.log(`Creating Printful order | external_id: ${safeExternalId} | items: ${JSON.stringify(printfulItems)}`);
+    // Create Printful order
+    // Optional: enable external_id for idempotency
+    // const safeExternalId = generateSafeExternalId(session.id);
 
-    const printfulRes = await fetch("https://api.printful.com/orders?update_existing=true", {  // ← Added update_existing for safety
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.PRINTFUL_ACCESS_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        //external_id: safeExternalId,          
-        recipient,
-        items: printfulItems,
-        confirm: true,
-        shipping: "STANDARD",
-      }),
-    });
+    const printfulRes = await fetch(
+      "https://api.printful.com/orders?update_existing=true",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.PRINTFUL_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          // external_id: safeExternalId,
+          recipient,
+          items: printfulItems,
+          confirm: true,
+          shipping: "STANDARD",
+        }),
+      }
+    );
 
     const printfulData = await printfulRes.json();
 
     if (printfulRes.status === 409) {
       console.warn("⚠️ Printful duplicate detected (already exists)");
-      await supabase.from("orders").upsert({
-        stripe_session_id: session.id,
-        fulfillment_status: "duplicate",
-        printful_response: safeJson(printfulData),
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "stripe_session_id" });
+      await supabase.from("orders").upsert(
+        {
+          stripe_session_id: session.id,
+          fulfillment_status: "duplicate",
+          printful_response: safeJson(printfulData),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "stripe_session_id" }
+      );
       return res.status(200).json({ success: true, duplicate: true });
     }
 
     if (![200, 201].includes(printfulRes.status)) {
-      console.error("❌ Printful failed:", { status: printfulRes.status, data: printfulData });
-      await supabase.from("orders").upsert({
-        stripe_session_id: session.id,
-        fulfillment_status: "failed",
-        printful_response: safeJson(printfulData),
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "stripe_session_id" });
+      console.error("❌ Printful failed:", {
+        status: printfulRes.status,
+        data: printfulData,
+      });
+      await supabase.from("orders").upsert(
+        {
+          stripe_session_id: session.id,
+          fulfillment_status: "failed",
+          printful_response: safeJson(printfulData),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "stripe_session_id" }
+      );
       return res.status(200).json({ success: true, fulfillment: "failed" });
     }
 
     console.log("✅ Printful order created:", printfulData?.result?.id);
 
-    await supabase.from("orders").upsert({
-      stripe_session_id: session.id,
-      fulfillment_status: "created",
-      printful_order_id: printfulData?.result?.id ?? null,
-      printful_response: safeJson(printfulData),
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "stripe_session_id" });
+    await supabase.from("orders").upsert(
+      {
+        stripe_session_id: session.id,
+        fulfillment_status: "created",
+        printful_order_id: printfulData?.result?.id ?? null,
+        printful_response: safeJson(printfulData),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "stripe_session_id" }
+    );
 
     return res.status(200).json({ success: true, fulfillment: "created" });
-
   } catch (err) {
     console.error("❌ Webhook error:", err);
     try {
-      await supabase.from("orders").upsert({
-        stripe_session_id: session?.id ?? null,
-        fulfillment_status: "error",
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "stripe_session_id" });
+      await supabase.from("orders").upsert(
+        {
+          stripe_session_id: session?.id ?? null,
+          fulfillment_status: "error",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "stripe_session_id" }
+      );
     } catch {}
     return res.status(200).json({ success: true, error: "handled" });
   }
