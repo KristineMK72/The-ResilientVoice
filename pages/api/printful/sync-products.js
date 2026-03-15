@@ -1,6 +1,5 @@
-import { supabaseAdmin } from "@/lib/supabase-admin";
-import { printfulFetch } from "@/lib/printful";
-
+import { supabaseAdmin } from "../../../lib/supabase-admin";
+import { printfulFetch } from "../../../lib/printful";
 function slugify(input) {
   return String(input || "")
     .toLowerCase()
