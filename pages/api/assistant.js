@@ -1,6 +1,5 @@
-import { openai } from "@/lib/openai";
-import { supabaseAdmin } from "@/lib/supabase-admin";
-
+import { openai } from "../../lib/openai";
+import { supabaseAdmin } from "../../lib/supabase-admin";
 function detectIntent(message) {
   const text = String(message || "").toLowerCase();
 
