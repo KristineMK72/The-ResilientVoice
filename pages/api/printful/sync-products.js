@@ -1,207 +1,161 @@
-import { openai } from "../../lib/openai";
-import { supabaseAdmin } from "../../lib/supabase-admin";
+import { supabaseAdmin } from "../../../lib/supabase-admin";
+import { printfulFetch } from "../../../lib/printful";
 
-function detectIntent(message) {
-  const text = String(message || "").toLowerCase();
-
-  if (text.includes("ship") || text.includes("delivery") || text.includes("arrive")) {
-    return "shipping";
-  }
-
-  if (
-    text.includes("size") ||
-    text.includes("fit") ||
-    text.includes("true to size") ||
-    text.includes("runs big") ||
-    text.includes("runs small") ||
-    text.includes("sizing guide") ||
-    text.includes("material") ||
-    text.includes("fabric") ||
-    text.includes("what size should i get")
-  ) {
-    return "product_help";
-  }
-
-  if (text.includes("return") || text.includes("exchange") || text.includes("refund")) {
-    return "policy";
-  }
-
-  if (text.includes("recommend") || text.includes("suggest") || text.includes("which one")) {
-    return "recommendation";
-  }
-
-  return "general";
+function slugify(input) {
+  return String(input || "")
+    .toLowerCase()
+    .trim()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
-async function getPolicies() {
-  const { data } = await supabaseAdmin
-    .from("store_policies")
-    .select("key,value_markdown");
+async function getCatalogVariantInfo(catalogVariantId) {
+  try {
+    if (!catalogVariantId) return null;
 
-  return data || [];
-}
-
-async function getProductContext(productId) {
-  if (!productId) return null;
-
-  const { data } = await supabaseAdmin
-    .from("products")
-    .select(`
-      id,
-      printful_sync_product_id,
-      title,
-      description,
-      brand,
-      product_variants(
-        size,
-        color,
-        material,
-        brand,
-        fit_notes
-      )
-    `)
-    .eq("printful_sync_product_id", String(productId))
-    .single();
-
-  return data || null;
-}
-
-function buildProductSummary(product) {
-  if (!product) return null;
-
-  const variants = product.product_variants || [];
-
-  const sizes = [...new Set(variants.map(v => v.size).filter(Boolean))];
-  const colors = [...new Set(variants.map(v => v.color).filter(Boolean))];
-  const materials = [...new Set(variants.map(v => v.material).filter(Boolean))];
-  const brands = [...new Set(variants.map(v => v.brand).filter(Boolean))];
-
-  return {
-    title: product.title,
-    description: product.description,
-    brand: product.brand || brands[0] || null,
-    sizes,
-    colors,
-    materials,
-    fitNotes: variants.map(v => v.fit_notes).filter(Boolean)
-  };
+    const data = await printfulFetch(`/products/variant/${catalogVariantId}`);
+    return data?.result || null;
+  } catch (error) {
+    console.error(
+      "catalog variant fetch failed:",
+      catalogVariantId,
+      error?.message || error
+    );
+    return null;
+  }
 }
 
 export default async function handler(req, res) {
-  res.setHeader("Content-Type", "application/json");
-
   if (req.method !== "POST") {
-    return res.status(405).json({ ok: false });
+    return res.status(405).json({
+      ok: false,
+      error: "Method not allowed",
+    });
   }
 
   try {
-    const body = req.body || {};
+    const data = await printfulFetch("/store/products");
 
-    const message = body.message || "";
-    const productId = body.productId || null;
-    const sessionId = body.sessionId || `session-${Date.now()}`;
+    console.log(
+      "First Printful product sample:",
+      JSON.stringify(data?.result?.[0] || null, null, 2)
+    );
 
-    const conversation = Array.isArray(body.conversation)
-      ? body.conversation.slice(-6)
-      : [];
+    for (const item of data?.result || []) {
+      const syncProductId = item?.sync_product?.id || item?.id || null;
 
-    const intent = detectIntent(message);
+      if (!syncProductId) {
+        console.warn("Skipping product with missing sync product ID:", item);
+        continue;
+      }
 
-    const [policies, productContext] = await Promise.all([
-      getPolicies(),
-      getProductContext(productId),
-    ]);
+      const title =
+        item?.sync_product?.name ||
+        item?.name ||
+        `Product ${syncProductId}`;
 
-    const productSummary = buildProductSummary(productContext);
+      const slug = slugify(title);
 
-    const systemPrompt = `
-You are Sam, the Grit & Grace shopping assistant.
+      const thumbnailUrl =
+        item?.sync_product?.thumbnail_url ||
+        item?.thumbnail_url ||
+        null;
 
-Personality:
-- warm
-- compassionate
-- grateful
-- patriotic in a humble heartfelt way
-- encouraging and neighborly
+      const { data: productRow, error: productError } = await supabaseAdmin
+        .from("products")
+        .upsert(
+          {
+            printful_sync_product_id: String(syncProductId),
+            title,
+            slug,
+            thumbnail_url: thumbnailUrl,
+            active: true,
+          },
+          { onConflict: "printful_sync_product_id" }
+        )
+        .select("id")
+        .single();
 
-Tone:
-Speak like a friendly guide who appreciates the customer supporting the store.
+      if (productError) throw productError;
 
-Rules:
-- Only answer using provided store context.
-- Never invent facts.
-- If information is missing, say you are still gathering details.
+      for (const variant of item?.sync_variants || []) {
+        const catalogVariantId = variant?.variant_id || null;
+        const catalog = catalogVariantId
+          ? await getCatalogVariantInfo(catalogVariantId)
+          : null;
 
-Product behavior:
-- If productSummary.sizes exists, ALWAYS list available sizes.
-- If productSummary.materials exists, mention the material early.
-- If productSummary.brand exists, mention the brand.
-- If asked about sizing and no size chart exists, suggest starting with the usual size.
-- If someone asks what size they should get, ask one short follow-up question if needed.
+        const productInfo = catalog?.product || null;
 
-Store values:
-You may briefly thank customers for supporting Grit & Grace and the community.
+        const material =
+          productInfo?.material ||
+          productInfo?.description ||
+          null;
 
-Keep answers warm, helpful, and concise.
-`;
+        const brand =
+          productInfo?.brand ||
+          productInfo?.model ||
+          null;
 
-    const historyText = conversation
-      .map(m => `${m.role === "user" ? "Customer" : "Sam"}: ${m.text}`)
-      .join("\n");
+        const sizeGuide =
+          catalog?.size_guide || {
+            available_sizes: [variant?.size].filter(Boolean),
+            note:
+              "If you are between sizes and want a roomier fit, consider sizing up.",
+          };
 
-    const context = {
-      intent,
-      productSummary,
-      policies
-    };
+        const variantImage =
+          variant?.files?.[0]?.preview_url ||
+          variant?.preview_url ||
+          null;
 
-    const response = await openai.responses.create({
-      model: "gpt-4.1-mini",
-      input: [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        {
-          role: "user",
-          content: `
-Conversation:
-${historyText}
+        const inferredFitNotes = /heavyweight/i.test(variant?.name || "")
+          ? "Heavier feel; great for cooler weather."
+          : "Standard fit; if you are between sizes, consider sizing up for a roomier fit.";
 
-Customer message:
-${message}
+        const { error: variantError } = await supabaseAdmin
+          .from("product_variants")
+          .upsert(
+            {
+              product_id: productRow.id,
+              printful_sync_variant_id: String(variant?.id),
+              printful_catalog_variant_id: catalogVariantId
+                ? String(catalogVariantId)
+                : null,
+              sku: variant?.sku || null,
+              name: variant?.name || "Unnamed Variant",
+              color: variant?.color || null,
+              size: variant?.size || null,
+              retail_price: variant?.retail_price
+                ? Number(variant.retail_price)
+                : null,
+              currency: variant?.currency || "USD",
+              brand,
+              material,
+              fit_notes: inferredFitNotes,
+              size_guide_json: sizeGuide,
+              product_details_json: productInfo,
+              image_url: variantImage,
+              in_stock: true,
+            },
+            { onConflict: "printful_sync_variant_id" }
+          );
 
-Store context:
-${JSON.stringify(context, null, 2)}
-`,
-        },
-      ],
-    });
-
-    const answer =
-      response.output_text ||
-      "I’m still gathering the details for that item, but I’d be happy to help with a follow-up question.";
-
-    await supabaseAdmin.from("assistant_conversations").insert({
-      session_id: sessionId,
-      user_message: message,
-      assistant_message: answer,
-      intent,
-    });
+        if (variantError) throw variantError;
+      }
+    }
 
     return res.status(200).json({
       ok: true,
-      answer,
-      intent,
+      message: "Printful catalog synced successfully",
     });
-
   } catch (error) {
-    console.error("assistant error:", error);
+    console.error("sync-products error:", error);
 
     return res.status(500).json({
       ok: false,
-      error: "Assistant request failed",
-      details: error?.message || "Unknown server error",
+      error: "Product sync failed",
+      details: error?.message || "Unknown error",
     });
   }
 }
