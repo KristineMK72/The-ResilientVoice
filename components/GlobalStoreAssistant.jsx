@@ -25,15 +25,16 @@ export default function GlobalStoreAssistant() {
       });
 
       const data = await res.json();
+      console.log("assistant response:", data);
 
       if (!res.ok) {
-        setReply(data?.error || "Something went wrong.");
+        setReply(data?.details || data?.error || "Something went wrong.");
       } else {
-        setReply(data?.answer || "");
+        setReply(data?.answer || "No response returned.");
       }
     } catch (error) {
-      console.error(error);
-      setReply("Sorry — I couldn’t reach the assistant.");
+      console.error("assistant fetch error:", error);
+      setReply(`Sorry — I couldn’t reach the assistant. ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -78,24 +79,11 @@ export default function GlobalStoreAssistant() {
             boxShadow: "0 18px 50px rgba(0,0,0,0.18)",
           }}
         >
-          <h3
-            style={{
-              margin: "0 0 8px",
-              fontSize: "18px",
-              fontWeight: 700,
-            }}
-          >
+          <h3 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: 700 }}>
             Ask Grit &amp; Grace
           </h3>
 
-          <p
-            style={{
-              margin: "0 0 12px",
-              fontSize: "14px",
-              color: "#666",
-              lineHeight: 1.5,
-            }}
-          >
+          <p style={{ margin: "0 0 12px", fontSize: "14px", color: "#666", lineHeight: 1.5 }}>
             Ask about sizing, shipping, product details, or gift ideas.
           </p>
 
@@ -113,6 +101,8 @@ export default function GlobalStoreAssistant() {
               fontFamily: "inherit",
               resize: "vertical",
               boxSizing: "border-box",
+              color: "#111",
+              background: "#fff",
             }}
           />
 
@@ -134,21 +124,22 @@ export default function GlobalStoreAssistant() {
             {loading ? "Thinking..." : "Ask"}
           </button>
 
-          {reply ? (
-            <div
-              style={{
-                marginTop: "12px",
-                borderRadius: "12px",
-                background: "#f7f7f7",
-                padding: "12px",
-                fontSize: "14px",
-                lineHeight: 1.6,
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {reply}
-            </div>
-          ) : null}
+          <div
+            style={{
+              marginTop: "12px",
+              borderRadius: "12px",
+              background: "#f7f7f7",
+              padding: "12px",
+              fontSize: "14px",
+              lineHeight: 1.6,
+              whiteSpace: "pre-wrap",
+              minHeight: "56px",
+              color: "#111",
+              border: "1px solid #eee",
+            }}
+          >
+            {reply || "Your assistant reply will appear here."}
+          </div>
         </div>
       )}
     </>
