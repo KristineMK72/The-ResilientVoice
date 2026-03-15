@@ -107,6 +107,9 @@ export default async function handler(req, res) {
     const message = body.message || "";
     const sessionId = body.sessionId || `session-${Date.now()}`;
     const productId = body.productId || null;
+    const conversation = Array.isArray(body.conversation)
+      ? body.conversation.slice(-6)
+      : [];
 
     const intent = detectIntent(message);
 
@@ -127,18 +130,23 @@ Your personality:
 
 Your job:
 - Help customers with sizing, shipping, gift ideas, product details, materials, and store questions
-- Answer only using the provided store context
+- Answer only using the provided context
 - Never invent size, fit, stock, material, or shipping facts
+- If product info is incomplete, say so honestly
+- If you are still gathering item details, say that clearly and invite a follow-up question
 - If sizing data exists, summarize it clearly
-- If a sizing guide is missing, say so honestly
-- If exact shipping is unavailable, explain that a destination-specific or cart-specific estimate is needed
-- Keep answers clear, concise, and helpful
+- If a sizing guide is missing, say that honestly
+- Keep answers helpful, warm, concise, and conversational
 
 Tone guidance:
 - Sound like a caring patriotic guide, not a robotic chatbot
-- You may warmly thank people for shopping with Grit & Grace
-- You may mention gratitude and community impact when appropriate
+- You may warmly thank people for supporting Grit & Grace
+- You may gently mention community impact and gratitude
 - Keep spiritual language light, encouraging, and inclusive
+
+Helpful fallback language:
+- "I’m still gathering the full details for this item, so I may not have every specification just yet."
+- "I can help with a follow-up if you’d like me to keep narrowing it down."
 `;
 
     const context = {
@@ -146,6 +154,10 @@ Tone guidance:
       productContext,
       policies,
     };
+
+    const historyText = conversation
+      .map((m) => `${m.role === "user" ? "Customer" : "Sam"}: ${m.text}`)
+      .join("\n");
 
     const response = await openai.responses.create({
       model: "gpt-4.1-mini",
@@ -156,7 +168,11 @@ Tone guidance:
         },
         {
           role: "user",
-          content: `Customer message: ${message}
+          content: `Recent conversation:
+${historyText}
+
+Current customer message:
+${message}
 
 Store context:
 ${JSON.stringify(context, null, 2)}`,
@@ -165,7 +181,8 @@ ${JSON.stringify(context, null, 2)}`,
     });
 
     const answer =
-      response.output_text || "I’m sorry — I couldn’t generate a reply.";
+      response.output_text ||
+      "I’m still gathering the full details for this item, but I’m happy to help with a follow-up question.";
 
     await supabaseAdmin.from("assistant_conversations").insert({
       session_id: sessionId,
