@@ -1,4 +1,4 @@
-import { printfulFetch } from "@/lib/printful";
+import { printfulFetch } from "../../../lib/printful";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
