@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "../../../lib/supabase-admin";
 import { printfulFetch } from "../../../lib/printful";
+
 function slugify(input) {
   return String(input || "")
     .toLowerCase()
@@ -9,9 +10,19 @@ function slugify(input) {
     .replace(/^-+|-+$/g, "");
 }
 
+async function getCatalogVariantInfo(variantId) {
+  try {
+    const data = await printfulFetch(`/products/variant/${variantId}`);
+    return data?.result || null;
+  } catch (e) {
+    console.error("catalog variant fetch failed", variantId);
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ ok: false, error: "Method not allowed" });
+    return res.status(405).json({ ok: false });
   }
 
   try {
@@ -39,15 +50,26 @@ export default async function handler(req, res) {
       if (productError) throw productError;
 
       for (const variant of item.sync_variants || []) {
+
+        const catalog = await getCatalogVariantInfo(variant.variant_id);
+
+        const material =
+          catalog?.product?.material ||
+          catalog?.product?.description ||
+          null;
+
+        const brand =
+          catalog?.product?.brand ||
+          catalog?.product?.model ||
+          null;
+
+        const details =
+          catalog?.product || null;
+
+        const sizeGuide =
+          catalog?.size_guide || null;
+
         const variantImage = variant?.files?.[0]?.preview_url || null;
-
-        const inferredFitNotes = /heavyweight/i.test(variant.name)
-          ? "Heavier feel; good for cooler weather."
-          : "Standard fit; check size guide if between sizes.";
-
-        const sizeGuide = {
-          note: "Use garment measurements when available. If between sizes, consider sizing up for a roomier fit.",
-        };
 
         const { error: variantError } = await supabaseAdmin
           .from("product_variants")
@@ -55,17 +77,30 @@ export default async function handler(req, res) {
             {
               product_id: productRow.id,
               printful_sync_variant_id: String(variant.id),
+              printful_catalog_variant_id: variant.variant_id || null,
+
               sku: variant.sku || null,
               name: variant.name,
               color: variant.color || null,
               size: variant.size || null,
+
               retail_price: variant.retail_price
                 ? Number(variant.retail_price)
                 : null,
+
               currency: variant.currency || "USD",
-              fit_notes: inferredFitNotes,
+
+              brand,
+              material,
+
+              fit_notes:
+                "Standard retail fit. Check size guide for garment measurements.",
+
               size_guide_json: sizeGuide,
+              product_details_json: details,
+
               image_url: variantImage,
+
               in_stock: true,
             },
             { onConflict: "printful_sync_variant_id" }
@@ -75,9 +110,14 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(200).json({ ok: true });
+    return res.status(200).json({
+      ok: true,
+      message: "Printful catalog synced successfully",
+    });
+
   } catch (error) {
     console.error("sync-products error:", error);
+
     return res.status(500).json({
       ok: false,
       error: "Product sync failed",
