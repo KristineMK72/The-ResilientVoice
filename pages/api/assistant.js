@@ -18,10 +18,11 @@ function detectIntent(message) {
     text.includes("true to size") ||
     text.includes("runs big") ||
     text.includes("runs small") ||
+    text.includes("sizing guide") ||
     text.includes("material") ||
     text.includes("fabric")
   ) {
-    return "sizing";
+    return "product_help";
   }
 
   if (
@@ -56,6 +57,44 @@ async function getPolicies() {
   return data || [];
 }
 
+async function getProductContext(productId) {
+  if (!productId) return null;
+
+  const { data, error } = await supabaseAdmin
+    .from("products")
+    .select(`
+      id,
+      printful_sync_product_id,
+      title,
+      slug,
+      description,
+      thumbnail_url,
+      product_variants (
+        printful_sync_variant_id,
+        sku,
+        name,
+        color,
+        size,
+        retail_price,
+        currency,
+        material,
+        fit_notes,
+        size_guide_json,
+        image_url,
+        in_stock
+      )
+    `)
+    .eq("printful_sync_product_id", String(productId))
+    .single();
+
+  if (error) {
+    console.error("getProductContext error:", error);
+    return null;
+  }
+
+  return data;
+}
+
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json");
 
@@ -67,8 +106,14 @@ export default async function handler(req, res) {
     const body = req.body || {};
     const message = body.message || "";
     const sessionId = body.sessionId || `session-${Date.now()}`;
+    const productId = body.productId || null;
+
     const intent = detectIntent(message);
-    const policies = await getPolicies();
+
+    const [policies, productContext] = await Promise.all([
+      getPolicies(),
+      getProductContext(productId),
+    ]);
 
     const systemPrompt = `
 You are Sam, the Grit & Grace shopping assistant.
@@ -82,8 +127,10 @@ Your personality:
 
 Your job:
 - Help customers with sizing, shipping, gift ideas, product details, materials, and store questions
-- Answer only using the store context provided
+- Answer only using the provided store context
 - Never invent size, fit, stock, material, or shipping facts
+- If sizing data exists, summarize it clearly
+- If a sizing guide is missing, say so honestly
 - If exact shipping is unavailable, explain that a destination-specific or cart-specific estimate is needed
 - Keep answers clear, concise, and helpful
 
@@ -96,6 +143,7 @@ Tone guidance:
 
     const context = {
       intent,
+      productContext,
       policies,
     };
 
@@ -108,11 +156,10 @@ Tone guidance:
         },
         {
           role: "user",
-          content: `Customer message: ${message}\n\nStore context:\n${JSON.stringify(
-            context,
-            null,
-            2
-          )}`,
+          content: `Customer message: ${message}
+
+Store context:
+${JSON.stringify(context, null, 2)}`,
         },
       ],
     });
@@ -120,18 +167,12 @@ Tone guidance:
     const answer =
       response.output_text || "I’m sorry — I couldn’t generate a reply.";
 
-    const { error: insertError } = await supabaseAdmin
-      .from("assistant_conversations")
-      .insert({
-        session_id: sessionId,
-        user_message: message,
-        assistant_message: answer,
-        intent,
-      });
-
-    if (insertError) {
-      console.error("assistant_conversations insert error:", insertError);
-    }
+    await supabaseAdmin.from("assistant_conversations").insert({
+      session_id: sessionId,
+      user_message: message,
+      assistant_message: answer,
+      intent,
+    });
 
     return res.status(200).json({
       ok: true,
