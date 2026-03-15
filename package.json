@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "enrich:printful": "node scripts/enrich-printful-catalog.js"
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.4.0",
