@@ -20,12 +20,12 @@ export default function GlobalStoreAssistant() {
         },
         body: JSON.stringify({
           message,
-          sessionId: `global-${Date.now()}`,
+          sessionId: `sam-${Date.now()}`,
         }),
       });
 
       const data = await res.json();
-      console.log("assistant response:", data);
+      console.log("Sam response:", data);
 
       if (!res.ok) {
         setReply(data?.details || data?.error || "Something went wrong.");
@@ -33,8 +33,8 @@ export default function GlobalStoreAssistant() {
         setReply(data?.answer || "No response returned.");
       }
     } catch (error) {
-      console.error("assistant fetch error:", error);
-      setReply(`Sorry — I couldn’t reach the assistant. ${error.message}`);
+      console.error("Sam fetch error:", error);
+      setReply(`Sorry — I couldn’t reach Sam right now. ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -49,18 +49,20 @@ export default function GlobalStoreAssistant() {
           right: "16px",
           bottom: "16px",
           zIndex: 9999,
-          border: "none",
+          border: "2px solid #c9a227",
           borderRadius: "999px",
-          padding: "12px 18px",
-          background: "#111",
-          color: "#fff",
+          padding: "13px 18px",
+          background:
+            "linear-gradient(135deg, #0b1f4d 0%, #183a8f 55%, #b22234 100%)",
+          color: "#ffffff",
           fontSize: "14px",
-          fontWeight: 600,
+          fontWeight: 700,
+          letterSpacing: "0.3px",
           cursor: "pointer",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
+          boxShadow: "0 12px 30px rgba(0,0,0,0.22)",
         }}
       >
-        {open ? "Close Chat" : "Ask Grit & Grace"}
+        {open ? "Close Sam" : "Ask Sam"}
       </button>
 
       {open && (
@@ -69,23 +71,65 @@ export default function GlobalStoreAssistant() {
             position: "fixed",
             right: "16px",
             bottom: "72px",
-            width: "360px",
+            width: "370px",
             maxWidth: "calc(100vw - 24px)",
-            background: "#fff",
-            border: "1px solid #e5e5e5",
-            borderRadius: "18px",
+            background: "#fffdf9",
+            border: "1px solid #d9d9d9",
+            borderRadius: "20px",
             padding: "16px",
             zIndex: 9999,
             boxShadow: "0 18px 50px rgba(0,0,0,0.18)",
+            overflow: "hidden",
           }}
         >
-          <h3 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: 700 }}>
-            Ask Grit &amp; Grace
-          </h3>
+          <div
+            style={{
+              margin: "-16px -16px 14px -16px",
+              padding: "14px 16px",
+              background:
+                "linear-gradient(135deg, #0b1f4d 0%, #1c3f95 60%, #b22234 100%)",
+              color: "#fff",
+              borderBottom: "2px solid #c9a227",
+            }}
+          >
+            <h3
+              style={{
+                margin: "0 0 4px",
+                fontSize: "19px",
+                fontWeight: 800,
+              }}
+            >
+              Ask Sam
+            </h3>
 
-          <p style={{ margin: "0 0 12px", fontSize: "14px", color: "#666", lineHeight: 1.5 }}>
-            Ask about sizing, shipping, product details, or gift ideas.
-          </p>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "13px",
+                lineHeight: 1.5,
+                color: "rgba(255,255,255,0.92)",
+              }}
+            >
+              Your patriotic Grit &amp; Grace guide for sizing, shipping, gifts,
+              and product questions.
+            </p>
+          </div>
+
+          <div
+            style={{
+              marginBottom: "12px",
+              fontSize: "13px",
+              lineHeight: 1.6,
+              color: "#444",
+              background: "#fff8e8",
+              border: "1px solid #f0dfaa",
+              borderRadius: "12px",
+              padding: "10px 12px",
+            }}
+          >
+            Hi, I’m Sam. I’m grateful you’re here. Thanks for supporting Grit
+            &amp; Grace and the good this store pours back into the community.
+          </div>
 
           <textarea
             value={message}
@@ -95,7 +139,7 @@ export default function GlobalStoreAssistant() {
               width: "100%",
               minHeight: "110px",
               borderRadius: "12px",
-              border: "1px solid #ddd",
+              border: "1px solid #d8d8d8",
               padding: "12px",
               fontSize: "14px",
               fontFamily: "inherit",
@@ -111,34 +155,35 @@ export default function GlobalStoreAssistant() {
             disabled={loading}
             style={{
               marginTop: "10px",
-              border: "none",
+              border: "1px solid #0b1f4d",
               borderRadius: "12px",
               padding: "10px 14px",
-              background: "#111",
+              background: "#0b1f4d",
               color: "#fff",
               fontSize: "14px",
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: "pointer",
             }}
           >
-            {loading ? "Thinking..." : "Ask"}
+            {loading ? "Sam is thinking..." : "Ask Sam"}
           </button>
 
           <div
             style={{
               marginTop: "12px",
               borderRadius: "12px",
-              background: "#f7f7f7",
+              background: "#f8f8f8",
               padding: "12px",
               fontSize: "14px",
-              lineHeight: 1.6,
+              lineHeight: 1.65,
               whiteSpace: "pre-wrap",
-              minHeight: "56px",
+              minHeight: "76px",
               color: "#111",
-              border: "1px solid #eee",
+              border: "1px solid #ececec",
             }}
           >
-            {reply || "Your assistant reply will appear here."}
+            {reply ||
+              "Sam’s reply will appear here. Ask about sizing, shipping, Minnesota favorites, or gift ideas."}
           </div>
         </div>
       )}
