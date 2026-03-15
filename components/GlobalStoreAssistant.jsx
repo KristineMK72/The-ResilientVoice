@@ -13,6 +13,11 @@ export default function GlobalStoreAssistant() {
     setReply("");
 
     try {
+      const path =
+        typeof window !== "undefined" ? window.location.pathname : "";
+      const match = path.match(/^\/product\/([^/]+)/);
+      const productId = match ? match[1] : null;
+
       const res = await fetch("/api/assistant", {
         method: "POST",
         headers: {
@@ -21,11 +26,20 @@ export default function GlobalStoreAssistant() {
         body: JSON.stringify({
           message,
           sessionId: `sam-${Date.now()}`,
+          productId,
         }),
       });
 
-      const data = await res.json();
-      console.log("Sam response:", data);
+      const text = await res.text();
+      console.log("Raw Sam response:", text);
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setReply(`Sam got a non-JSON response.\n\n${text.slice(0, 300)}`);
+        return;
+      }
 
       if (!res.ok) {
         setReply(data?.details || data?.error || "Something went wrong.");
