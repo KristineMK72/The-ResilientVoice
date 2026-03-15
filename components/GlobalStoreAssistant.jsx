@@ -3,14 +3,22 @@ import React, { useState } from "react";
 export default function GlobalStoreAssistant() {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      role: "assistant",
+      text: "Hi, I’m Sam. I’m grateful you’re here. Ask me about sizing, shipping, materials, gifts, or product details.",
+    },
+  ]);
 
   async function askAssistant() {
     if (!message.trim()) return;
 
+    const userMessage = message.trim();
+    setMessage("");
     setLoading(true);
-    setReply("");
+
+    setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
 
     try {
       const path =
@@ -18,37 +26,65 @@ export default function GlobalStoreAssistant() {
       const match = path.match(/^\/product\/([^/]+)/);
       const productId = match ? match[1] : null;
 
+      const conversation = [...messages, { role: "user", text: userMessage }];
+
       const res = await fetch("/api/assistant", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message,
+          message: userMessage,
           sessionId: `sam-${Date.now()}`,
           productId,
+          conversation,
         }),
       });
 
       const text = await res.text();
-      console.log("Raw Sam response:", text);
 
       let data;
       try {
         data = JSON.parse(text);
       } catch {
-        setReply(`Sam got a non-JSON response.\n\n${text.slice(0, 300)}`);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            text: `Sam hit a non-JSON response.\n\n${text.slice(0, 300)}`,
+          },
+        ]);
         return;
       }
 
       if (!res.ok) {
-        setReply(data?.details || data?.error || "Something went wrong.");
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            text: data?.details || data?.error || "Something went wrong.",
+          },
+        ]);
       } else {
-        setReply(data?.answer || "No response returned.");
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            text:
+              data?.answer ||
+              "I’m still gathering info on this item, but I’m happy to help with a follow-up question.",
+          },
+        ]);
       }
     } catch (error) {
       console.error("Sam fetch error:", error);
-      setReply(`Sorry — I couldn’t reach Sam right now. ${error.message}`);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: `Sorry — I couldn’t reach Sam right now. ${error.message}`,
+        },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -85,7 +121,7 @@ export default function GlobalStoreAssistant() {
             position: "fixed",
             right: "16px",
             bottom: "72px",
-            width: "370px",
+            width: "390px",
             maxWidth: "calc(100vw - 24px)",
             background: "#fffdf9",
             border: "1px solid #d9d9d9",
@@ -106,13 +142,7 @@ export default function GlobalStoreAssistant() {
               borderBottom: "2px solid #c9a227",
             }}
           >
-            <h3
-              style={{
-                margin: "0 0 4px",
-                fontSize: "19px",
-                fontWeight: 800,
-              }}
-            >
+            <h3 style={{ margin: "0 0 4px", fontSize: "19px", fontWeight: 800 }}>
               Ask Sam
             </h3>
 
@@ -124,34 +154,48 @@ export default function GlobalStoreAssistant() {
                 color: "rgba(255,255,255,0.92)",
               }}
             >
-              Your patriotic Grit &amp; Grace guide for sizing, shipping, gifts,
-              and product questions.
+              Your patriotic Grit &amp; Grace guide for product details,
+              materials, sizing, shipping, and gifts.
             </p>
           </div>
 
           <div
             style={{
+              maxHeight: "280px",
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
               marginBottom: "12px",
-              fontSize: "13px",
-              lineHeight: 1.6,
-              color: "#444",
-              background: "#fff8e8",
-              border: "1px solid #f0dfaa",
-              borderRadius: "12px",
-              padding: "10px 12px",
             }}
           >
-            Hi, I’m Sam. I’m grateful you’re here. Thanks for supporting Grit
-            &amp; Grace and the good this store pours back into the community.
+            {messages.map((msg, idx) => (
+              <div
+                key={idx}
+                style={{
+                  alignSelf: msg.role === "user" ? "flex-end" : "stretch",
+                  background: msg.role === "user" ? "#0b1f4d" : "#f8f8f8",
+                  color: msg.role === "user" ? "#fff" : "#111",
+                  border: msg.role === "user" ? "none" : "1px solid #ececec",
+                  borderRadius: "12px",
+                  padding: "10px 12px",
+                  fontSize: "14px",
+                  lineHeight: 1.6,
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {msg.text}
+              </div>
+            ))}
           </div>
 
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Example: Does this shirt run true to size?"
+            placeholder="Ask Sam a question..."
             style={{
               width: "100%",
-              minHeight: "110px",
+              minHeight: "90px",
               borderRadius: "12px",
               border: "1px solid #d8d8d8",
               padding: "12px",
@@ -179,26 +223,8 @@ export default function GlobalStoreAssistant() {
               cursor: "pointer",
             }}
           >
-            {loading ? "Sam is thinking..." : "Ask Sam"}
+            {loading ? "Sam is thinking..." : "Send to Sam"}
           </button>
-
-          <div
-            style={{
-              marginTop: "12px",
-              borderRadius: "12px",
-              background: "#f8f8f8",
-              padding: "12px",
-              fontSize: "14px",
-              lineHeight: 1.65,
-              whiteSpace: "pre-wrap",
-              minHeight: "76px",
-              color: "#111",
-              border: "1px solid #ececec",
-            }}
-          >
-            {reply ||
-              "Sam’s reply will appear here. Ask about sizing, shipping, Minnesota favorites, or gift ideas."}
-          </div>
         </div>
       )}
     </>
