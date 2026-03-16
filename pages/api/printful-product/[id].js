@@ -1,59 +1,121 @@
-// pages/api/printful-product/[id].js
+import { supabaseAdmin } from "../../../lib/supabase-admin";
+import { printfulFetch } from "../../../lib/printful";
+
+function firstPreviewUrl(files = []) {
+  if (!Array.isArray(files)) return null;
+
+  const preview =
+    files.find((f) => f?.type === "preview" && f?.preview_url)?.preview_url ||
+    files.find((f) => f?.preview_url)?.preview_url ||
+    null;
+
+  return preview;
+}
+
+function mapVariant(variant) {
+  return {
+    sync_variant_id: String(variant?.id || ""),
+    catalog_variant_id: variant?.variant_id ? String(variant.variant_id) : null,
+    sku: variant?.sku || null,
+    name: variant?.name || "Unnamed Variant",
+    retail_price: variant?.retail_price || null,
+    currency: variant?.currency || "USD",
+    preview_url:
+      firstPreviewUrl(variant?.files) ||
+      variant?.preview_url ||
+      null,
+    image_url:
+      firstPreviewUrl(variant?.files) ||
+      variant?.preview_url ||
+      null,
+    color: variant?.color || null,
+    size: variant?.size || null,
+    in_stock: true,
+  };
+}
 
 export default async function handler(req, res) {
-  const { id } = req.query; // sync_product.id
+  const { id } = req.query;
+
+  if (!id) {
+    return res.status(400).json({ error: "Missing product id" });
+  }
 
   try {
-    const token = process.env.PRINTFUL_ACCESS_TOKEN || process.env.PRINTFUL_API_KEY;
+    const detailData = await printfulFetch(`/store/products/${id}`);
+    const item = detailData?.result;
 
-    if (!token) {
-      return res.status(500).json({ error: "Missing Printful API token" });
+    if (!item) {
+      return res.status(404).json({ error: "Product not found in Printful" });
     }
 
-    const response = await fetch(`https://api.printful.com/sync/products/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const syncProduct = item?.sync_product || {};
+    const variants = Array.isArray(item?.sync_variants)
+      ? item.sync_variants.map(mapVariant)
+      : [];
 
-    const json = await response.json();
+    const { data: override, error: overrideError } = await supabaseAdmin
+      .from("product_content")
+      .select("*")
+      .eq("sync_product_id", String(id))
+      .maybeSingle();
 
-    if (!response.ok || !json.result) {
-      return res.status(404).json({ error: "Product not found from Printful" });
+    if (overrideError) {
+      console.error("product_content lookup error:", overrideError);
     }
 
-    const { sync_product, sync_variants = [] } = json.result;
+    if (override?.hidden) {
+      return res.status(404).json({ error: "Product hidden" });
+    }
 
-    const productThumbnail =
-      sync_product.thumbnail_url ||
-      "https://files.cdn.printful.com/o/upload/missing-image/800x800.jpg";
+    const overrideImages = Array.isArray(override?.images)
+      ? override.images.filter(Boolean)
+      : [];
 
-    res.status(200).json({
-      sync_product_id: String(sync_product.id),
-      name: sync_product.name,
-      description: sync_product.description || "",
-      thumbnail_url: productThumbnail,
+    const printfulThumbnail =
+      syncProduct?.thumbnail_url ||
+      item?.thumbnail_url ||
+      variants[0]?.preview_url ||
+      null;
 
-      variants: sync_variants.map((v) => {
-        const preview =
-          v.files?.find((f) => f.type === "preview")?.preview_url ||
-          v.files?.[0]?.preview_url ||
-          productThumbnail;
+    const mergedProduct = {
+      sync_product_id: String(syncProduct?.id || item?.id || id),
+      id: String(syncProduct?.id || item?.id || id),
 
-        // IMPORTANT: Printful often stores your “SKU-like” value in external_id.
-        // Sometimes v.sku exists too; we’ll accept either.
-        const sku = (v.sku || v.external_id || "").toString().trim();
+      // editable fields from admin first
+      name:
+        override?.title ||
+        syncProduct?.name ||
+        item?.name ||
+        "Product",
 
-        return {
-          sync_variant_id: String(v.id),            // Printful fulfillment id
-          catalog_variant_id: String(v.variant_id), // Printful catalog variant id
-          name: v.name,
-          retail_price: v.retail_price,
-          preview_url: preview,
-          sku, // ✅ this is what we’ll use to map to Stripe price lookup_key
-        };
-      }),
+      description:
+        override?.description ||
+        syncProduct?.description ||
+        item?.description ||
+        "",
+
+      thumbnail_url:
+        overrideImages[0] ||
+        printfulThumbnail ||
+        "/fallback.png",
+
+      gallery_images: overrideImages,
+
+      featured: Boolean(override?.featured),
+      hidden: Boolean(override?.hidden),
+
+      // keep raw references if you need them
+      sync_product: syncProduct,
+      variants,
+    };
+
+    return res.status(200).json(mergedProduct);
+  } catch (error) {
+    console.error("printful-product [id] error:", error);
+    return res.status(500).json({
+      error: "Failed to load product",
+      details: error?.message || "Unknown error",
     });
-  } catch (err) {
-    console.error("PRINTFUL FETCH ERROR:", err);
-    res.status(500).json({ error: "Server error during Printful fetch" });
   }
 }
