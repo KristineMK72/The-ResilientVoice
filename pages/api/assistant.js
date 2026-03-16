@@ -20,7 +20,10 @@ function detectIntent(message) {
     text.includes("runs small") ||
     text.includes("sizing guide") ||
     text.includes("material") ||
-    text.includes("fabric")
+    text.includes("fabric") ||
+    text.includes("cotton") ||
+    text.includes("brand") ||
+    text.includes("what size should i get")
   ) {
     return "product_help";
   }
@@ -68,19 +71,20 @@ async function getProductContext(productId) {
       title,
       slug,
       description,
+      brand,
       thumbnail_url,
+      size_guide_json,
+      product_details_json,
       product_variants (
-        printful_sync_variant_id,
-        sku,
+        id,
         name,
-        color,
         size,
-        retail_price,
-        currency,
+        color,
         material,
+        brand,
         fit_notes,
         size_guide_json,
-        image_url,
+        product_details_json,
         in_stock
       )
     `)
@@ -95,18 +99,69 @@ async function getProductContext(productId) {
   return data;
 }
 
+function unique(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function sizeSort(a, b) {
+  const order = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"];
+  const ai = order.indexOf(String(a).toUpperCase());
+  const bi = order.indexOf(String(b).toUpperCase());
+
+  if (ai === -1 && bi === -1) return String(a).localeCompare(String(b));
+  if (ai === -1) return 1;
+  if (bi === -1) return -1;
+  return ai - bi;
+}
+
+function buildProductSummary(product) {
+  if (!product) return null;
+
+  const variants = Array.isArray(product.product_variants)
+    ? product.product_variants
+    : [];
+
+  const sizes = unique(variants.map((v) => v.size)).sort(sizeSort);
+  const colors = unique(variants.map((v) => v.color));
+  const materials = unique(variants.map((v) => v.material));
+  const variantBrands = unique(variants.map((v) => v.brand));
+  const fitNotes = unique(variants.map((v) => v.fit_notes));
+
+  const sizeGuideNotes = unique(
+    variants
+      .map((v) => v.size_guide_json?.note)
+      .concat(product?.size_guide_json?.note || null)
+  );
+
+  return {
+    title: product.title || null,
+    description: product.description || null,
+    brand: product.brand || variantBrands[0] || null,
+    sizes,
+    colors,
+    materials,
+    fitNotes,
+    sizeGuideNotes,
+    variantCount: variants.length,
+    inStockSizes: sizes,
+  };
+}
+
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json");
 
   if (req.method !== "POST") {
-    return res.status(405).json({ ok: false, error: "Method not allowed" });
+    return res.status(405).json({
+      ok: false,
+      error: "Method not allowed",
+    });
   }
 
   try {
     const body = req.body || {};
     const message = body.message || "";
-    const sessionId = body.sessionId || `session-${Date.now()}`;
     const productId = body.productId || null;
+    const sessionId = body.sessionId || `session-${Date.now()}`;
     const conversation = Array.isArray(body.conversation)
       ? body.conversation.slice(-6)
       : [];
@@ -118,46 +173,56 @@ export default async function handler(req, res) {
       getProductContext(productId),
     ]);
 
+    const productSummary = buildProductSummary(productContext);
+
+    console.log("Assistant productId:", productId);
+    console.log(
+      "Assistant productSummary:",
+      JSON.stringify(productSummary, null, 2)
+    );
+
     const systemPrompt = `
 You are Sam, the Grit & Grace shopping assistant.
 
-Your personality:
+Personality:
 - Warm, compassionate, grateful, and welcoming
 - Patriotic in a heartfelt and humble way
 - Spiritual in a gentle, uplifting, inclusive way
 - Encouraging, calm, neighborly, and kind
 - Proud of community, resilience, service, faith, freedom, and giving back
 
-Your job:
-- Help customers with sizing, shipping, gift ideas, product details, materials, and store questions
-- Answer only using the provided context
-- Never invent size, fit, stock, material, or shipping facts
-- If product info is incomplete, say so honestly
-- If you are still gathering item details, say that clearly and invite a follow-up question
-- If sizing data exists, summarize it clearly
-- If a sizing guide is missing, say that honestly
-- Keep answers helpful, warm, concise, and conversational
+Rules:
+- Answer only using the provided store context.
+- Never invent facts.
+- If information is missing, say so honestly.
+- Keep answers warm, helpful, concise, and conversational.
+
+Critical product behavior:
+- If productSummary.sizes has values, ALWAYS list the available sizes.
+- If productSummary.materials has values, mention the material in the first sentence.
+- If productSummary.brand exists, mention the garment brand.
+- Never say sizes are unavailable if productSummary.sizes contains values.
+- Never say material is unavailable if productSummary.materials contains values.
+- If asked what size someone should get and there is no exact measurement chart, recommend their usual size as a starting point.
+- If fit notes say to size up for a roomier fit, mention that.
+- If the user asks about sizing, answer directly first, then optionally invite one short follow-up.
 
 Tone guidance:
-- Sound like a caring patriotic guide, not a robotic chatbot
-- You may warmly thank people for supporting Grit & Grace
-- You may gently mention community impact and gratitude
-- Keep spiritual language light, encouraging, and inclusive
-
-Helpful fallback language:
-- "I’m still gathering the full details for this item, so I may not have every specification just yet."
-- "I can help with a follow-up if you’d like me to keep narrowing it down."
+- Sound like a caring patriotic guide, not a robotic chatbot.
+- You may thank people for supporting Grit & Grace.
+- You may briefly mention the community-focused mission.
 `;
-
-    const context = {
-      intent,
-      productContext,
-      policies,
-    };
 
     const historyText = conversation
       .map((m) => `${m.role === "user" ? "Customer" : "Sam"}: ${m.text}`)
       .join("\n");
+
+    const context = {
+      intent,
+      productId,
+      productSummary,
+      policies,
+    };
 
     const response = await openai.responses.create({
       model: "gpt-4.1-mini",
@@ -182,14 +247,20 @@ ${JSON.stringify(context, null, 2)}`,
 
     const answer =
       response.output_text ||
-      "I’m still gathering the full details for this item, but I’m happy to help with a follow-up question.";
+      "I’m still gathering the full details for this item, but I’d be happy to help with a follow-up question.";
 
-    await supabaseAdmin.from("assistant_conversations").insert({
-      session_id: sessionId,
-      user_message: message,
-      assistant_message: answer,
-      intent,
-    });
+    const { error: insertError } = await supabaseAdmin
+      .from("assistant_conversations")
+      .insert({
+        session_id: sessionId,
+        user_message: message,
+        assistant_message: answer,
+        intent,
+      });
+
+    if (insertError) {
+      console.error("assistant_conversations insert error:", insertError);
+    }
 
     return res.status(200).json({
       ok: true,
@@ -197,7 +268,8 @@ ${JSON.stringify(context, null, 2)}`,
       intent,
     });
   } catch (error) {
-    console.error("assistant route error:", error);
+    console.error("assistant error:", error);
+
     return res.status(500).json({
       ok: false,
       error: "Assistant request failed",
