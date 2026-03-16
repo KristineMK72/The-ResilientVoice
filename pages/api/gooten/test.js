@@ -1,28 +1,30 @@
-import { gootenFetch } from "../../../lib/gooten";
-
 export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    return res.status(405).json({
-      ok: false,
-      error: "Method not allowed",
-    });
-  }
-
   try {
-    const data = await gootenFetch("products");
+    const recipeId = process.env.GOOTEN_RECIPE_ID;
 
-    return res.status(200).json({
+    const response = await fetch(
+      `https://api.print.io/api/products/?recipeId=${recipeId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      }
+    );
+
+    const data = await response.json();
+
+    res.status(200).json({
       ok: true,
       message: "Gooten connection successful",
       data,
     });
   } catch (error) {
-    console.error("gooten test error:", error);
-
-    return res.status(500).json({
+    res.status(500).json({
       ok: false,
       error: "Gooten connection failed",
-      details: error?.message || "Unknown error",
+      details: error.message,
     });
   }
 }
