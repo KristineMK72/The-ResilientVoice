@@ -4,12 +4,16 @@ export default async function handler(req, res) {
   try {
     const result = await gootenFetch("products");
 
-    return res.status(200).json({
+    const hadError =
+      result?.data?.HadError === true ||
+      result?.data?.Message === "An error has occurred.";
+
+    return res.status(hadError ? 500 : 200).json({
       requestDebug: {
         recipeIdPresent: !!process.env.GOOTEN_RECIPE_ID,
         billingKeyPresent: !!process.env.GOOTEN_PARTNER_BILLING_KEY,
       },
-      ok: result.ok,
+      ok: !hadError,
       status: result.status,
       data: result.data,
       hadError: result.data?.HadError ?? null,
