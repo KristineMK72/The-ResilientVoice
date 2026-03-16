@@ -1,46 +1,28 @@
 import { gootenFetch } from "../../../lib/gooten";
 
 export default async function handler(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({
+      ok: false,
+      error: "Method not allowed",
+    });
+  }
+
   try {
-    const recipeId = process.env.GOOTEN_RECIPE_ID;
-    const partnerBillingKey = process.env.GOOTEN_PARTNER_BILLING_KEY;
-
-    const response = await fetch(
-      `https://api.print.io/api/products/?recipeId=${recipeId}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          partnerBillingKey,
-        }),
-      }
-    );
-
-    const text = await response.text();
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      return res.status(500).json({
-        ok: false,
-        error: "Non-JSON response",
-        details: text.slice(0, 300),
-      });
-    }
+    const data = await gootenFetch("products");
 
     return res.status(200).json({
       ok: true,
       message: "Gooten connection successful",
-      sample: data?.Products?.slice?.(0, 5) || data,
+      data,
     });
   } catch (error) {
+    console.error("gooten test error:", error);
+
     return res.status(500).json({
       ok: false,
-      error: "Gooten test failed",
-      details: error.message,
+      error: "Gooten connection failed",
+      details: error?.message || "Unknown error",
     });
   }
 }
