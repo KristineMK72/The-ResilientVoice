@@ -12,6 +12,10 @@ export default async function handler(req, res) {
       ok: result.ok,
       status: result.status,
       data: result.data,
+      hadError: result.data?.HadError ?? null,
+      errors: result.data?.Errors ?? null,
+      errorReferenceCode: result.data?.ErrorReferenceCode ?? null,
+      message: result.data?.Message ?? null,
     });
   } catch (error) {
     return res.status(500).json({
