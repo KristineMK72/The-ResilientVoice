@@ -10,6 +10,85 @@ function slugify(input) {
     .replace(/^-+|-+$/g, "");
 }
 
+function unique(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function normalizeSizeGuide(catalog, variant, allVariants = []) {
+  const rawGuide = catalog?.size_guide || null;
+  const productInfo = catalog?.product || null;
+
+  const allSizes = unique(allVariants.map((v) => v?.size));
+
+  if (rawGuide && typeof rawGuide === "object") {
+    return {
+      ...rawGuide,
+      available_sizes:
+        rawGuide.available_sizes && Array.isArray(rawGuide.available_sizes)
+          ? rawGuide.available_sizes
+          : allSizes.length
+          ? allSizes
+          : [variant?.size].filter(Boolean),
+      note:
+        rawGuide.note ||
+        "If you are between sizes and want a roomier fit, consider sizing up.",
+      has_measurements: hasMeasurementData(rawGuide),
+    };
+  }
+
+  return {
+    available_sizes: allSizes.length ? allSizes : [variant?.size].filter(Boolean),
+    note:
+      "If you are between sizes and want a roomier fit, consider sizing up.",
+    has_measurements: false,
+    source: "fallback",
+    model: productInfo?.model || null,
+    product_title: productInfo?.title || null,
+  };
+}
+
+function hasMeasurementData(guide) {
+  if (!guide || typeof guide !== "object") return false;
+
+  const disallowed = new Set(["note", "available_sizes", "has_measurements", "source"]);
+  const keys = Object.keys(guide).filter((k) => !disallowed.has(k));
+
+  if (!keys.length) return false;
+
+  for (const key of keys) {
+    const value = guide[key];
+    if (Array.isArray(value) && value.length) return true;
+    if (value && typeof value === "object" && Object.keys(value).length) return true;
+    if (typeof value === "string" && value.trim()) return true;
+  }
+
+  return false;
+}
+
+function extractMaterial(productInfo) {
+  if (!productInfo) return null;
+
+  if (productInfo.material) return productInfo.material;
+  if (productInfo.composition) return productInfo.composition;
+
+  const description = productInfo.description || "";
+  const bulletLines = String(description)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => line.startsWith("•"));
+
+  const likelyMaterialLines = bulletLines.filter((line) =>
+    /cotton|polyester|spandex|blend|fleece|jersey/i.test(line)
+  );
+
+  if (likelyMaterialLines.length) {
+    return likelyMaterialLines.join(" ");
+  }
+
+  return description || null;
+}
+
 async function getCatalogVariantInfo(catalogVariantId) {
   try {
     if (!catalogVariantId) return null;
@@ -37,7 +116,6 @@ export default async function handler(req, res) {
       const syncProductId = listItem?.sync_product?.id || listItem?.id || null;
       if (!syncProductId) continue;
 
-      // Fetch full product details for variants
       const detailData = await printfulFetch(`/store/products/${syncProductId}`);
       const item = detailData?.result || listItem;
 
@@ -53,14 +131,45 @@ export default async function handler(req, res) {
         item?.thumbnail_url ||
         null;
 
+      const variants = item?.sync_variants || [];
+
+      console.log(`Product ${syncProductId} has ${variants.length} variants`);
+
+      // Pull catalog info from the first variant that has a catalog variant id
+      let firstCatalog = null;
+      const firstCatalogVariantId =
+        variants.find((v) => v?.variant_id)?.variant_id || null;
+
+      if (firstCatalogVariantId) {
+        firstCatalog = await getCatalogVariantInfo(firstCatalogVariantId);
+      }
+
+      const firstProductInfo = firstCatalog?.product || null;
+      const productLevelSizeGuide = normalizeSizeGuide(
+        firstCatalog,
+        variants[0] || null,
+        variants
+      );
+
+      const productBrand =
+        firstProductInfo?.brand ||
+        firstProductInfo?.model ||
+        "Grit & Grace";
+
       const { data: productRow, error: productError } = await supabaseAdmin
         .from("products")
         .upsert(
           {
             printful_sync_product_id: String(syncProductId),
+            printful_catalog_product_id: firstProductInfo?.id
+              ? String(firstProductInfo.id)
+              : null,
             title,
             slug,
             thumbnail_url: thumbnailUrl,
+            brand: productBrand,
+            size_guide_json: productLevelSizeGuide,
+            product_details_json: firstProductInfo,
             active: true,
           },
           { onConflict: "printful_sync_product_id" }
@@ -70,36 +179,23 @@ export default async function handler(req, res) {
 
       if (productError) throw productError;
 
-      const variants = item?.sync_variants || [];
-
-      console.log(
-        `Product ${syncProductId} has ${variants.length} variants`
-      );
-
       for (const variant of variants) {
         const catalogVariantId = variant?.variant_id || null;
         const catalog = catalogVariantId
           ? await getCatalogVariantInfo(catalogVariantId)
           : null;
 
-        const productInfo = catalog?.product || null;
+        const productInfo = catalog?.product || firstProductInfo || null;
 
-        const material =
-          productInfo?.material ||
-          productInfo?.description ||
-          null;
+        const material = extractMaterial(productInfo);
 
         const brand =
           productInfo?.brand ||
           productInfo?.model ||
+          productBrand ||
           null;
 
-        const sizeGuide =
-          catalog?.size_guide || {
-            available_sizes: [variant?.size].filter(Boolean),
-            note:
-              "If you are between sizes and want a roomier fit, consider sizing up.",
-          };
+        const sizeGuide = normalizeSizeGuide(catalog, variant, variants);
 
         const variantImage =
           variant?.files?.[0]?.preview_url ||
