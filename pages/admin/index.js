@@ -27,6 +27,7 @@ export default function AdminHomePage() {
     }
 
     load();
+
     return () => {
       active = false;
     };
@@ -43,20 +44,57 @@ export default function AdminHomePage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 32,
+        }}
+      >
         <div>
           <h1 style={{ marginBottom: 6 }}>Grit & Grace Admin</h1>
           <p style={{ margin: 0, opacity: 0.7 }}>{email}</p>
         </div>
-        <button onClick={handleLogout} style={{ padding: "10px 14px", borderRadius: 10, cursor: "pointer" }}>
+
+        <button
+          onClick={handleLogout}
+          style={{
+            padding: "10px 14px",
+            borderRadius: 10,
+            cursor: "pointer",
+            border: "1px solid #ddd",
+            background: "#fff",
+          }}
+        >
           Log out
         </button>
       </div>
 
+      {/* Dashboard grid */}
       <div style={{ display: "grid", gap: 16 }}>
+
         <Link href="/admin/banner" style={cardStyle}>
-          Edit site banner
+          📢 Edit Site Banner
         </Link>
+
+        <Link href="/admin/pages" style={cardStyle}>
+          📝 Edit Page Content
+        </Link>
+
+        <Link href="/admin/products" style={cardStyle}>
+          🛍 Manage Products
+        </Link>
+
+        <Link href="/admin/media" style={cardStyle}>
+          🖼 Manage Images / Media
+        </Link>
+
+        <Link href="/" style={cardStyle}>
+          🌐 View Live Website
+        </Link>
+
       </div>
     </div>
   );
@@ -64,10 +102,11 @@ export default function AdminHomePage() {
 
 const cardStyle = {
   display: "block",
-  padding: 18,
+  padding: 20,
   border: "1px solid #ddd",
   borderRadius: 14,
   textDecoration: "none",
   color: "#111",
   fontWeight: 700,
+  background: "#fafafa",
 };
