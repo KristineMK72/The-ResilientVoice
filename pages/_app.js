@@ -1,5 +1,6 @@
 // /pages/_app.js
 import React from "react";
+import SiteBanner from "../components/SiteBanner";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import GlobalStoreAssistant from "../components/GlobalStoreAssistant";
