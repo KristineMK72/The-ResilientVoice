@@ -13,7 +13,6 @@ function slugify(input) {
 async function getCatalogVariantInfo(catalogVariantId) {
   try {
     if (!catalogVariantId) return null;
-
     const data = await printfulFetch(`/products/variant/${catalogVariantId}`);
     return data?.result || null;
   } catch (error) {
@@ -28,27 +27,19 @@ async function getCatalogVariantInfo(catalogVariantId) {
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({
-      ok: false,
-      error: "Method not allowed",
-    });
+    return res.status(405).json({ ok: false, error: "Method not allowed" });
   }
 
   try {
-    const data = await printfulFetch("/store/products");
+    const listData = await printfulFetch("/store/products");
 
-    console.log(
-      "First Printful product sample:",
-      JSON.stringify(data?.result?.[0] || null, null, 2)
-    );
+    for (const listItem of listData?.result || []) {
+      const syncProductId = listItem?.sync_product?.id || listItem?.id || null;
+      if (!syncProductId) continue;
 
-    for (const item of data?.result || []) {
-      const syncProductId = item?.sync_product?.id || item?.id || null;
-
-      if (!syncProductId) {
-        console.warn("Skipping product with missing sync product ID:", item);
-        continue;
-      }
+      // Fetch full product details for variants
+      const detailData = await printfulFetch(`/store/products/${syncProductId}`);
+      const item = detailData?.result || listItem;
 
       const title =
         item?.sync_product?.name ||
@@ -79,7 +70,13 @@ export default async function handler(req, res) {
 
       if (productError) throw productError;
 
-      for (const variant of item?.sync_variants || []) {
+      const variants = item?.sync_variants || [];
+
+      console.log(
+        `Product ${syncProductId} has ${variants.length} variants`
+      );
+
+      for (const variant of variants) {
         const catalogVariantId = variant?.variant_id || null;
         const catalog = catalogVariantId
           ? await getCatalogVariantInfo(catalogVariantId)
@@ -151,7 +148,6 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error("sync-products error:", error);
-
     return res.status(500).json({
       ok: false,
       error: "Product sync failed",
