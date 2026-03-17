@@ -31,37 +31,93 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        padding: 24,
+      }}
+    >
       <form
         onSubmit={handleLogin}
         style={{
           width: "100%",
-          maxWidth: 440,
-          border: "1px solid #ddd",
-          borderRadius: 18,
-          padding: 24,
-          background: "#fff",
+          maxWidth: 460,
+          border: "1px solid #d1d5db",
+          borderRadius: 20,
+          padding: 28,
+          background: "#ffffff",
+          color: "#111827",
+          boxShadow: "0 18px 50px rgba(0,0,0,0.16)",
         }}
       >
-        <h1 style={{ marginTop: 0, marginBottom: 8 }}>Admin Login</h1>
-        <p style={{ marginTop: 0, opacity: 0.75, marginBottom: 20 }}>
-          Sign in to manage Grit & Grace content, banners, pages, and products.
+        <h1
+          style={{
+            marginTop: 0,
+            marginBottom: 8,
+            color: "#111827",
+            fontSize: 32,
+            fontWeight: 900,
+          }}
+        >
+          Admin Login
+        </h1>
+
+        <p
+          style={{
+            marginTop: 0,
+            marginBottom: 22,
+            color: "#4b5563",
+            fontSize: 15,
+            lineHeight: 1.5,
+          }}
+        >
+          Sign in to manage banners, pages, products, and metrics for Grit & Grace.
         </p>
 
-        <label style={{ display: "block", marginBottom: 8 }}>Email</label>
+        <label
+          htmlFor="admin-email"
+          style={{
+            display: "block",
+            marginBottom: 8,
+            color: "#111827",
+            fontWeight: 700,
+            fontSize: 14,
+          }}
+        >
+          Email
+        </label>
         <input
+          id="admin-email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           type="email"
-          style={{ width: "100%", marginBottom: 16, padding: 12, borderRadius: 10, border: "1px solid #ccc" }}
+          autoComplete="email"
+          placeholder="you@example.com"
+          style={inputStyle}
         />
 
-        <label style={{ display: "block", marginBottom: 8 }}>Password</label>
+        <label
+          htmlFor="admin-password"
+          style={{
+            display: "block",
+            marginBottom: 8,
+            color: "#111827",
+            fontWeight: 700,
+            fontSize: 14,
+          }}
+        >
+          Password
+        </label>
         <input
+          id="admin-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           type="password"
-          style={{ width: "100%", marginBottom: 16, padding: 12, borderRadius: 10, border: "1px solid #ccc" }}
+          autoComplete="current-password"
+          placeholder="Enter your password"
+          style={inputStyle}
         />
 
         <button
@@ -69,22 +125,41 @@ export default function AdminLoginPage() {
           disabled={loading}
           style={{
             width: "100%",
-            padding: 12,
-            borderRadius: 10,
+            padding: 14,
+            borderRadius: 12,
             border: "none",
-            background: "#111827",
-            color: "#fff",
-            fontWeight: 700,
+            background: "#0f172a",
+            color: "#ffffff",
+            fontWeight: 800,
+            fontSize: 18,
             cursor: "pointer",
+            marginTop: 6,
           }}
         >
           {loading ? "Signing in..." : "Sign in"}
         </button>
 
-        {message ? <p style={{ color: "crimson", marginTop: 14 }}>{message}</p> : null}
+        {message ? (
+          <p
+            style={{
+              color: "#b91c1c",
+              marginTop: 16,
+              fontWeight: 600,
+            }}
+          >
+            {message}
+          </p>
+        ) : null}
 
         <div style={{ marginTop: 18 }}>
-          <Link href="/" style={{ opacity: 0.75 }}>
+          <Link
+            href="/"
+            style={{
+              color: "#374151",
+              textDecoration: "underline",
+              fontWeight: 600,
+            }}
+          >
             ← Back to website
           </Link>
         </div>
@@ -92,3 +167,15 @@ export default function AdminLoginPage() {
     </div>
   );
 }
+
+const inputStyle = {
+  width: "100%",
+  marginBottom: 18,
+  padding: 14,
+  borderRadius: 12,
+  border: "1px solid #cbd5e1",
+  color: "#111827",
+  background: "#ffffff",
+  fontSize: 16,
+  boxSizing: "border-box",
+};
