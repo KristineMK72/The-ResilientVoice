@@ -1,3 +1,4 @@
+// /components/PageViewTracker.js
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 
@@ -11,7 +12,9 @@ export default function PageViewTracker() {
       try {
         await fetch("/api/track-view", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
             path: url,
             referrer:
@@ -19,8 +22,8 @@ export default function PageViewTracker() {
             visitor_type: "visitor",
           }),
         });
-      } catch (error) {
-        console.error("Page view tracking failed:", error);
+      } catch (err) {
+        console.error("Tracking failed:", err);
       }
     }
 
@@ -28,11 +31,13 @@ export default function PageViewTracker() {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         sendView(url);
-      }, 250);
+      }, 200);
     }
 
+    // initial load
     handleRoute(router.asPath);
 
+    // route changes
     router.events.on("routeChangeComplete", handleRoute);
 
     return () => {
