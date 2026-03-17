@@ -91,6 +91,10 @@ export default function AdminHomePage() {
           🖼 Manage Images / Media
         </Link>
 
+        <Link href="/admin/metrics" style={cardStyle}>
+          📊 Metrics Dashboard
+        </Link>
+        
         <Link href="/" style={cardStyle}>
           🌐 View Live Website
         </Link>
