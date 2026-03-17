@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import { supabaseBrowser } from "../../lib/supabase-browser";
 
 export default function AdminLoginPage() {
@@ -35,14 +36,17 @@ export default function AdminLoginPage() {
         onSubmit={handleLogin}
         style={{
           width: "100%",
-          maxWidth: 420,
+          maxWidth: 440,
           border: "1px solid #ddd",
-          borderRadius: 16,
+          borderRadius: 18,
           padding: 24,
           background: "#fff",
         }}
       >
-        <h1 style={{ marginTop: 0 }}>Admin Login</h1>
+        <h1 style={{ marginTop: 0, marginBottom: 8 }}>Admin Login</h1>
+        <p style={{ marginTop: 0, opacity: 0.75, marginBottom: 20 }}>
+          Sign in to manage Grit & Grace content, banners, pages, and products.
+        </p>
 
         <label style={{ display: "block", marginBottom: 8 }}>Email</label>
         <input
@@ -78,6 +82,12 @@ export default function AdminLoginPage() {
         </button>
 
         {message ? <p style={{ color: "crimson", marginTop: 14 }}>{message}</p> : null}
+
+        <div style={{ marginTop: 18 }}>
+          <Link href="/" style={{ opacity: 0.75 }}>
+            ← Back to website
+          </Link>
+        </div>
       </form>
     </div>
   );
