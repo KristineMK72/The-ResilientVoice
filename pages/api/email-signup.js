@@ -43,34 +43,57 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Database error" });
     }
 
-    // ---- Email notification (does NOT block the signup if it fails) ----
     try {
-      const host = requireEnv("SMTP_HOST"); // smtp.gmail.com
-      const port = Number(requireEnv("SMTP_PORT")); // 465
-      const user = requireEnv("SMTP_USER"); // info@gritandgrace.buzz
-      const pass = requireEnv("SMTP_PASS"); // app password (no spaces)
+      const host = requireEnv("SMTP_HOST");
+      const port = Number(requireEnv("SMTP_PORT"));
+      const user = requireEnv("SMTP_USER");
+      const pass = requireEnv("SMTP_PASS");
 
-      const to = process.env.EMAIL_TO || user;
+      const adminTo = process.env.EMAIL_TO || user;
       const from = process.env.EMAIL_FROM || `Grit & Grace <${user}>`;
 
       const transporter = nodemailer.createTransport({
         host,
         port,
-        secure: port === 465, // true for 465
+        secure: port === 465,
         auth: { user, pass },
       });
 
+      // 1) Notify admin
       await transporter.sendMail({
         from,
-        to,
+        to: adminTo,
         subject: "New Grit & Grace Email Signup",
         text: `New signup: ${clean}\nSource: homepage\nIP: ${ip || "unknown"}\nUA: ${
           userAgent || "unknown"
         }\nTime: ${new Date().toISOString()}`,
       });
+
+      // 2) Send confirmation to subscriber
+      await transporter.sendMail({
+        from,
+        to: clean,
+        subject: "Welcome to Grit & Grace",
+        text: `Thank you for joining the Grit & Grace email list.
+
+You’ll be first to hear about new product drops, special releases, and community updates.
+
+We’re grateful you’re here.
+
+— Grit & Grace`,
+        html: `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111;">
+            <h2 style="margin-bottom: 12px;">Welcome to Grit &amp; Grace</h2>
+            <p>Thank you for joining the Grit &amp; Grace email list.</p>
+            <p>You’ll be first to hear about new product drops, special releases, and community updates.</p>
+            <p>We’re grateful you’re here.</p>
+            <p style="margin-top: 20px;"><strong>— Grit &amp; Grace</strong></p>
+          </div>
+        `,
+      });
     } catch (mailErr) {
-      console.error("Signup email notify failed:", mailErr);
-      // We still return success because signup is saved in Supabase.
+      console.error("Signup email send failed:", mailErr);
+      // Still return success because the signup was saved
     }
 
     return res.status(200).json({ success: true });
