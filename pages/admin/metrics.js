@@ -19,11 +19,7 @@ export default function AdminMetricsPage() {
     async function load() {
       setLoading(true);
 
-      const [
-        ordersRes,
-        orderItemsRes,
-        emailRes,
-      ] = await Promise.all([
+      const [ordersRes, orderItemsRes, emailRes] = await Promise.all([
         supabaseBrowser
           .from("orders")
           .select("*")
@@ -57,11 +53,7 @@ export default function AdminMetricsPage() {
 
   const totalRevenue = useMemo(() => {
     return orders.reduce((sum, o) => {
-      const amount =
-        o.total ??
-        o.amount_total ??
-        o.total_amount ??
-        0;
+      const amount = o.total ?? o.amount_total ?? o.total_amount ?? 0;
       return sum + Number(amount || 0);
     }, 0);
   }, [orders]);
@@ -76,18 +68,9 @@ export default function AdminMetricsPage() {
     const map = new Map();
 
     for (const order of orders) {
-      const rawDate = order.created_at;
-      if (!rawDate) continue;
-
-      const day = new Date(rawDate).toISOString().slice(0, 10);
-      const amount =
-        Number(
-          order.total ??
-          order.amount_total ??
-          order.total_amount ??
-          0
-        ) || 0;
-
+      if (!order.created_at) continue;
+      const day = new Date(order.created_at).toISOString().slice(0, 10);
+      const amount = Number(order.total ?? order.amount_total ?? order.total_amount ?? 0) || 0;
       map.set(day, (map.get(day) || 0) + amount);
     }
 
@@ -100,10 +83,8 @@ export default function AdminMetricsPage() {
     const map = new Map();
 
     for (const row of emailSignups) {
-      const rawDate = row.created_at;
-      if (!rawDate) continue;
-
-      const day = new Date(rawDate).toISOString().slice(0, 10);
+      if (!row.created_at) continue;
+      const day = new Date(row.created_at).toISOString().slice(0, 10);
       map.set(day, (map.get(day) || 0) + 1);
     }
 
@@ -125,7 +106,6 @@ export default function AdminMetricsPage() {
 
       const qty = Number(item.quantity || 1);
       const current = map.get(name) || { name, quantity: 0 };
-
       current.quantity += qty;
       map.set(name, current);
     }
@@ -135,28 +115,30 @@ export default function AdminMetricsPage() {
       .slice(0, 10);
   }, [orderItems]);
 
-  const maxSales = useMemo(() => {
-    return Math.max(1, ...salesByDay.map((d) => d.total));
-  }, [salesByDay]);
-
-  const maxSignups = useMemo(() => {
-    return Math.max(1, ...signupsByDay.map((d) => d.count));
-  }, [signupsByDay]);
+  const maxSales = useMemo(() => Math.max(1, ...salesByDay.map((d) => d.total)), [salesByDay]);
+  const maxSignups = useMemo(() => Math.max(1, ...signupsByDay.map((d) => d.count)), [signupsByDay]);
 
   if (loading) {
-    return <div style={{ padding: 24 }}>Loading metrics...</div>;
+    return <div style={{ padding: 24, color: "white" }}>Loading metrics...</div>;
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
-      <div style={{ marginBottom: 24 }}>
-        <Link href="/admin" style={{ textDecoration: "none" }}>
+    <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto", color: "#111827" }}>
+      <div style={{ marginBottom: 20 }}>
+        <Link
+          href="/admin"
+          style={{
+            color: "#ffffff",
+            textDecoration: "underline",
+            fontWeight: 700,
+          }}
+        >
           ← Back to admin
         </Link>
       </div>
 
-      <h1 style={{ marginBottom: 8 }}>Metrics Dashboard</h1>
-      <p style={{ marginTop: 0, opacity: 0.7 }}>
+      <h1 style={{ marginBottom: 8, color: "#ffffff" }}>Metrics Dashboard</h1>
+      <p style={{ marginTop: 0, marginBottom: 24, color: "rgba(255,255,255,0.82)" }}>
         Sales, newsletter growth, and top products.
       </p>
 
@@ -165,7 +147,6 @@ export default function AdminMetricsPage() {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
           gap: 16,
-          marginTop: 24,
           marginBottom: 28,
         }}
       >
@@ -175,13 +156,7 @@ export default function AdminMetricsPage() {
         <StatCard label="Top Product Count" value={String(topProducts[0]?.quantity || 0)} />
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr",
-          gap: 24,
-        }}
-      >
+      <div style={{ display: "grid", gap: 24 }}>
         <Panel title="Sales by Day">
           {salesByDay.length ? (
             <MiniBarChart
@@ -225,11 +200,12 @@ export default function AdminMetricsPage() {
                     padding: 12,
                     border: "1px solid #e5e7eb",
                     borderRadius: 12,
-                    background: "#fafafa",
+                    background: "#f9fafb",
+                    color: "#111827",
                   }}
                 >
                   <div style={{ fontWeight: 700 }}>{item.name}</div>
-                  <div style={{ opacity: 0.75 }}>{item.quantity} sold</div>
+                  <div style={{ opacity: 0.8 }}>{item.quantity} sold</div>
                 </div>
               ))}
             </div>
@@ -249,11 +225,7 @@ export default function AdminMetricsPage() {
             {recentOrders.length ? (
               <div style={{ display: "grid", gap: 10 }}>
                 {recentOrders.map((order, i) => {
-                  const amount =
-                    order.total ??
-                    order.amount_total ??
-                    order.total_amount ??
-                    0;
+                  const amount = order.total ?? order.amount_total ?? order.total_amount ?? 0;
 
                   return (
                     <div
@@ -262,18 +234,19 @@ export default function AdminMetricsPage() {
                         padding: 12,
                         border: "1px solid #e5e7eb",
                         borderRadius: 12,
-                        background: "#fafafa",
+                        background: "#f9fafb",
+                        color: "#111827",
                       }}
                     >
                       <div style={{ fontWeight: 700 }}>
                         {order.customer_email || order.email || "Order"}
                       </div>
-                      <div style={{ opacity: 0.7, fontSize: 14 }}>
+                      <div style={{ opacity: 0.75, fontSize: 14 }}>
                         {order.created_at
                           ? new Date(order.created_at).toLocaleString()
                           : "No date"}
                       </div>
-                      <div style={{ marginTop: 4 }}>{money(amount)}</div>
+                      <div style={{ marginTop: 4, fontWeight: 700 }}>{money(amount)}</div>
                     </div>
                   );
                 })}
@@ -293,11 +266,12 @@ export default function AdminMetricsPage() {
                       padding: 12,
                       border: "1px solid #e5e7eb",
                       borderRadius: 12,
-                      background: "#fafafa",
+                      background: "#f9fafb",
+                      color: "#111827",
                     }}
                   >
                     <div style={{ fontWeight: 700 }}>{row.email}</div>
-                    <div style={{ opacity: 0.7, fontSize: 14 }}>
+                    <div style={{ opacity: 0.75, fontSize: 14 }}>
                       {row.created_at
                         ? new Date(row.created_at).toLocaleString()
                         : "No date"}
@@ -320,13 +294,15 @@ function StatCard({ label, value }) {
     <div
       style={{
         padding: 18,
-        border: "1px solid #e5e7eb",
+        border: "1px solid #d1d5db",
         borderRadius: 16,
-        background: "#fafafa",
+        background: "#ffffff",
+        color: "#111827",
+        boxShadow: "0 10px 26px rgba(0,0,0,0.08)",
       }}
     >
-      <div style={{ opacity: 0.7, marginBottom: 8 }}>{label}</div>
-      <div style={{ fontSize: 30, fontWeight: 900 }}>{value}</div>
+      <div style={{ color: "#6b7280", marginBottom: 8, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 30, fontWeight: 900, color: "#111827" }}>{value}</div>
     </div>
   );
 }
@@ -335,13 +311,15 @@ function Panel({ title, children }) {
   return (
     <section
       style={{
-        border: "1px solid #e5e7eb",
+        border: "1px solid #d1d5db",
         borderRadius: 18,
         padding: 18,
-        background: "#fff",
+        background: "#ffffff",
+        color: "#111827",
+        boxShadow: "0 10px 26px rgba(0,0,0,0.08)",
       }}
     >
-      <h2 style={{ marginTop: 0, marginBottom: 16 }}>{title}</h2>
+      <h2 style={{ marginTop: 0, marginBottom: 16, color: "#111827" }}>{title}</h2>
       {children}
     </section>
   );
@@ -359,6 +337,7 @@ function MiniBarChart({ rows, maxValue }) {
               gap: 12,
               marginBottom: 6,
               fontSize: 14,
+              color: "#111827",
             }}
           >
             <span>{row.label}</span>
@@ -389,5 +368,5 @@ function MiniBarChart({ rows, maxValue }) {
 }
 
 function EmptyText({ children }) {
-  return <p style={{ opacity: 0.7, margin: 0 }}>{children}</p>;
+  return <p style={{ color: "#6b7280", margin: 0 }}>{children}</p>;
 }
