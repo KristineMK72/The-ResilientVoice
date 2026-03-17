@@ -98,6 +98,10 @@ export default function AdminHomePage() {
         <Link href="/" style={cardStyle}>
           🌐 View Live Website
         </Link>
+        
+        <Link href="/admin/traffic" style={cardStyle}>
+          🗺️ Traffic Map
+        </Link>
 
       </div>
     </div>
