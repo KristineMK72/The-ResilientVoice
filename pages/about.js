@@ -1,249 +1,273 @@
+// pages/about.js
+"use client";
+
+import Image from "next/image";
+
 export default function AboutPage() {
-  const paragraphStyle = {
-    fontSize: "1.2rem",
-    lineHeight: "1.75",
-    marginBottom: "1.25rem",
-    opacity: 0.95,
-  };
-
-  const linkStyle = {
-    color: "#ffc0cb",
-    textDecoration: "underline",
-    fontWeight: "bold",
-  };
-
-  const pillStyle = {
-    display: "inline-block",
-    padding: "0.35rem 0.75rem",
-    borderRadius: "999px",
-    fontSize: "0.95rem",
-    fontWeight: 700,
-    letterSpacing: "0.02em",
-    background: "rgba(176, 196, 222, 0.14)",
-    border: "1px solid rgba(176, 196, 222, 0.35)",
-    color: "#b0c4de",
-    marginBottom: "0.75rem",
-  };
-
-  const cardStyle = {
-    background: "rgba(255, 255, 255, 0.05)",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: "14px",
-    padding: "1.5rem",
-    boxShadow: "0 10px 25px rgba(0, 0, 0, 0.25)",
-  };
+  const causes = [
+    {
+      name: "Sexual Assault Services Minnesota",
+      icon: "🕊️",
+      url: "https://www.sasmn.org/",
+      description:
+        "Support, resources, and healing for survivors of sexual assault and exploitation.",
+    },
+    {
+      name: "The Lighthouse Project",
+      icon: "💡",
+      url: "https://www.lhpmn.org/",
+      description:
+        "A Brainerd Lakes Area youth-led mental health nonprofit working to expand support and reduce stigma.",
+    },
+    {
+      name: "Lakes Area Restorative Justice Project",
+      icon: "🤝",
+      url: "https://larjp.org/",
+      description:
+        "Restorative practices that build accountability, healing, and stronger community connection.",
+    },
+  ];
 
   return (
     <main
       style={{
         minHeight: "100vh",
-        padding: "1rem 0",
         background: "linear-gradient(145deg, #181d33 0%, #30264a 100%)",
         display: "flex",
         justifyContent: "center",
+        padding: "2rem 1rem",
       }}
     >
       <section
         style={{
-          maxWidth: "900px",
-          width: "90%",
-          padding: "4rem 3rem",
-          margin: "80px 0",
-          borderRadius: "16px",
-          background: "rgba(255, 255, 255, 0.05)",
-          boxShadow: "0 20px 40px rgba(0, 0, 0, 0.4)",
-          backdropFilter: "blur(8px)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
-          color: "#ffffff",
+          maxWidth: "920px",
+          width: "100%",
+          margin: "60px 0",
+          padding: "3rem",
+          borderRadius: "18px",
+          background: "rgba(255,255,255,0.05)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          boxShadow: "0 20px 40px rgba(0,0,0,0.35)",
+          backdropFilter: "blur(10px)",
+          color: "#fff",
         }}
       >
-        {/* === HERO === */}
-        <h1
+        <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+          <Image
+            src="/grit-and-grace-logo.png"
+            alt="Grit & Grace logo"
+            width={180}
+            height={180}
+            style={{ objectFit: "contain" }}
+            priority
+          />
+        </div>
+
+        <p
           style={{
-            fontSize: "3.2rem",
-            fontWeight: "900",
-            marginBottom: "0.75rem",
-            color: "#b0c4de",
             textAlign: "center",
-            lineHeight: 1.05,
+            color: "#ffc0cb",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            fontWeight: 700,
+            marginBottom: "0.4rem",
           }}
         >
-          The Resilient Voice
-          <span style={{ color: "#ffc0cb" }}> × </span>
-          Grit & Grace
-        </h1>
-
-        <p style={{ ...paragraphStyle, textAlign: "center", maxWidth: 760, margin: "0 auto 2rem" }}>
-          A faith-rooted brand and ministry built for people who’ve been through storms —
-          and refuse to let the storm be the end of the story.
+          Faith • Freedom • Healing • Purpose
         </p>
 
-        {/* === MISSION / VISION / VALUES GRID === */}
+        <h1
+          style={{
+            textAlign: "center",
+            fontSize: "2.6rem",
+            fontWeight: 900,
+            color: "#b0c4de",
+            marginBottom: "1.25rem",
+          }}
+        >
+          About Grit & Grace
+        </h1>
+
+        <p
+          style={{
+            fontSize: "1.15rem",
+            lineHeight: 1.8,
+            textAlign: "center",
+            maxWidth: "760px",
+            margin: "0 auto 2rem auto",
+          }}
+        >
+          Grit & Grace is a faith-rooted brand built for people who have been
+          through storms and refuse to let the storm be the end of the story.
+          We create apparel with purpose — designs that speak life, reflect
+          resilience, and remind people they are seen, loved, and never alone.
+        </p>
+
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
             gap: "1rem",
-            marginTop: "1.5rem",
-            marginBottom: "2.25rem",
+            marginBottom: "2rem",
           }}
         >
-          <div style={cardStyle}>
-            <div style={pillStyle}>MISSION</div>
-            <p style={paragraphStyle}>
-              To speak life, restore hope, and strengthen faith through truth-filled designs,
-              community impact, and a message that reminds people they are seen, loved, and not alone.
+          <div
+            style={{
+              background: "rgba(0,0,0,0.28)",
+              borderRadius: "14px",
+              padding: "1.25rem",
+            }}
+          >
+            <h2 style={{ color: "#ffc0cb", marginBottom: "0.75rem" }}>
+              Mission
+            </h2>
+            <p style={{ lineHeight: 1.7 }}>
+              To speak life, restore hope, and strengthen faith through
+              truth-filled designs, community impact, and a message that points
+              people toward healing and purpose.
             </p>
           </div>
 
-          <div style={cardStyle}>
-            <div style={pillStyle}>VISION</div>
-            <p style={paragraphStyle}>
-              A world where pain doesn’t silence people — it refines them —
-              and where resilience, healing, and God’s grace create real change in homes and communities.
-            </p>
-          </div>
-
-          <div style={cardStyle}>
-            <div style={pillStyle}>HOW WE LIVE IT</div>
-            <p style={paragraphStyle}>
-              We create apparel that carries a message, and we give back with every sale —
-              turning what you wear into encouragement and tangible support for those who need it most.
+          <div
+            style={{
+              background: "rgba(0,0,0,0.28)",
+              borderRadius: "14px",
+              padding: "1.25rem",
+            }}
+          >
+            <h2 style={{ color: "#ffc0cb", marginBottom: "0.75rem" }}>
+              Vision
+            </h2>
+            <p style={{ lineHeight: 1.7 }}>
+              A world where pain does not silence people — it refines them —
+              and where resilience, healing, and grace create real change in
+              lives, homes, and communities.
             </p>
           </div>
         </div>
 
-        {/* === STORY + VOICE === */}
-        <h2
+        <div
           style={{
-            fontSize: "2.4rem",
-            marginBottom: "1rem",
-            color: "#ffc0cb",
-            textAlign: "center",
+            background: "rgba(0,0,0,0.28)",
+            borderRadius: "14px",
+            padding: "1.5rem",
+            marginBottom: "2rem",
           }}
         >
-          Why We Exist
-        </h2>
-
-        <p style={paragraphStyle}>
-          <strong>Grit & Grace</strong> was born from storms — the kind that shake you, refine you,
-          and push you closer to God’s purpose. Every hardship and silent battle became a reminder
-          that even when life breaks us open, <strong>God’s grace</strong> pours in.
-        </p>
-
-        <p style={paragraphStyle}>
-          This brand is more than apparel. It is a ministry rooted in healing, faith, courage,
-          and truth. Every design is crafted to speak life — to remind you that you are{" "}
-          <strong>deeply loved</strong> by God.
-        </p>
-
-        {/* === HONOR / SERVICE === */}
-        <div style={{ ...cardStyle, marginTop: "1.75rem" }}>
-          <div style={{ ...pillStyle, background: "rgba(255, 192, 203, 0.12)", border: "1px solid rgba(255, 192, 203, 0.35)", color: "#ffc0cb" }}>
-            WHO WE HONOR
-          </div>
-          <p style={paragraphStyle}>
-            We honor the men and women who serve our communities and our country — veterans,
-            active-duty military, law enforcement, firefighters, and EMS. Their courage and sacrifice
-            reflect the heart of resilience and service this mission stands for.
+          <h2 style={{ color: "#b0c4de", marginBottom: "0.85rem" }}>
+            Why We Exist
+          </h2>
+          <p style={{ lineHeight: 1.8, marginBottom: "1rem" }}>
+            Grit & Grace was born from hardship, healing, and a deep belief that
+            what we wear can carry truth. Every design is meant to encourage,
+            uplift, and remind someone that even in the middle of pain, grace
+            still speaks.
+          </p>
+          <p style={{ lineHeight: 1.8 }}>
+            This brand is more than apparel. It is a message of courage, faith,
+            and restoration — created for those who keep showing up, keep
+            believing, and keep moving forward.
           </p>
         </div>
 
-        <blockquote
+        <div
           style={{
-            fontSize: "1.5rem",
+            background: "rgba(0,0,0,0.28)",
+            borderRadius: "14px",
+            padding: "1.5rem",
+            marginBottom: "2rem",
+          }}
+        >
+          <h2 style={{ color: "#b0c4de", marginBottom: "0.85rem" }}>
+            Who We Honor
+          </h2>
+          <p style={{ lineHeight: 1.8 }}>
+            We honor the people who serve others with courage and sacrifice —
+            veterans, active-duty military, law enforcement, firefighters, EMS,
+            survivors, advocates, and everyday people carrying burdens that
+            others cannot always see.
+          </p>
+        </div>
+
+        <div
+          style={{
+            background: "rgba(0,0,0,0.28)",
+            borderRadius: "14px",
+            padding: "1.5rem",
+          }}
+        >
+          <h2 style={{ color: "#ffc0cb", marginBottom: "0.85rem" }}>
+            Giving Back in the Brainerd Lakes Area
+          </h2>
+
+          <p style={{ lineHeight: 1.8, marginBottom: "1.25rem" }}>
+            We commit 10% of every sale to local organizations making a real
+            difference in healing, safety, and hope right here in our community.
+          </p>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: "1rem",
+            }}
+          >
+            {causes.map((cause) => (
+              <a
+                key={cause.name}
+                href={cause.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  textDecoration: "none",
+                  color: "#fff",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: "12px",
+                  padding: "1rem",
+                }}
+              >
+                <div style={{ fontSize: "1.4rem", marginBottom: "0.5rem" }}>
+                  {cause.icon}
+                </div>
+                <div
+                  style={{
+                    fontWeight: 800,
+                    color: "#b0c4de",
+                    marginBottom: "0.45rem",
+                  }}
+                >
+                  {cause.name}
+                </div>
+                <div style={{ fontSize: "0.96rem", lineHeight: 1.6 }}>
+                  {cause.description}
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <p
+          style={{
+            marginTop: "2rem",
+            textAlign: "center",
             fontStyle: "italic",
-            margin: "2rem 0",
-            paddingLeft: "1.5rem",
-            borderLeft: "4px solid #b0c4de",
-            color: "#b0c4de",
+            color: "#e5dff1",
           }}
         >
           “You are not alone. You have strength. You are seen.”
-        </blockquote>
-
-        <hr
-          style={{
-            border: "0",
-            borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-            margin: "2.5rem 0",
-          }}
-        />
-
-        {/* === IMPACT === */}
-        <h2
-          style={{
-            fontSize: "2.5rem",
-            marginBottom: "1.25rem",
-            color: "#ffc0cb",
-            textAlign: "center",
-          }}
-        >
-          Giving Back
-        </h2>
-
-        <p style={paragraphStyle}>
-          Part of walking in God’s purpose means giving back in abundance. That’s why, through every
-          purchase, we commit to donating{" "}
-          <strong style={{ color: "#ffc0cb" }}>10% of every sale</strong> to organizations that uplift lives,
-          restore hope, and support those facing the hardest battles.
         </p>
 
-        <h3 style={{ fontSize: "1.5rem", marginTop: "1.5rem", marginBottom: "1rem", color: "#b0c4de" }}>
-          Our Supported Causes
-        </h3>
-
-        <ul style={{ listStyle: "none", paddingLeft: 0, fontSize: "1.1rem" }}>
-          <li style={{ marginBottom: "0.8rem" }}>
-            🏠 <strong>Homelessness Support:</strong>{" "}
-            <a href="https://www.nationalhomeless.org/" target="_blank" rel="noopener noreferrer" style={linkStyle}>
-              National Coalition for the Homeless
-            </a>{" "}
-            — Advocating for housing, dignity, and systemic change across the U.S.
-          </li>
-
-          <li style={{ marginBottom: "0.8rem" }}>
-            💚 <strong>Mental Health Advocacy:</strong>{" "}
-            <a href="https://www.nami.org/" target="_blank" rel="noopener noreferrer" style={linkStyle}>
-              NAMI (National Alliance on Mental Illness)
-            </a>{" "}
-            — Providing education, support, and awareness for mental health nationwide.
-          </li>
-
-          <li style={{ marginBottom: "0.8rem" }}>
-            💙 <strong>Suicide Prevention:</strong>{" "}
-            <a href="https://afsp.org/" target="_blank" rel="noopener noreferrer" style={linkStyle}>
-              American Foundation for Suicide Prevention
-            </a>{" "}
-            — Leading research, education, and support to save lives and bring hope.
-          </li>
-
-          <li style={{ marginBottom: "0.8rem" }}>
-            🎖️ <strong>Veteran Support:</strong>{" "}
-            <a href="https://www.woundedwarriorproject.org/" target="_blank" rel="noopener noreferrer" style={linkStyle}>
-              Wounded Warrior Project
-            </a>{" "}
-            — Empowering veterans through mental health care, career support, and community.
-          </li>
-        </ul>
-
-        <p style={{ ...paragraphStyle, marginTop: "1.75rem" }}>
-          Your support turns a simple purchase into an{" "}
-          <strong style={{ color: "#ffc0cb" }}>active investment in healing and resilience.</strong>
-        </p>
-
-        {/* --- SIGNATURE --- */}
         <p
           style={{
-            textAlign: "right",
-            marginTop: "40px",
-            fontStyle: "italic",
+            marginTop: "1.5rem",
+            textAlign: "center",
             color: "#b0c4de",
           }}
         >
-          🌿 With love, faith, and gratitude,
+          With love, faith, and gratitude,
           <br />
-          Kristine — The Resilient Voice & Grit & Grace
+          Kristine — Grit & Grace
         </p>
       </section>
     </main>
