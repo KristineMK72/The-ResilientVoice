@@ -31,8 +31,8 @@ export default function AboutPage() {
   const pageTitle = "About Grit & Grace | Faith, Healing, Purpose";
   const pageDescription =
     "Learn the heart behind Grit & Grace — a faith-rooted brand built around resilience, healing, purpose, and giving back in the Brainerd Lakes Area.";
-  const pageUrl = "https://www.gritandgrace.buzz/about";
-  const previewImage = "https://www.gritandgrace.buzz/og/about-grit-and-grace.jpg";
+  const pageUrl = "https://gritandgrace.buzz/about";
+  const previewImage = "https://gritandgrace.buzz/gritgiving.png";
 
   return (
     <>
@@ -51,7 +51,10 @@ export default function AboutPage() {
         <meta property="og:image:secure_url" content={previewImage} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content="About Grit & Grace preview image" />
+        <meta
+          property="og:image:alt"
+          content="About Grit & Grace preview image"
+        />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={pageTitle} />
@@ -188,15 +191,15 @@ export default function AboutPage() {
               Why We Exist
             </h2>
             <p style={{ lineHeight: 1.8, marginBottom: "1rem" }}>
-              Grit & Grace was born from hardship, healing, and a deep belief that
-              what we wear can carry truth. Every design is meant to encourage,
-              uplift, and remind someone that even in the middle of pain, grace
-              still speaks.
+              Grit & Grace was born from hardship, healing, and a deep belief
+              that what we wear can carry truth. Every design is meant to
+              encourage, uplift, and remind someone that even in the middle of
+              pain, grace still speaks.
             </p>
             <p style={{ lineHeight: 1.8 }}>
-              This brand is more than apparel. It is a message of courage, faith,
-              and restoration — created for those who keep showing up, keep
-              believing, and keep moving forward.
+              This brand is more than apparel. It is a message of courage,
+              faith, and restoration — created for those who keep showing up,
+              keep believing, and keep moving forward.
             </p>
           </div>
 
@@ -213,9 +216,9 @@ export default function AboutPage() {
             </h2>
             <p style={{ lineHeight: 1.8 }}>
               We honor the people who serve others with courage and sacrifice —
-              veterans, active-duty military, law enforcement, firefighters, EMS,
-              survivors, advocates, and everyday people carrying burdens that
-              others cannot always see.
+              veterans, active-duty military, law enforcement, firefighters,
+              EMS, survivors, advocates, and everyday people carrying burdens
+              that others cannot always see.
             </p>
           </div>
 
@@ -232,7 +235,8 @@ export default function AboutPage() {
 
             <p style={{ lineHeight: 1.8, marginBottom: "1.25rem" }}>
               We commit 10% of every sale to local organizations making a real
-              difference in healing, safety, and hope right here in our community.
+              difference in healing, safety, and hope right here in our
+              community.
             </p>
 
             <div
