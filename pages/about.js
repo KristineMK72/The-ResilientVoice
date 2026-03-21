@@ -51,10 +51,7 @@ export default function AboutPage() {
         <meta property="og:image:secure_url" content={previewImage} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta
-          property="og:image:alt"
-          content="About Grit & Grace preview image"
-        />
+        <meta property="og:image:alt" content="About Grit & Grace preview image" />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={pageTitle} />
@@ -87,11 +84,17 @@ export default function AboutPage() {
         >
           <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
             <Image
-              src="/grit-and-grace-logo.png"
-              alt="Grit & Grace logo"
-              width={180}
-              height={180}
-              style={{ objectFit: "contain" }}
+              src="/gritgiving.png"
+              alt="Grit & Grace giving image"
+              width={320}
+              height={320}
+              style={{
+                objectFit: "contain",
+                width: "100%",
+                maxWidth: "320px",
+                height: "auto",
+                borderRadius: "16px",
+              }}
               priority
             />
           </div>
