@@ -13,7 +13,7 @@ export default function GivingPage() {
   const pageDescription =
     "See how Grit & Grace gives back by donating 10% of every sale to local Brainerd Lakes Area organizations supporting healing, hope, and community restoration.";
   const pageUrl = "https://gritandgrace.buzz/giving";
-  const previewImage = "https://gritandgrace.buzz/og/giving-page.jpg";
+  const previewImage = "https://gritandgrace.buzz/gritgiving.png";
 
   const causes = useMemo(
     () => [
@@ -295,7 +295,6 @@ export default function GivingPage() {
                     <li key={cause.key} style={{ marginBottom: "0.85rem" }}>
                       {cause.icon} <strong>{cause.label}</strong> —{" "}
                       {formatCurrency(summary[cause.key])}
-                      {"  "}
                       <a
                         href={cause.url}
                         target="_blank"
