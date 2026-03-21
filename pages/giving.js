@@ -3,11 +3,17 @@
 import Head from "next/head";
 import { useEffect, useMemo, useState } from "react";
 
-export default function GivingDashboard() {
+export default function GivingPage() {
   const [salesInput, setSalesInput] = useState("");
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const pageTitle = "Giving Back Dashboard | Grit & Grace";
+  const pageDescription =
+    "See how Grit & Grace gives back by donating 10% of every sale to local Brainerd Lakes Area organizations supporting healing, hope, and community restoration.";
+  const pageUrl = "https://gritandgrace.buzz/giving";
+  const previewImage = "https://gritandgrace.buzz/og/giving-page.jpg";
 
   const causes = useMemo(
     () => [
@@ -17,7 +23,8 @@ export default function GivingDashboard() {
         shortLabel: "SASMN",
         icon: "🕊️",
         url: "https://www.sasmn.org/",
-        description: "Support, resources, and healing for survivors of sexual assault.",
+        description:
+          "Support, resources, and healing for survivors of sexual assault.",
       },
       {
         key: "lighthouseProjectAmount",
@@ -25,7 +32,8 @@ export default function GivingDashboard() {
         shortLabel: "Lighthouse Project",
         icon: "💡",
         url: "https://www.lhpmn.org/",
-        description: "Mental health awareness and support for youth in the Brainerd Lakes Area.",
+        description:
+          "Mental health awareness and support for youth in the Brainerd Lakes Area.",
       },
       {
         key: "restorativeJusticeAmount",
@@ -33,7 +41,8 @@ export default function GivingDashboard() {
         shortLabel: "LARJP",
         icon: "🤝",
         url: "https://larjp.org/",
-        description: "Community-based restorative practices that foster accountability and healing.",
+        description:
+          "Community-based restorative practices that foster accountability and healing.",
       },
     ],
     []
@@ -46,7 +55,9 @@ export default function GivingDashboard() {
         setError(null);
 
         const res = await fetch("/api/giving/summary");
-        if (!res.ok) throw new Error("Failed to load giving summary");
+        if (!res.ok) {
+          throw new Error("Failed to load giving summary");
+        }
 
         const data = await res.json();
 
@@ -74,15 +85,10 @@ export default function GivingDashboard() {
   const parsedSales = Number.parseFloat(salesInput);
   const safeSales = Number.isFinite(parsedSales) ? parsedSales : 0;
   const simulatedGiving = safeSales * 0.1;
-  const evenSplitAmount = simulatedGiving / causes.length;
+  const evenSplitAmount =
+    causes.length > 0 ? simulatedGiving / causes.length : 0;
 
   const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
-
-  const pageTitle = "Giving Back Dashboard | Grit & Grace";
-  const pageDescription =
-    "See how Grit & Grace gives back by donating 10% of every sale to local Brainerd Lakes Area organizations supporting healing, hope, and community restoration.";
-  const pageUrl = "https://www.gritandgrace.buzz/giving-dashboard";
-  const previewImage = "https://www.gritandgrace.buzz/og/giving-dashboard.jpg";
 
   return (
     <>
@@ -101,7 +107,10 @@ export default function GivingDashboard() {
         <meta property="og:image:secure_url" content={previewImage} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content="Grit & Grace Giving Back Dashboard preview image" />
+        <meta
+          property="og:image:alt"
+          content="Grit & Grace Giving Back Dashboard preview image"
+        />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={pageTitle} />
@@ -156,7 +165,8 @@ export default function GivingDashboard() {
             organizations making a difference right here in the Brainerd Lakes
             Area. This dashboard highlights both our{" "}
             <strong>actual giving so far</strong> and a{" "}
-            <strong>simple calculator</strong> to show the impact of future sales.
+            <strong>simple calculator</strong> to show the impact of future
+            sales.
           </p>
 
           <div
@@ -203,6 +213,7 @@ export default function GivingDashboard() {
                   <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>
                     {cause.icon}
                   </div>
+
                   <div
                     style={{
                       fontWeight: "800",
@@ -212,6 +223,7 @@ export default function GivingDashboard() {
                   >
                     {cause.label}
                   </div>
+
                   <div
                     style={{
                       fontSize: "0.98rem",
@@ -282,7 +294,8 @@ export default function GivingDashboard() {
                   {causes.map((cause) => (
                     <li key={cause.key} style={{ marginBottom: "0.85rem" }}>
                       {cause.icon} <strong>{cause.label}</strong> —{" "}
-                      {formatCurrency(summary[cause.key])}{" "}
+                      {formatCurrency(summary[cause.key])}
+                      {"  "}
                       <a
                         href={cause.url}
                         target="_blank"
@@ -403,8 +416,9 @@ export default function GivingDashboard() {
               lineHeight: "1.6",
             }}
           >
-            Every purchase becomes an investment in hope, healing, accountability,
-            and stronger community support right here in Brainerd, Minnesota.
+            Every purchase becomes an investment in hope, healing,
+            accountability, and stronger community support right here in
+            Brainerd, Minnesota.
           </p>
         </section>
       </main>
