@@ -9,15 +9,21 @@ export default function GivingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [causeGroup, setCauseGroup] = useState("local");
+  const [selectedCauseKey, setSelectedCauseKey] = useState("");
+  const [donationInput, setDonationInput] = useState("");
+  const [donationMessage, setDonationMessage] = useState("");
+
   const pageTitle = "Giving Back Dashboard | Grit & Grace";
   const pageDescription =
-    "See how Grit & Grace gives back by donating 10% of every sale to local Brainerd Lakes Area organizations supporting healing, hope, and community restoration.";
+    "See how Grit & Grace gives back through local giving, optional customer donations, and support for causes that bring healing, hope, and restoration.";
   const pageUrl = "https://gritandgrace.buzz/giving";
   const previewImage = "https://gritandgrace.buzz/gritgiving.png";
 
   const causes = useMemo(
     () => [
       {
+        group: "local",
         key: "sexualAssaultServicesAmount",
         label: "Sexual Assault Services Minnesota",
         shortLabel: "SASMN",
@@ -27,6 +33,7 @@ export default function GivingPage() {
           "Support, resources, and healing for survivors of sexual assault.",
       },
       {
+        group: "local",
         key: "lighthouseProjectAmount",
         label: "The Lighthouse Project",
         shortLabel: "Lighthouse Project",
@@ -36,6 +43,7 @@ export default function GivingPage() {
           "Mental health awareness and support for youth in the Brainerd Lakes Area.",
       },
       {
+        group: "local",
         key: "restorativeJusticeAmount",
         label: "Lakes Area Restorative Justice Project",
         shortLabel: "LARJP",
@@ -44,9 +52,65 @@ export default function GivingPage() {
         description:
           "Community-based restorative practices that foster accountability and healing.",
       },
+      {
+        group: "national",
+        key: "homelessCoalitionAmount",
+        label: "National Coalition for the Homeless",
+        shortLabel: "NCH",
+        icon: "🏠",
+        url: "https://nationalhomeless.org/",
+        description:
+          "Advocacy, education, and support around homelessness and housing insecurity.",
+      },
+      {
+        group: "national",
+        key: "woundedWarriorAmount",
+        label: "Wounded Warrior Project",
+        shortLabel: "WWP",
+        icon: "🇺🇸",
+        url: "https://www.woundedwarriorproject.org/",
+        description:
+          "Support for wounded veterans, service members, and their families.",
+      },
+      {
+        group: "national",
+        key: "suicidePreventionAmount",
+        label: "988 Suicide & Crisis Lifeline",
+        shortLabel: "988 Lifeline",
+        icon: "💚",
+        url: "https://988lifeline.org/",
+        description:
+          "Crisis support, suicide prevention, and immediate connection to help.",
+      },
     ],
     []
   );
+
+  const localCauses = useMemo(
+    () => causes.filter((cause) => cause.group === "local"),
+    [causes]
+  );
+
+  const nationalCauses = useMemo(
+    () => causes.filter((cause) => cause.group === "national"),
+    [causes]
+  );
+
+  const filteredCauses = useMemo(
+    () => causes.filter((cause) => cause.group === causeGroup),
+    [causes, causeGroup]
+  );
+
+  useEffect(() => {
+    if (filteredCauses.length > 0) {
+      const stillValid = filteredCauses.some(
+        (cause) => cause.key === selectedCauseKey
+      );
+      if (!stillValid) {
+        setSelectedCauseKey(filteredCauses[0].key);
+      }
+    }
+  }, [filteredCauses, selectedCauseKey]);
 
   useEffect(() => {
     async function fetchSummary() {
@@ -84,11 +148,20 @@ export default function GivingPage() {
 
   const parsedSales = Number.parseFloat(salesInput);
   const safeSales = Number.isFinite(parsedSales) ? parsedSales : 0;
+
+  const parsedDonation = Number.parseFloat(donationInput);
+  const safeDonation = Number.isFinite(parsedDonation) ? parsedDonation : 0;
+
   const simulatedGiving = safeSales * 0.1;
-  const evenSplitAmount =
-    causes.length > 0 ? simulatedGiving / causes.length : 0;
+  const evenSplitLocalAmount =
+    localCauses.length > 0 ? simulatedGiving / localCauses.length : 0;
+
+  const selectedCause =
+    causes.find((cause) => cause.key === selectedCauseKey) || null;
 
   const formatCurrency = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+
+  const impactTotal = simulatedGiving + safeDonation;
 
   return (
     <>
@@ -129,7 +202,7 @@ export default function GivingPage() {
       >
         <section
           style={{
-            maxWidth: "960px",
+            maxWidth: "980px",
             width: "90%",
             padding: "4rem 3rem",
             margin: "80px 0",
@@ -162,11 +235,9 @@ export default function GivingPage() {
           >
             Grit & Grace donates{" "}
             <strong style={{ color: "#ffc0cb" }}>10% of every sale</strong> to
-            organizations making a difference right here in the Brainerd Lakes
-            Area. This dashboard highlights both our{" "}
-            <strong>actual giving so far</strong> and a{" "}
-            <strong>simple calculator</strong> to show the impact of future
-            sales.
+            organizations making a difference. Our featured local partners stay
+            at the heart of this mission, and customers can also choose to add
+            an optional donation to trusted local or national causes.
           </p>
 
           <div
@@ -184,7 +255,7 @@ export default function GivingPage() {
                 color: "#ffc0cb",
               }}
             >
-              Our Local Giving Partners
+              Featured Local Giving Partners
             </h2>
 
             <div
@@ -194,7 +265,7 @@ export default function GivingPage() {
                 gap: "1rem",
               }}
             >
-              {causes.map((cause) => (
+              {localCauses.map((cause) => (
                 <a
                   key={cause.key}
                   href={cause.url}
@@ -207,7 +278,74 @@ export default function GivingPage() {
                     border: "1px solid rgba(255,255,255,0.08)",
                     borderRadius: "12px",
                     padding: "1rem",
-                    transition: "transform 0.2s ease",
+                  }}
+                >
+                  <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>
+                    {cause.icon}
+                  </div>
+
+                  <div
+                    style={{
+                      fontWeight: "800",
+                      color: "#b0c4de",
+                      marginBottom: "0.4rem",
+                    }}
+                  >
+                    {cause.label}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "0.98rem",
+                      lineHeight: "1.5",
+                      color: "#e8e8e8",
+                    }}
+                  >
+                    {cause.description}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: "1.5rem",
+              borderRadius: "12px",
+              background: "rgba(0, 0, 0, 0.35)",
+              marginBottom: "2rem",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: "2rem",
+                marginBottom: "1rem",
+                color: "#ffc0cb",
+              }}
+            >
+              Optional National Giving Partners
+            </h2>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: "1rem",
+              }}
+            >
+              {nationalCauses.map((cause) => (
+                <a
+                  key={cause.key}
+                  href={cause.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    textDecoration: "none",
+                    color: "#ffffff",
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: "12px",
+                    padding: "1rem",
                   }}
                 >
                   <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>
@@ -280,7 +418,7 @@ export default function GivingPage() {
                     color: "#b0c4de",
                   }}
                 >
-                  Distribution Across Local Causes
+                  Distribution Across Featured Local Causes
                 </h3>
 
                 <ul
@@ -291,7 +429,7 @@ export default function GivingPage() {
                     margin: 0,
                   }}
                 >
-                  {causes.map((cause) => (
+                  {localCauses.map((cause) => (
                     <li key={cause.key} style={{ marginBottom: "0.85rem" }}>
                       {cause.icon} <strong>{cause.label}</strong> —{" "}
                       {formatCurrency(summary[cause.key])}
@@ -319,6 +457,194 @@ export default function GivingPage() {
               padding: "1.5rem",
               borderRadius: "12px",
               background: "rgba(0, 0, 0, 0.35)",
+              marginBottom: "2rem",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: "2rem",
+                marginBottom: "1rem",
+                color: "#ffc0cb",
+              }}
+            >
+              Add Your Own Donation
+            </h2>
+
+            <p style={{ fontSize: "1.1rem", marginBottom: "1.25rem" }}>
+              Want to give a little extra? Choose whether your optional donation
+              goes to a featured local partner or one of our national giving
+              partners.
+            </p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: "1rem",
+                marginBottom: "1rem",
+              }}
+            >
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: "700",
+                    color: "#b0c4de",
+                  }}
+                >
+                  Donation destination
+                </label>
+                <select
+                  value={causeGroup}
+                  onChange={(e) => setCauseGroup(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.85rem 1rem",
+                    borderRadius: "8px",
+                    border: "1px solid #b0c4de",
+                    fontSize: "1rem",
+                    background: "#fff",
+                    color: "#111",
+                  }}
+                >
+                  <option value="local">Featured local partners</option>
+                  <option value="national">National partners</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: "700",
+                    color: "#b0c4de",
+                  }}
+                >
+                  Choose an organization
+                </label>
+                <select
+                  value={selectedCauseKey}
+                  onChange={(e) => setSelectedCauseKey(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.85rem 1rem",
+                    borderRadius: "8px",
+                    border: "1px solid #b0c4de",
+                    fontSize: "1rem",
+                    background: "#fff",
+                    color: "#111",
+                  }}
+                >
+                  {filteredCauses.map((cause) => (
+                    <option key={cause.key} value={cause.key}>
+                      {cause.icon} {cause.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: "1rem",
+                marginBottom: "1rem",
+              }}
+            >
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: "700",
+                    color: "#b0c4de",
+                  }}
+                >
+                  Optional donation amount
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter donation amount"
+                  value={donationInput}
+                  onChange={(e) => setDonationInput(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.85rem 1rem",
+                    borderRadius: "8px",
+                    border: "1px solid #b0c4de",
+                    fontSize: "1rem",
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: "1rem" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "0.5rem",
+                  fontWeight: "700",
+                  color: "#b0c4de",
+                }}
+              >
+                Optional dedication or note
+              </label>
+              <textarea
+                placeholder="In honor of someone, in memory of someone, or simply why this cause matters to you..."
+                value={donationMessage}
+                onChange={(e) => setDonationMessage(e.target.value)}
+                rows={4}
+                style={{
+                  width: "100%",
+                  padding: "0.9rem 1rem",
+                  borderRadius: "8px",
+                  border: "1px solid #b0c4de",
+                  fontSize: "1rem",
+                  resize: "vertical",
+                }}
+              />
+            </div>
+
+            {selectedCause && (
+              <div
+                style={{
+                  marginTop: "1rem",
+                  padding: "1rem",
+                  borderRadius: "10px",
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <p style={{ margin: 0, fontSize: "1.05rem" }}>
+                  Supporting:{" "}
+                  <strong style={{ color: "#ffc0cb" }}>
+                    {selectedCause.icon} {selectedCause.label}
+                  </strong>
+                </p>
+                <p
+                  style={{
+                    marginTop: "0.5rem",
+                    marginBottom: 0,
+                    color: "#e8e8e8",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  {selectedCause.description}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div
+            style={{
+              padding: "1.5rem",
+              borderRadius: "12px",
+              background: "rgba(0, 0, 0, 0.35)",
             }}
           >
             <h2
@@ -332,8 +658,8 @@ export default function GivingPage() {
             </h2>
 
             <p style={{ fontSize: "1.1rem", marginBottom: "1.5rem" }}>
-              Enter a sales amount to see how much would be given back — and how
-              it could be shared across each local organization.
+              Enter a sales amount to see how much Grit & Grace would give back,
+              plus how an optional customer donation could increase the impact.
             </p>
 
             <div style={{ marginBottom: "2rem", textAlign: "center" }}>
@@ -369,13 +695,39 @@ export default function GivingPage() {
             <p
               style={{
                 fontSize: "1.2rem",
+                marginBottom: "0.75rem",
+                textAlign: "center",
+              }}
+            >
+              10% Giving from Grit & Grace:{" "}
+              <strong style={{ color: "#ffc0cb" }}>
+                {formatCurrency(simulatedGiving)}
+              </strong>
+            </p>
+
+            <p
+              style={{
+                fontSize: "1.15rem",
+                marginBottom: "0.75rem",
+                textAlign: "center",
+              }}
+            >
+              Optional Customer Donation:{" "}
+              <strong style={{ color: "#b0c4de" }}>
+                {formatCurrency(safeDonation)}
+              </strong>
+            </p>
+
+            <p
+              style={{
+                fontSize: "1.2rem",
                 marginBottom: "1.5rem",
                 textAlign: "center",
               }}
             >
-              10% Giving:{" "}
+              Combined Impact:{" "}
               <strong style={{ color: "#ffc0cb" }}>
-                {formatCurrency(simulatedGiving)}
+                {formatCurrency(impactTotal)}
               </strong>
             </p>
 
@@ -386,7 +738,8 @@ export default function GivingPage() {
                 color: "#b0c4de",
               }}
             >
-              Split Evenly Across Causes ({causes.length} ways):
+              10% Split Across Featured Local Partners ({localCauses.length}{" "}
+              ways):
             </h4>
 
             <ul
@@ -397,13 +750,45 @@ export default function GivingPage() {
                 margin: 0,
               }}
             >
-              {causes.map((cause) => (
+              {localCauses.map((cause) => (
                 <li key={cause.key} style={{ marginBottom: "0.6rem" }}>
                   {cause.icon} <strong>{cause.label}</strong> —{" "}
-                  {formatCurrency(evenSplitAmount)}
+                  {formatCurrency(evenSplitLocalAmount)}
                 </li>
               ))}
             </ul>
+
+            {selectedCause && safeDonation > 0 && (
+              <div
+                style={{
+                  marginTop: "1.5rem",
+                  padding: "1rem",
+                  borderRadius: "10px",
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <p style={{ margin: 0, fontSize: "1.05rem" }}>
+                  Additional direct donation to{" "}
+                  <strong style={{ color: "#ffc0cb" }}>
+                    {selectedCause.label}
+                  </strong>
+                  : {formatCurrency(safeDonation)}
+                </p>
+                {donationMessage.trim() && (
+                  <p
+                    style={{
+                      marginTop: "0.6rem",
+                      marginBottom: 0,
+                      color: "#e8e8e8",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    “{donationMessage.trim()}”
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <p
@@ -416,8 +801,8 @@ export default function GivingPage() {
             }}
           >
             Every purchase becomes an investment in hope, healing,
-            accountability, and stronger community support right here in
-            Brainerd, Minnesota.
+            accountability, patriotism with purpose, and stronger support for
+            people who need it most.
           </p>
         </section>
       </main>
