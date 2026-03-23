@@ -134,7 +134,7 @@ export default function Home() {
         <title>Grit & Grace | Faith, Freedom, Purpose</title>
         <meta
           name="description"
-          content="Faith-driven apparel born from storms. Every purchase supports mental health, suicide prevention, and homelessness relief."
+          content="Faith-driven apparel born from storms. Every purchase supports mental health, suicide prevention, homelessness relief, and community healing."
         />
       </Head>
 
@@ -173,31 +173,26 @@ export default function Home() {
             margin: 0 auto;
           }
 
-         /* ===== HERO VIDEO (responsive, no clipping) ===== */
-.heroVideoWrap {
-  width: 100%;
-  max-width: 520px;
-  max-height: 70vh;
-  margin: 0 auto 1.5rem;
+          /* ===== HERO VIDEO ===== */
+          .heroVideoWrap {
+            width: 100%;
+            max-width: 520px;
+            max-height: 70vh;
+            margin: 0 auto 1.5rem;
+            aspect-ratio: 9 / 16;
+            border-radius: 18px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.08);
+          }
 
-  aspect-ratio: 9 / 16;
-  border-radius: 18px;
-  overflow: hidden;
-
-  background: #000; /* ✅ better letterboxing */
-  box-shadow: 0 0 40px rgba(255, 255, 255, 0.08);
-
-  aspect-ratio: 9 / 16;
-}
-
-.heroVideo {
-  width: 100%;
-  height: 100%;
-  object-fit: contain; /* ✅ no cropping */
-  display: block;
-  background: #000; /* ✅ consistent */
-}
-
+          .heroVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            background: #000;
+          }
 
           .heroFallback {
             width: 100%;
@@ -245,9 +240,11 @@ export default function Home() {
           .btnPrimary {
             background: linear-gradient(90deg, #ff4444, #4444ff);
           }
+
           .btnPatriot {
             background: #00bfa5;
           }
+
           .btnSocial {
             background: #ff6b6b;
           }
@@ -298,6 +295,83 @@ export default function Home() {
             background: white;
           }
 
+          /* ===== Giving Back ===== */
+          .givingSection {
+            margin: 2.5rem auto;
+            max-width: 980px;
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: left;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.06);
+          }
+
+          .givingGrid {
+            display: grid;
+            grid-template-columns: 1.25fr 1fr;
+            gap: 1.5rem;
+            align-items: start;
+          }
+
+          .sectionEyebrow {
+            color: #ffc0cb;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.7rem;
+            font-size: 0.92rem;
+          }
+
+          .sectionTitle {
+            font-size: clamp(1.9rem, 4vw, 2.8rem);
+            line-height: 1.15;
+            color: #b0c4de;
+            margin-bottom: 1rem;
+          }
+
+          .sectionText {
+            font-size: 1.05rem;
+            line-height: 1.75;
+            color: rgba(255, 255, 255, 0.92);
+            margin-bottom: 1rem;
+          }
+
+          .givingButtons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 1.2rem;
+          }
+
+          .btnOutline {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: transparent;
+          }
+
+          .causeCardWrap {
+            display: grid;
+            gap: 0.85rem;
+          }
+
+          .causeCard {
+            padding: 0.95rem 1rem;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            line-height: 1.45;
+          }
+
+          .causeCard strong {
+            display: block;
+            margin-bottom: 0.2rem;
+            color: #ffffff;
+          }
+
+          .causeMeta {
+            color: #dbe7ff;
+            font-size: 0.95rem;
+          }
+
           /* ===== Email ===== */
           .emailBox {
             margin-top: 2.5rem;
@@ -344,6 +418,7 @@ export default function Home() {
           .success {
             color: #b9ffcc;
           }
+
           .error {
             color: #ffb4b4;
           }
@@ -355,22 +430,34 @@ export default function Home() {
             line-height: 1.4;
           }
 
+          @media (max-width: 820px) {
+            .givingGrid {
+              grid-template-columns: 1fr;
+            }
+          }
+
           @media (max-width: 640px) {
             .page {
               padding: 1.5rem 0.9rem 2.5rem;
             }
+
             .heroVideoWrap {
               border-radius: 14px;
               margin-bottom: 1.1rem;
             }
+
             .emailForm {
               flex-direction: column;
+            }
+
+            .givingSection {
+              padding: 1.3rem;
+              text-align: left;
             }
           }
         `}</style>
 
         <div className="content">
-          {/* ✅ HERO VIDEO FIRST */}
           <div className="heroVideoWrap">
             {!videoError ? (
               <video
@@ -399,7 +486,6 @@ export default function Home() {
             )}
           </div>
 
-          {/* Brand */}
           <Image
             src="/gritngrlogo.png"
             alt="Grit & Grace Logo"
@@ -413,7 +499,8 @@ export default function Home() {
           <p className="heroTagline">
             Faith-driven apparel born from storms. Founded by{" "}
             <strong>The Resilient Voice</strong>. Every purchase supports mental
-            health, suicide prevention, and homelessness relief.
+            health, suicide prevention, homelessness relief, and community
+            healing.
           </p>
 
           <div className="ctaRow">
@@ -428,7 +515,6 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* Featured carousel */}
           {loadingFeatured ? (
             <div className="carousel">Loading featured…</div>
           ) : activeProduct ? (
@@ -436,7 +522,6 @@ export default function Home() {
               <div className="pill">{activeProduct.collection} Featured</div>
 
               <div style={{ margin: "12px 0" }}>
-                {/* If Printful URLs ever fail (Next image domain config), fall back */}
                 {!imgError ? (
                   <Image
                     src={activeImage}
@@ -492,7 +577,93 @@ export default function Home() {
             <div className="carousel">No featured products found.</div>
           )}
 
-          {/* Email */}
+          {/* Giving Back Section */}
+          <section className="givingSection">
+            <div className="givingGrid">
+              <div>
+                <div className="sectionEyebrow">Giving Back</div>
+                <h2 className="sectionTitle">
+                  Style with purpose. Give with heart.
+                </h2>
+
+                <p className="sectionText">
+                  Grit & Grace donates{" "}
+                  <strong style={{ color: "#ffc0cb" }}>
+                    10% of every sale
+                  </strong>{" "}
+                  to organizations that support healing, hope, accountability,
+                  and stronger communities.
+                </p>
+
+                <p className="sectionText">
+                  Our featured local partners stay at the center of our mission,
+                  and customers can also choose to support selected national
+                  organizations through optional giving.
+                </p>
+
+                <p className="sectionText" style={{ marginBottom: 0 }}>
+                  This is more than apparel. It’s a way to wear your story and
+                  help someone else keep going.
+                </p>
+
+                <div className="givingButtons">
+                  <Link href="/giving" className="btn btnPrimary">
+                    See Our Giving Impact
+                  </Link>
+                  <Link href="/about" className="btn btnOutline">
+                    Learn More
+                  </Link>
+                </div>
+              </div>
+
+              <div className="causeCardWrap">
+                <div className="causeCard">
+                  <strong>🕊️ Sexual Assault Services Minnesota</strong>
+                  <div className="causeMeta">
+                    Support, resources, and healing for survivors.
+                  </div>
+                </div>
+
+                <div className="causeCard">
+                  <strong>💡 The Lighthouse Project</strong>
+                  <div className="causeMeta">
+                    Mental health awareness and youth support in the Brainerd
+                    Lakes Area.
+                  </div>
+                </div>
+
+                <div className="causeCard">
+                  <strong>🤝 Lakes Area Restorative Justice Project</strong>
+                  <div className="causeMeta">
+                    Community-based accountability, restoration, and healing.
+                  </div>
+                </div>
+
+                <div className="causeCard">
+                  <strong>🏠 National Coalition for the Homeless</strong>
+                  <div className="causeMeta">
+                    Advocacy and support around homelessness and housing
+                    insecurity.
+                  </div>
+                </div>
+
+                <div className="causeCard">
+                  <strong>🇺🇸 Wounded Warrior Project</strong>
+                  <div className="causeMeta">
+                    Support for wounded veterans and their families.
+                  </div>
+                </div>
+
+                <div className="causeCard">
+                  <strong>💚 988 Suicide & Crisis Lifeline</strong>
+                  <div className="causeMeta">
+                    Crisis response, suicide prevention, and immediate support.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <div className="emailBox">
             <h2>Join the Grit & Grace Family</h2>
             <p>Get encouragement, new releases, and impact updates.</p>
