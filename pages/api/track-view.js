@@ -12,22 +12,31 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { path, referrer, visitor_type } = req.body || {};
+    const { path, referrer, visitor_type, session_id } = req.body || {};
 
     const forwarded = (req.headers["x-forwarded-for"] || "").toString();
     const ip = forwarded.split(",")[0]?.trim() || null;
 
     const userAgent = req.headers["user-agent"] || null;
 
-    // Vercel geo headers (automatic if deployed there)
+    // Vercel geo headers
     const country = req.headers["x-vercel-ip-country"] || null;
     const region = req.headers["x-vercel-ip-country-region"] || null;
     const city = req.headers["x-vercel-ip-city"] || null;
 
+    const cleanVisitorType =
+      String(visitor_type || "").toLowerCase() === "buyer" ? "buyer" : "visitor";
+
+    const cleanSessionId =
+      typeof session_id === "string" && session_id.trim()
+        ? session_id.trim()
+        : null;
+
     const { error } = await supabase.from("page_views").insert({
       path: path || null,
       referrer: referrer || null,
-      visitor_type: visitor_type === "buyer" ? "buyer" : "visitor",
+      visitor_type: cleanVisitorType,
+      session_id: cleanSessionId,
       ip,
       user_agent: userAgent,
       country,
