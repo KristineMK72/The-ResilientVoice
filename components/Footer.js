@@ -31,6 +31,17 @@ export default function Footer() {
         to inspire courage, connection, and conversation.
       </div>
 
+      {/* Hidden honeypot link for suspicious crawlers/bots */}
+      <a
+        href="/api/internal-admin"
+        aria-hidden="true"
+        tabIndex={-1}
+        rel="nofollow"
+        className="honeypot"
+      >
+        admin dashboard
+      </a>
+
       <style jsx>{`
         .footer {
           position: relative;
@@ -44,12 +55,11 @@ export default function Footer() {
           border-image: linear-gradient(90deg, #ff0000 0%, #ffffff 50%, #0000ff 100%) 1;
         }
 
-        /* ✅ fixes "smashed together" */
         .nav {
           display: flex;
           flex-wrap: wrap;
           justify-content: center;
-          gap: 10px 14px; /* row gap, column gap */
+          gap: 10px 14px;
           margin: 0 auto 14px;
           max-width: 980px;
         }
@@ -83,11 +93,24 @@ export default function Footer() {
           font-size: 0.95rem;
         }
 
+        .honeypot {
+          position: absolute;
+          left: -10000px;
+          top: auto;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          white-space: nowrap;
+          pointer-events: none;
+          opacity: 0;
+        }
+
         @media (max-width: 480px) {
           .link {
             padding: 9px 10px;
             font-size: 0.95rem;
           }
+
           .copy {
             font-size: 0.9rem;
           }
