@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "../../lib/supabase-browser";
+import { PRINTFUL_PRODUCTS } from "../../lib/printfulMap";
 
 /**
  * Phase 1:
@@ -9,23 +10,60 @@ import { supabaseBrowser } from "../../lib/supabase-browser";
  * - Else fall back to city centroid
  * - Else fall back to state centroid
  * - Else fall back to country centroid
- *
- * Later:
- * - Expand CITY_CENTROIDS as you collect more cities
- * - Or move centroids into a Supabase lookup table
  */
 
 const STATE_CENTROIDS = {
-  MN: { lat: 46.7296, lng: -94.6859 },
-  AZ: { lat: 34.0489, lng: -111.0937 },
-  CA: { lat: 36.7783, lng: -119.4179 },
-  MI: { lat: 44.3148, lng: -85.6024 },
-  IA: { lat: 41.8780, lng: -93.0977 },
-  VA: { lat: 37.4316, lng: -78.6569 },
-  OR: { lat: 43.8041, lng: -120.5542 },
-  TX: { lat: 31.9686, lng: -99.9018 },
-  NC: { lat: 35.7596, lng: -79.0193 },
-  NE: { lat: 41.4925, lng: -99.9018 },
+  AL: { lat: 32.806671, lng: -86.791130 },
+  AK: { lat: 61.370716, lng: -152.404419 },
+  AZ: { lat: 33.729759, lng: -111.431221 },
+  AR: { lat: 34.969704, lng: -92.373123 },
+  CA: { lat: 36.116203, lng: -119.681564 },
+  CO: { lat: 39.059811, lng: -105.311104 },
+  CT: { lat: 41.597782, lng: -72.755371 },
+  DE: { lat: 39.318523, lng: -75.507141 },
+  FL: { lat: 27.766279, lng: -81.686783 },
+  GA: { lat: 33.040619, lng: -83.643074 },
+  HI: { lat: 21.094318, lng: -157.498337 },
+  ID: { lat: 44.240459, lng: -114.478828 },
+  IL: { lat: 40.349457, lng: -88.986137 },
+  IN: { lat: 39.849426, lng: -86.258278 },
+  IA: { lat: 42.011539, lng: -93.210526 },
+  KS: { lat: 38.526600, lng: -96.726486 },
+  KY: { lat: 37.668140, lng: -84.670067 },
+  LA: { lat: 31.169546, lng: -91.867805 },
+  ME: { lat: 44.693947, lng: -69.381927 },
+  MD: { lat: 39.063946, lng: -76.802101 },
+  MA: { lat: 42.230171, lng: -71.530106 },
+  MI: { lat: 43.326618, lng: -84.536095 },
+  MN: { lat: 45.694454, lng: -93.900192 },
+  MS: { lat: 32.741646, lng: -89.678696 },
+  MO: { lat: 38.456085, lng: -92.288368 },
+  MT: { lat: 46.921925, lng: -110.454353 },
+  NE: { lat: 41.125370, lng: -98.268082 },
+  NV: { lat: 38.313515, lng: -117.055374 },
+  NH: { lat: 43.452492, lng: -71.563896 },
+  NJ: { lat: 40.298904, lng: -74.521011 },
+  NM: { lat: 34.840515, lng: -106.248482 },
+  NY: { lat: 42.165726, lng: -74.948051 },
+  NC: { lat: 35.630066, lng: -79.806419 },
+  ND: { lat: 47.528912, lng: -99.784012 },
+  OH: { lat: 40.388783, lng: -82.764915 },
+  OK: { lat: 35.565342, lng: -96.928917 },
+  OR: { lat: 44.572021, lng: -122.070938 },
+  PA: { lat: 40.590752, lng: -77.209755 },
+  RI: { lat: 41.680893, lng: -71.511780 },
+  SC: { lat: 33.856892, lng: -80.945007 },
+  SD: { lat: 44.299782, lng: -99.438828 },
+  TN: { lat: 35.747845, lng: -86.692345 },
+  TX: { lat: 31.054487, lng: -97.563461 },
+  UT: { lat: 40.150032, lng: -111.862434 },
+  VT: { lat: 44.045876, lng: -72.710686 },
+  VA: { lat: 37.769337, lng: -78.169968 },
+  WA: { lat: 47.400902, lng: -121.490494 },
+  WV: { lat: 38.491226, lng: -80.954453 },
+  WI: { lat: 44.268543, lng: -89.616508 },
+  WY: { lat: 42.755966, lng: -107.302490 },
+  DC: { lat: 38.907200, lng: -77.036900 },
 };
 
 const COUNTRY_CENTROIDS = {
@@ -35,20 +73,20 @@ const COUNTRY_CENTROIDS = {
 };
 
 const CITY_CENTROIDS = {
-  "Brainerd|MN|US": { lat: 46.3580, lng: -94.2008 },
+  "Brainerd|MN|US": { lat: 46.358, lng: -94.2008 },
   "Baxter|MN|US": { lat: 46.3433, lng: -94.2867 },
-  "Saint Paul|MN|US": { lat: 44.9537, lng: -93.0900 },
-  "Phoenix|AZ|US": { lat: 33.4484, lng: -112.0740 },
+  "Saint Paul|MN|US": { lat: 44.9537, lng: -93.09 },
+  "Phoenix|AZ|US": { lat: 33.4484, lng: -112.074 },
   "Los Angeles|CA|US": { lat: 34.0522, lng: -118.2437 },
   "Howell|MI|US": { lat: 42.6073, lng: -83.9294 },
   "Riverside|CA|US": { lat: 33.9806, lng: -117.3755 },
   "Council Bluffs|IA|US": { lat: 41.2619, lng: -95.8608 },
   "Washington|VA|US": { lat: 38.8951, lng: -77.0364 },
-  "Reston|VA|US": { lat: 38.9586, lng: -77.3570 },
+  "Reston|VA|US": { lat: 38.9586, lng: -77.357 },
   "San Jose|CA|US": { lat: 37.3382, lng: -121.8863 },
   "Santa Clara|CA|US": { lat: 37.3541, lng: -121.9552 },
   "Prineville|OR|US": { lat: 44.2998, lng: -120.8345 },
-  "Forest City|NC|US": { lat: 35.3340, lng: -81.8651 },
+  "Forest City|NC|US": { lat: 35.334, lng: -81.8651 },
   "Fort Worth|TX|US": { lat: 32.7555, lng: -97.3308 },
   "Altoona|IA|US": { lat: 41.6447, lng: -93.4755 },
   "Springfield|NE|US": { lat: 41.0586, lng: -96.1378 },
@@ -56,15 +94,18 @@ const CITY_CENTROIDS = {
   "Luleå||SE": { lat: 65.5848, lng: 22.1547 },
 };
 
+const PRODUCT_ID_TO_TITLE = Object.fromEntries(
+  Object.values(PRINTFUL_PRODUCTS || {}).map((p) => [String(p.sync_product_id), p.title])
+);
+
 function normalizeCity(value) {
-  return String(value || "")
-    .replace(/%20/g, " ")
-    .trim();
+  return String(value || "").replace(/%20/g, " ").trim();
 }
 
 function hasExactLatLng(row) {
   const lat = Number(row.latitude);
   const lng = Number(row.longitude);
+
   return (
     Number.isFinite(lat) &&
     Number.isFinite(lng) &&
@@ -138,7 +179,41 @@ function isBotRow(row) {
 
 function isSelfRow(row) {
   const ip = String(row.ip || "");
-  return ip === "172.87.11.213" || ip === "174.234.138.107" || ip === "174.234.146.246";
+  return (
+    ip === "172.87.11.213" ||
+    ip === "174.234.138.107" ||
+    ip === "174.234.146.246"
+  );
+}
+
+function formatPathLabel(path) {
+  const cleanPath = String(path || "/");
+
+  if (cleanPath === "/") return "Home";
+  if (cleanPath === "/about") return "About";
+  if (cleanPath === "/giving") return "Giving";
+  if (cleanPath === "/saved-by-grace") return "Saved by Grace";
+  if (cleanPath === "/Social") return "Social";
+  if (cleanPath === "/Patriot") return "Patriot";
+  if (cleanPath === "/cart") return "Cart";
+  if (cleanPath === "/admin") return "Admin";
+  if (cleanPath === "/admin/traffic") return "Admin Traffic";
+
+  if (cleanPath.startsWith("/product/")) {
+    const productId = cleanPath.split("/product/")[1]?.split("?")[0] || "";
+    return PRODUCT_ID_TO_TITLE[productId] || `Product ${productId}`;
+  }
+
+  return cleanPath;
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 export default function TrafficMapPage() {
@@ -182,6 +257,7 @@ export default function TrafficMapPage() {
     return (rows || [])
       .map((row) => {
         const coords = getFallbackCoords(row);
+
         return {
           ...row,
           city_normalized: normalizeCity(row.city),
@@ -211,11 +287,15 @@ export default function TrafficMapPage() {
 
   const uniqueLocations = useMemo(() => {
     const seen = new Set();
+
     for (const row of preparedRows) {
       seen.add(
-        `${row.city_normalized || ""}|${row.region || ""}|${row.country || ""}|${row.map_precision || ""}`
+        `${row.city_normalized || ""}|${row.region || ""}|${row.country || ""}|${
+          row.map_precision || ""
+        }`
       );
     }
+
     return seen.size;
   }, [preparedRows]);
 
@@ -229,6 +309,7 @@ export default function TrafficMapPage() {
       if (existing) {
         existing.count += 1;
         existing.rows.push(row);
+
         if (new Date(row.created_at) > new Date(existing.latestAt)) {
           existing.latestAt = row.created_at;
         }
@@ -289,20 +370,58 @@ export default function TrafficMapPage() {
           weight: 2,
         });
 
-        const recentPaths = loc.rows
+        const pathCounts = {};
+        for (const row of loc.rows) {
+          const rawPath = row.path || "/";
+          pathCounts[rawPath] = (pathCounts[rawPath] || 0) + 1;
+        }
+
+        const topPaths = Object.entries(pathCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 8);
+
+        const topPathsHtml = topPaths.length
+          ? `<ul style="margin:8px 0 0 18px; padding:0;">
+              ${topPaths
+                .map(([path, count]) => {
+                  const label = escapeHtml(formatPathLabel(path));
+                  return `<li><strong>${label}</strong> (${count})</li>`;
+                })
+                .join("")}
+            </ul>`
+          : "<div>No path data</div>";
+
+        const recentVisitsHtml = loc.rows
+          .slice()
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
           .slice(0, 5)
-          .map((r) => r.path || "/")
-          .join("<br/>");
+          .map((row) => {
+            const when = new Date(row.created_at).toLocaleString();
+            return `<div style="margin-top:4px;">${escapeHtml(
+              formatPathLabel(row.path || "/")
+            )} · ${escapeHtml(when)}</div>`;
+          })
+          .join("");
 
         marker.bindPopup(`
-          <div style="min-width:240px">
-            <div><strong>${loc.city}${loc.region ? `, ${loc.region}` : ""}</strong></div>
-            <div>${loc.country || ""}</div>
-            <div style="margin-top:6px"><strong>Visits:</strong> ${loc.count}</div>
-            <div><strong>Precision:</strong> ${loc.precision}</div>
-            <div><strong>Type:</strong> ${loc.visitor_type}</div>
-            <div><strong>Latest:</strong> ${new Date(loc.latestAt).toLocaleString()}</div>
-            <div style="margin-top:6px"><strong>Recent paths:</strong><br/>${recentPaths}</div>
+          <div style="min-width:260px; line-height:1.4;">
+            <div style="font-weight:800; font-size:16px;">
+              ${escapeHtml(loc.city)}${loc.region ? `, ${escapeHtml(loc.region)}` : ""}
+            </div>
+            <div style="opacity:0.75;">${escapeHtml(loc.country || "")}</div>
+
+            <div style="margin-top:8px;"><strong>Total visits:</strong> ${loc.count}</div>
+            <div><strong>Type:</strong> ${escapeHtml(loc.visitor_type)}</div>
+            <div><strong>Map precision:</strong> ${escapeHtml(loc.precision)}</div>
+            <div><strong>Latest visit:</strong> ${escapeHtml(
+              new Date(loc.latestAt).toLocaleString()
+            )}</div>
+
+            <div style="margin-top:10px; font-weight:700;">Top pages/products</div>
+            ${topPathsHtml}
+
+            <div style="margin-top:10px; font-weight:700;">Recent activity</div>
+            ${recentVisitsHtml || "<div>No recent activity</div>"}
           </div>
         `);
 
@@ -432,7 +551,7 @@ export default function TrafficMapPage() {
               </div>
 
               <div style={{ opacity: 0.8, marginTop: 4 }}>
-                {row.path || "/"} · {row.visitor_type || "visitor"}
+                {formatPathLabel(row.path || "/")} · {row.visitor_type || "visitor"}
               </div>
 
               <div style={{ opacity: 0.7, marginTop: 4 }}>
