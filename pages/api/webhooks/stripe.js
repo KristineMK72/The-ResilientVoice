@@ -2,15 +2,13 @@
 import Stripe from "stripe";
 import { buffer } from "micro";
 import { createClient } from "@supabase/supabase-js";
-import crypto from "crypto"; // ✅ needed if/when you enable external_id hashing
+import crypto from "crypto";
 
 export const config = {
   api: { bodyParser: false },
 };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  // Keep this stable for reliability. If your account is set to a newer pinned version, use that.
-  // Your Printful flow already works, so changing this is optional, but this one is proven stable.
   apiVersion: "2022-11-15",
 });
 
@@ -36,8 +34,9 @@ function envOk() {
   if (!process.env.STRIPE_SECRET_KEY) missing.push("STRIPE_SECRET_KEY");
   if (!process.env.STRIPE_WEBHOOK_SECRET) missing.push("STRIPE_WEBHOOK_SECRET");
   if (!process.env.SUPABASE_URL) missing.push("SUPABASE_URL");
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY)
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  }
   return { ok: missing.length === 0, missing };
 }
 
@@ -71,12 +70,12 @@ function parsePrintfulItemsFromSession(session) {
 }
 
 function generateSafeExternalId(sessionId) {
-  // deterministic, short, safe string
   const hash = crypto
     .createHash("sha256")
     .update(sessionId)
     .digest("hex")
     .slice(0, 12);
+
   return `ord_${hash}`;
 }
 
@@ -84,11 +83,13 @@ function looksLikeShipping(lineItem, productName, nickname) {
   const hay = `${lineItem?.description || ""} ${productName || ""} ${
     nickname || ""
   }`.toLowerCase();
+
   return hay.includes("shipping");
 }
 
 export default async function handler(req, res) {
   const check = envOk();
+
   if (!check.ok) {
     console.error("❌ Missing env vars:", check.missing.join(", "));
     return res.status(500).json({ error: "Server misconfigured" });
@@ -142,18 +143,14 @@ export default async function handler(req, res) {
       zip: clean(addr.postal_code),
     };
 
-  }
-
     // Line items
     const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
       limit: 100,
       expand: ["data.price", "data.price.product"],
     });
 
-    // ✅ Supabase order payload (MATCHES YOUR REAL TABLE SCHEMA)
     const orderRow = {
       stripe_session_id: session.id,
-
       payment_intent_id: session.payment_intent ?? null,
       status: session.payment_status ?? null,
 
@@ -174,7 +171,6 @@ export default async function handler(req, res) {
       shipping_address: safeJson(recipient),
       fulfillment_status: "pending",
 
-      // Optional: store line items JSON in your "items" column (it exists)
       items: safeJson(
         (lineItems.data || []).map((li) => ({
           description: li.description,
@@ -203,7 +199,6 @@ export default async function handler(req, res) {
       );
     }
 
-    // Build order_items + fallback Printful mapping (UNCHANGED)
     const orderItems = [];
     const printfulItemsFromStripe = [];
 
@@ -282,14 +277,12 @@ export default async function handler(req, res) {
       }
     }
 
-    // Prefer session metadata → fallback to Stripe metadata
     const printfulItemsFromMeta = parsePrintfulItemsFromSession(session);
     const printfulItems =
       printfulItemsFromMeta.length > 0
         ? printfulItemsFromMeta
         : printfulItemsFromStripe;
 
-    // Early return if no Printful token
     if (!process.env.PRINTFUL_ACCESS_TOKEN) {
       console.warn("⚠️ PRINTFUL_ACCESS_TOKEN missing — skipping fulfillment");
       await supabase.from("orders").upsert(
@@ -300,10 +293,10 @@ export default async function handler(req, res) {
         },
         { onConflict: "stripe_session_id" }
       );
+
       return res.status(200).json({ success: true, fulfillment: "skipped" });
     }
 
-    // No items → mark as needs mapping
     if (!printfulItems.length) {
       console.warn("⚠️ No Printful items found — skipping fulfillment");
       await supabase.from("orders").upsert(
@@ -314,12 +307,12 @@ export default async function handler(req, res) {
         },
         { onConflict: "stripe_session_id" }
       );
+
       return res
         .status(200)
         .json({ success: true, fulfillment: "needs_mapping" });
     }
 
-    // Validate required recipient fields
     if (
       !recipient.name ||
       !recipient.address1 ||
@@ -336,13 +329,12 @@ export default async function handler(req, res) {
         },
         { onConflict: "stripe_session_id" }
       );
+
       return res
         .status(200)
         .json({ success: true, fulfillment: "skipped_missing_shipping" });
     }
 
-    // Create Printful order
-    // Optional: enable external_id for idempotency
     // const safeExternalId = generateSafeExternalId(session.id);
 
     const printfulRes = await fetch(
@@ -376,6 +368,7 @@ export default async function handler(req, res) {
         },
         { onConflict: "stripe_session_id" }
       );
+
       return res.status(200).json({ success: true, duplicate: true });
     }
 
@@ -384,6 +377,7 @@ export default async function handler(req, res) {
         status: printfulRes.status,
         data: printfulData,
       });
+
       await supabase.from("orders").upsert(
         {
           stripe_session_id: session.id,
@@ -393,6 +387,7 @@ export default async function handler(req, res) {
         },
         { onConflict: "stripe_session_id" }
       );
+
       return res.status(200).json({ success: true, fulfillment: "failed" });
     }
 
@@ -412,6 +407,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, fulfillment: "created" });
   } catch (err) {
     console.error("❌ Webhook error:", err);
+
     try {
       await supabase.from("orders").upsert(
         {
@@ -422,6 +418,7 @@ export default async function handler(req, res) {
         { onConflict: "stripe_session_id" }
       );
     } catch {}
+
     return res.status(200).json({ success: true, error: "handled" });
   }
 }
