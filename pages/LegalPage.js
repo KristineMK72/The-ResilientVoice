@@ -70,10 +70,10 @@ export default function LegalPage() {
           <p>
             To request a replacement, contact{" "}
             <a
-              href="mailto:info@gritandgrace.buzz"
+              href="mailto:hello@gritandgrace.buzz"
               style={{ color: "#ffc0cb" }}
             >
-              info@gritandgrace.buzz
+              hello@gritandgrace.buzz
             </a>{" "}
             within 14 days of delivery. Please include your order number, photos,
             and a description of the issue.
@@ -95,10 +95,10 @@ export default function LegalPage() {
           <p>
             Questions? Email{" "}
             <a
-              href="mailto:info@gritandgrace.buzz"
+              href="mailto:hello@gritandgrace.buzz"
               style={{ color: "#ffc0cb" }}
             >
-              info@gritandgrace.buzz
+              hello@gritandgrace.buzz
             </a>
           </p>
         </section>
@@ -124,10 +124,10 @@ export default function LegalPage() {
           <p>
             Privacy questions? Email{" "}
             <a
-              href="mailto:info@gritandgrace.buzz"
+              href="mailto:hello@gritandgrace.buzz"
               style={{ color: "#ffc0cb" }}
             >
-              info@gritandgrace.buzz
+              hello@gritandgrace.buzz
             </a>
           </p>
         </section>
@@ -171,10 +171,10 @@ export default function LegalPage() {
         >
           For specific legal inquiries, please contact us at{" "}
           <a
-            href="mailto:info@gritandgrace.buzz"
+            href="mailto:hello@gritandgrace.buzz"
             style={{ color: "#ffc0cb", textDecoration: "none" }}
           >
-            info@gritandgrace.buzz
+            hello@gritandgrace.buzz
           </a>
           .
         </p>
