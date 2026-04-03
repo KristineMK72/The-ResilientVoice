@@ -3,7 +3,9 @@ import Stripe from "stripe";
 import { buffer } from "micro";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto"; // ✅ needed if/when you enable external_id hashing
+import { Resend } from "resend";
 
+const resend = new Resend(process.env.RESEND_API_KEY);
 export const config = {
   api: { bodyParser: false },
 };
@@ -141,6 +143,27 @@ export default async function handler(req, res) {
       country_code: clean(addr.country),
       zip: clean(addr.postal_code),
     };
+
+     // 💌 SEND CONFIRMATION EMAIL (RIGHT HERE)
+  if (recipient.email) {
+    try {
+      await resend.emails.send({
+        from: "Grit & Grace <orders@gritandgrace.buzz>",
+        to: recipient.email,
+        subject: "Your Grit & Grace Order 💖",
+        html: `
+          <h2>Thank you for your order, ${recipient.name}!</h2>
+          <p>Your order is being prepared and will ship soon.</p>
+          <p><strong>Total:</strong> $${(session.amount_total / 100).toFixed(2)}</p>
+          <p>You’ll receive tracking info once it ships.</p>
+          <br/>
+          <p>With love,<br/>Grit & Grace ❤️</p>
+        `,
+      });
+    } catch (e) {
+      console.error("❌ Email send failed:", e);
+    }
+  }
 
     // Line items
     const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
