@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "typecheck": "tsc --noEmit",
     "enrich:printful": "node scripts/enrich-printful-catalog.js"
   },
   "dependencies": {
@@ -23,6 +24,12 @@
     "react-dom": "18.2.0",
     "react-feather": "^2.0.10",
     "stripe": "^14.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "typescript": "^5.7.2"
   },
   "overrides": {
     "@stripe/stripe-js": "^8.4.0"
