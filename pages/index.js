@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 /**
  * Immersive home — storm → light story
- * Background: /storm-to-sun.jpg (add to public/)
+ * Background: /IMG_2038.jpeg (in public/)
  * Parallax + soft atmosphere (no heavy weather engine)
  */
 
@@ -258,7 +258,7 @@ export default function HomeImmersive() {
         .skyImg {
           position: absolute;
           inset: 0;
-          background: #070b14 url("/storm-to-sun.jpg") center / cover no-repeat;
+          background: #070b14 url("/IMG_2038.jpeg") center / cover no-repeat;
         }
         .skyWash {
           position: absolute;
