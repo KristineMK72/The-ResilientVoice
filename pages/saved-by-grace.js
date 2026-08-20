@@ -1,8 +1,6 @@
 // pages/saved-by-grace.js
-// ✅ Same look, faster loading (parallel fetch + timeout + session cache)
-// ✅ Uses your short titles from lib/printfulMap.js (so Printful long descriptions never show)
-// ✅ Keeps correct order + avoids "wrong name" issues by always using map titles
-// ✅ Product title font is lighter (not bold)
+// Immersive Grace chapter — background: /IMG_2039.jpeg
+// Same product load + short titles from printfulMap
 
 "use client";
 
@@ -17,6 +15,7 @@ export default function SavedByGrace() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [parallaxY, setParallaxY] = useState(0);
 
   const scriptures = [
     "“My grace is sufficient for you.” — 2 Corinthians 12:9",
@@ -26,7 +25,6 @@ export default function SavedByGrace() {
   ];
   const [currentScripture, setCurrentScripture] = useState(0);
 
-  // ✅ Your preferred order (keys from PRINTFUL_PRODUCTS)
   const GRACE_KEYS = useMemo(
     () => [
       "joy",
@@ -43,12 +41,9 @@ export default function SavedByGrace() {
       "love_tee",
       "faith_tee",
       "truth_tee",
-
-      // ✅ These 3 were showing on Social but should be Grace:
       "light_classic_tee",
       "saved_messy_heavyweight_tee",
       "messy_fine_jersey_tee",
-
       "saved_long_sleeve",
       "forgiven_free_long_sleeve",
       "saved_redeemed_long_sleeve",
@@ -57,7 +52,6 @@ export default function SavedByGrace() {
     []
   );
 
-  // sync_product_id -> short title from PRINTFUL_PRODUCTS
   const TITLE_BY_ID = useMemo(() => {
     const entries = Object.values(PRINTFUL_PRODUCTS)
       .filter((p) => p?.sync_product_id && p?.title)
@@ -65,13 +59,11 @@ export default function SavedByGrace() {
     return Object.fromEntries(entries);
   }, []);
 
-  // ✅ IDs in the same order as GRACE_KEYS (ignore missing keys safely)
   const YOUR_PRODUCT_IDS = useMemo(() => {
     const ids = GRACE_KEYS.map((k) => PRINTFUL_PRODUCTS[k]?.sync_product_id)
       .filter(Boolean)
       .map(String);
 
-    // also include any other items tagged grace that aren't in GRACE_KEYS yet
     const extraGrace = Object.values(PRINTFUL_PRODUCTS)
       .filter((p) => p?.category === "grace" && p?.sync_product_id)
       .map((p) => String(p.sync_product_id))
@@ -79,6 +71,16 @@ export default function SavedByGrace() {
 
     return Array.from(new Set([...ids, ...extraGrace]));
   }, [GRACE_KEYS]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY || 0;
+      setParallaxY(Math.min(y * 0.28, 220));
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -102,10 +104,8 @@ export default function SavedByGrace() {
           return;
         }
 
-        // ✅ cache version bump so old wrong-name caches don't persist
-        const cacheKey = `saved_by_grace_v4_${YOUR_PRODUCT_IDS.join("_")}`;
+        const cacheKey = `saved_by_grace_v5_${YOUR_PRODUCT_IDS.join("_")}`;
 
-        // quick client cache so back/forward feels instant
         try {
           const cached = sessionStorage.getItem(cacheKey);
           if (cached) {
@@ -117,7 +117,7 @@ export default function SavedByGrace() {
             }
           }
         } catch {
-          // ignore cache errors
+          // ignore
         }
 
         const withTimeout = async (fn, ms = 15000) => {
@@ -137,7 +137,6 @@ export default function SavedByGrace() {
             return await res.json();
           });
 
-        // concurrency limiter (keeps things snappy on mobile)
         const CONCURRENCY = 6;
         const ids = [...YOUR_PRODUCT_IDS];
         const results = [];
@@ -157,7 +156,6 @@ export default function SavedByGrace() {
           });
         }
 
-        // ✅ keep order the same as YOUR_PRODUCT_IDS
         const orderIndex = new Map(ids.map((id, i) => [String(id), i]));
         results.sort((a, b) => {
           const aId = String(a?.sync_product_id ?? a?.id ?? "");
@@ -197,349 +195,322 @@ export default function SavedByGrace() {
     };
   }, [YOUR_PRODUCT_IDS]);
 
-  if (loading) {
-    return (
-      <div style={{ textAlign: "center", padding: "12rem 1rem" }}>
-        <p style={{ fontSize: "2rem", color: "#9f6baa" }}>
-          Loading your Grace collection…
-        </p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{ textAlign: "center", padding: "10rem 1rem" }}>
-        <p style={{ fontSize: "1.8rem", color: "#ff6b6b" }}>{error}</p>
-        <p style={{ color: "#aaa" }}>Check browser console for details.</p>
-        <div style={{ marginTop: "1rem" }}>
-          <button
-            onClick={() => location.reload()}
-            style={{
-              padding: "0.85rem 1.2rem",
-              borderRadius: "999px",
-              border: "1px solid rgba(0,0,0,0.10)",
-              background: "rgba(255,255,255,0.7)",
-              color: "#7a4f85",
-              fontWeight: 800,
-              cursor: "pointer",
-            }}
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <Head>
-        <title>Saved By Grace Collection | The Resilient Voice</title>
+        <title>Saved By Grace Collection | Grit & Grace</title>
         <meta
           name="description"
           content="Faith-fueled designs that speak truth, strength, and softness — all while giving back."
         />
       </Head>
 
-      <div
-        style={{
-          background: "linear-gradient(135deg, #fff8f2 0%, #fdf3e7 100%)",
-          minHeight: "100vh",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        {/* Soft glow accents */}
+      <div className="gracePage">
+        {/* Fixed landscape — crosses / light */}
         <div
-          style={{
-            position: "absolute",
-            top: "-220px",
-            left: "-220px",
-            width: "650px",
-            height: "650px",
-            background: "rgba(159,107,170,0.20)",
-            filter: "blur(140px)",
-            borderRadius: "50%",
-            zIndex: 0,
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            bottom: "-220px",
-            right: "-220px",
-            width: "650px",
-            height: "650px",
-            background: "rgba(255,182,193,0.20)",
-            filter: "blur(140px)",
-            borderRadius: "50%",
-            zIndex: 0,
-          }}
-        />
-
-        {/* subtle sparkle/shine */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 45%), radial-gradient(circle at 80% 35%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 50%)",
-            opacity: 0.5,
-            zIndex: 1,
-            pointerEvents: "none",
-          }}
-        />
-
-        {/* Hero */}
-        <div
-          style={{
-            textAlign: "center",
-            padding: "5.5rem 1rem 3.2rem",
-            position: "relative",
-            zIndex: 2,
-            maxWidth: "1100px",
-            margin: "0 auto",
-          }}
+          className="graceSky"
+          style={{ transform: `translate3d(0, ${parallaxY}px, 0) scale(1.06)` }}
+          aria-hidden
         >
-          {/* logo */}
-          <div
-            style={{
-              width: "92px",
-              height: "92px",
-              margin: "0 auto 1.25rem",
-              borderRadius: "24px",
-              background: "rgba(255,255,255,0.75)",
-              backdropFilter: "blur(8px)",
-              boxShadow: "0 14px 40px rgba(0,0,0,0.10)",
-              display: "grid",
-              placeItems: "center",
-              overflow: "hidden",
-            }}
-          >
-            <Image
-              src="/faithLogo.png"
-              alt="Faith logo"
-              width={72}
-              height={72}
-              style={{ objectFit: "contain" }}
-              priority
-            />
-          </div>
-
-          <h1
-            style={{
-              fontSize: "clamp(2.6rem, 5vw, 4rem)",
-              fontWeight: "900",
-              color: "#9f6baa",
-              margin: "0 0 0.9rem",
-              letterSpacing: "-0.02em",
-              lineHeight: 1.05,
-            }}
-          >
-            Saved By Grace
-          </h1>
-
-          <p
-            style={{
-              fontSize: "clamp(1.1rem, 1.6vw, 1.35rem)",
-              color: "#444",
-              maxWidth: "880px",
-              margin: "0 auto",
-              lineHeight: "1.8",
-            }}
-          >
-            A collection shaped by grace. These pieces speak life through words
-            like <strong>Redeemed</strong>, <strong>Chosen</strong>,{" "}
-            <strong>Strength</strong>, and <strong>Hope</strong> — echoing the
-            scriptures that uplift weary hearts and remind us of God’s unshakable
-            love.
-            <br />
-            <span style={{ color: "#6b6b6b" }}>
-              Wear His truth. Walk in grace. Give with purpose.
-            </span>
-          </p>
-
-          {/* small “pill” note */}
-          <div
-            style={{
-              marginTop: "1.8rem",
-              display: "inline-flex",
-              gap: "10px",
-              alignItems: "center",
-              padding: "10px 14px",
-              borderRadius: "999px",
-              background: "rgba(255,255,255,0.75)",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-              fontWeight: 700,
-              color: "#7a4f85",
-              fontSize: "0.95rem",
-            }}
-          >
-            <span>10% donated</span>
-            <span style={{ opacity: 0.6 }}>•</span>
-            <span>mental health + housing support</span>
-          </div>
+          <div className="graceSkyImg" />
+          <div className="graceSkyWash" />
         </div>
 
-        {/* Scripture rotation */}
-        <div
-          style={{
-            textAlign: "center",
-            padding: "1.15rem 1rem",
-            background: "rgba(255,255,255,0.78)",
-            backdropFilter: "blur(10px)",
-            fontSize: "1.15rem",
-            fontWeight: "700",
-            color: "#7a4f85",
-            marginBottom: "2.5rem",
-            position: "sticky",
-            top: 0,
-            zIndex: 5,
-            borderTop: "1px solid rgba(0,0,0,0.05)",
-            borderBottom: "1px solid rgba(0,0,0,0.06)",
-          }}
-        >
-          {scriptures[currentScripture]}
-        </div>
-
-        {/* Product grid */}
-        <div
-          style={{
-            padding: "2rem 1rem 6rem",
-            display: "grid",
-            gap: "3rem",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            maxWidth: "1600px",
-            margin: "0 auto",
-            position: "relative",
-            zIndex: 2,
-          }}
-        >
-          {products.map((product, idx) => {
-            const productId = String(product?.sync_product_id ?? product?.id ?? "");
-            const firstVariant = product?.variants?.[0];
-            const price = firstVariant?.retail_price ?? firstVariant?.price ?? "0";
-
-            const displayName = TITLE_BY_ID[productId] || product?.name || "Product";
-            const imgSrc =
-              product?.thumbnail_url || product?.preview_url || "/faithLogo.png";
-
-            return (
-              <div
-                key={productId || idx}
-                style={{
-                  borderRadius: "28px",
-                  overflow: "hidden",
-                  background: "rgba(255,255,255,0.92)",
-                  boxShadow: "0 18px 55px rgba(0,0,0,0.12)",
-                  transition: "transform 180ms ease, box-shadow 180ms ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-4px)";
-                  e.currentTarget.style.boxShadow = "0 24px 70px rgba(0,0,0,0.16)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 18px 55px rgba(0,0,0,0.12)";
-                }}
-              >
-                <Link href={`/product/${productId}`}>
-                  <div
-                    style={{
-                      height: "430px",
-                      position: "relative",
-                      background:
-                        "linear-gradient(180deg, #faf7ff 0%, #f6f1fb 100%)",
-                    }}
-                  >
-                    <Image
-                      src={imgSrc}
-                      alt={displayName}
-                      fill
-                      style={{ objectFit: "contain", padding: "36px" }}
-                      priority={idx < 2}
-                    />
-
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 16,
-                        left: 16,
-                        padding: "8px 12px",
-                        borderRadius: "999px",
-                        background: "rgba(159,107,170,0.12)",
-                        color: "#7a4f85",
-                        fontWeight: 800,
-                        fontSize: "0.9rem",
-                        border: "1px solid rgba(159,107,170,0.18)",
-                      }}
-                    >
-                      Grace Collection
-                    </div>
-                  </div>
-                </Link>
-
-                <div style={{ padding: "2.2rem", textAlign: "center" }}>
-                  <h3
-                    style={{
-                      margin: "0 0 0.75rem",
-                      fontSize: "1.45rem",
-                      fontWeight: 500, // ✅ lighter (not bold)
-                      color: "#2b2b2b",
-                      letterSpacing: "0.01em",
-                    }}
-                  >
-                    {displayName}
-                  </h3>
-
-                  <p
-                    style={{
-                      margin: "0.9rem 0 1.3rem",
-                      fontSize: "2rem",
-                      fontWeight: 900,
-                      color: "#9f6baa",
-                    }}
-                  >
-                    {formatPrice(price)}
-                  </p>
-
-                  <Link
-                    href={`/product/${productId}`}
-                    style={{
-                      display: "inline-block",
-                      width: "100%",
-                      padding: "1.15rem",
-                      background:
-                        "linear-gradient(135deg, #9f6baa 0%, #c08bd0 100%)",
-                      color: "white",
-                      borderRadius: "16px",
-                      fontSize: "1.15rem",
-                      fontWeight: 900,
-                      textDecoration: "none",
-                      boxShadow: "0 14px 30px rgba(159,107,170,0.28)",
-                    }}
-                  >
-                    View Details →
-                  </Link>
+        <div className="graceInner">
+          {loading ? (
+            <div className="graceStatus">Loading your Grace collection…</div>
+          ) : error ? (
+            <div className="graceStatus error">
+              <p>{error}</p>
+              <button type="button" onClick={() => location.reload()} className="graceRetry">
+                Retry
+              </button>
+            </div>
+          ) : (
+            <>
+              <header className="graceHero">
+                <div className="graceLogo">
+                  <Image
+                    src="/faithLogo.png"
+                    alt="Faith logo"
+                    width={72}
+                    height={72}
+                    style={{ objectFit: "contain" }}
+                    priority
+                  />
                 </div>
-              </div>
-            );
-          })}
-        </div>
+                <p className="graceEyebrow">Chapter · Saved by Grace</p>
+                <h1>Saved By Grace</h1>
+                <p className="graceLead">
+                  A collection shaped by grace. These pieces speak life through words like{" "}
+                  <strong>Redeemed</strong>, <strong>Chosen</strong>, <strong>Strength</strong>, and{" "}
+                  <strong>Hope</strong> — echoing the scriptures that uplift weary hearts and remind
+                  us of God’s unshakable love.
+                </p>
+                <p className="graceTag">Wear His truth. Walk in grace. Give with purpose.</p>
+                <div className="gracePill">
+                  <span>10% donated</span>
+                  <span className="dot">•</span>
+                  <span>mental health + housing support</span>
+                </div>
+              </header>
 
-        {/* Footer */}
-        <div
-          style={{
-            textAlign: "center",
-            padding: "5rem 1rem",
-            color: "#8a8a8a",
-            fontSize: "1.05rem",
-          }}
-        >
-          More pieces coming every week · Designed with love · Powered by purpose
+              <div className="graceScripture">{scriptures[currentScripture]}</div>
+
+              <div className="graceGrid">
+                {products.map((product, idx) => {
+                  const productId = String(product?.sync_product_id ?? product?.id ?? "");
+                  const firstVariant = product?.variants?.[0];
+                  const price = firstVariant?.retail_price ?? firstVariant?.price ?? "0";
+                  const displayName = TITLE_BY_ID[productId] || product?.name || "Product";
+                  const imgSrc =
+                    product?.thumbnail_url || product?.preview_url || "/faithLogo.png";
+
+                  return (
+                    <div key={productId || idx} className="graceCard">
+                      <Link href={`/product/${productId}`}>
+                        <div className="graceCardImg">
+                          <Image
+                            src={imgSrc}
+                            alt={displayName}
+                            fill
+                            style={{ objectFit: "contain", padding: "28px" }}
+                            priority={idx < 2}
+                          />
+                          <span className="graceBadge">Grace Collection</span>
+                        </div>
+                      </Link>
+                      <div className="graceCardBody">
+                        <h3>{displayName}</h3>
+                        <p className="gracePrice">{formatPrice(price)}</p>
+                        <Link href={`/product/${productId}`} className="graceBtn">
+                          View Details →
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="graceFooter">
+                More pieces coming every week · Designed with love · Powered by purpose
+              </p>
+            </>
+          )}
         </div>
       </div>
+
+      <style jsx>{`
+        .gracePage {
+          position: relative;
+          min-height: 100vh;
+          color: #2b2b2b;
+          overflow-x: hidden;
+        }
+        .graceSky {
+          position: fixed;
+          inset: -6% 0 -15% 0;
+          z-index: 0;
+          pointer-events: none;
+          will-change: transform;
+        }
+        .graceSkyImg {
+          position: absolute;
+          inset: 0;
+          background: #1a1520 url("/IMG_2039.jpeg") center / cover no-repeat;
+        }
+        .graceSkyWash {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            180deg,
+            rgba(26, 21, 32, 0.45) 0%,
+            rgba(26, 21, 32, 0.25) 30%,
+            rgba(255, 248, 242, 0.55) 55%,
+            rgba(255, 248, 242, 0.88) 78%,
+            rgba(253, 243, 231, 0.96) 100%
+          );
+        }
+        .graceInner {
+          position: relative;
+          z-index: 2;
+          max-width: 1600px;
+          margin: 0 auto;
+        }
+        .graceStatus {
+          text-align: center;
+          padding: 10rem 1rem;
+          font-size: 1.6rem;
+          color: #9f6baa;
+          font-weight: 800;
+        }
+        .graceStatus.error {
+          color: #ff6b6b;
+        }
+        .graceRetry {
+          margin-top: 1rem;
+          padding: 0.85rem 1.2rem;
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 0.85);
+          color: #7a4f85;
+          font-weight: 800;
+          cursor: pointer;
+        }
+        .graceHero {
+          text-align: center;
+          padding: 4.5rem 1.25rem 2.5rem;
+          max-width: 920px;
+          margin: 0 auto;
+        }
+        .graceLogo {
+          width: 92px;
+          height: 92px;
+          margin: 0 auto 1.1rem;
+          border-radius: 24px;
+          background: rgba(255, 255, 255, 0.82);
+          backdrop-filter: blur(10px);
+          box-shadow: 0 14px 40px rgba(0, 0, 0, 0.12);
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+        }
+        .graceEyebrow {
+          font-size: 0.8rem;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: #9f6baa;
+          margin: 0 0 0.5rem;
+        }
+        .graceHero h1 {
+          font-size: clamp(2.4rem, 5vw, 3.8rem);
+          font-weight: 900;
+          color: #7a4f85;
+          margin: 0 0 0.9rem;
+          letter-spacing: -0.02em;
+          line-height: 1.05;
+          text-shadow: 0 2px 24px rgba(255, 255, 255, 0.6);
+        }
+        .graceLead {
+          font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+          color: #333;
+          line-height: 1.75;
+          margin: 0 auto;
+          max-width: 820px;
+        }
+        .graceTag {
+          margin: 0.85rem 0 0;
+          color: #5a5a5a;
+          font-weight: 600;
+        }
+        .gracePill {
+          margin-top: 1.5rem;
+          display: inline-flex;
+          gap: 10px;
+          align-items: center;
+          padding: 10px 14px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.85);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+          font-weight: 700;
+          color: #7a4f85;
+          font-size: 0.95rem;
+        }
+        .gracePill .dot {
+          opacity: 0.55;
+        }
+        .graceScripture {
+          text-align: center;
+          padding: 1.1rem 1rem;
+          background: rgba(255, 255, 255, 0.88);
+          backdrop-filter: blur(12px);
+          font-size: 1.12rem;
+          font-weight: 700;
+          color: #7a4f85;
+          margin-bottom: 2rem;
+          position: sticky;
+          top: 0;
+          z-index: 5;
+          border-top: 1px solid rgba(0, 0, 0, 0.05);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        .graceGrid {
+          padding: 0.5rem 1rem 4rem;
+          display: grid;
+          gap: 2rem;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          max-width: 1400px;
+          margin: 0 auto;
+        }
+        .graceCard {
+          border-radius: 24px;
+          overflow: hidden;
+          background: rgba(255, 255, 255, 0.92);
+          box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+          transition: transform 180ms ease, box-shadow 180ms ease;
+        }
+        .graceCard:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16);
+        }
+        .graceCardImg {
+          height: 360px;
+          position: relative;
+          background: linear-gradient(180deg, #faf7ff 0%, #f6f1fb 100%);
+        }
+        .graceBadge {
+          position: absolute;
+          top: 14px;
+          left: 14px;
+          padding: 7px 11px;
+          border-radius: 999px;
+          background: rgba(159, 107, 170, 0.14);
+          color: #7a4f85;
+          font-weight: 800;
+          font-size: 0.85rem;
+          border: 1px solid rgba(159, 107, 170, 0.2);
+        }
+        .graceCardBody {
+          padding: 1.5rem 1.4rem 1.75rem;
+          text-align: center;
+        }
+        .graceCardBody h3 {
+          margin: 0 0 0.5rem;
+          font-size: 1.25rem;
+          font-weight: 500;
+          color: #2b2b2b;
+        }
+        .gracePrice {
+          margin: 0.5rem 0 1rem;
+          font-size: 1.65rem;
+          font-weight: 900;
+          color: #9f6baa;
+        }
+        .graceBtn {
+          display: inline-block;
+          width: 100%;
+          padding: 0.95rem;
+          background: linear-gradient(135deg, #9f6baa 0%, #c08bd0 100%);
+          color: white;
+          border-radius: 14px;
+          font-size: 1.05rem;
+          font-weight: 900;
+          text-decoration: none;
+          box-shadow: 0 12px 28px rgba(159, 107, 170, 0.28);
+        }
+        .graceFooter {
+          text-align: center;
+          padding: 2rem 1rem 4rem;
+          color: #6a6a6a;
+          font-size: 1rem;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .graceSky {
+            transform: none !important;
+          }
+        }
+      `}</style>
     </>
   );
 }
