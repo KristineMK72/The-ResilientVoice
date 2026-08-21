@@ -5,11 +5,12 @@ import Link from "next/link";
 
 const LINKS = [
   { href: "/", label: "Home" },
+  { href: "/lookbook", label: "Lookbook" },
   { href: "/saved-by-grace", label: "Saved By Grace" },
   { href: "/Patriot", label: "Patriot" },
   { href: "/Social", label: "Social" },
   { href: "/giving", label: "Giving Back" },
-  { href: "/blog", label: "Blog" },
+  { href: "/blog", label: "Journal" },
   { href: "/about", label: "About" },
   { href: "/cart", label: "Cart" },
   { href: "/LegalPage", label: "Legal" },
@@ -31,7 +32,6 @@ export default function Footer() {
         to inspire courage, connection, and conversation.
       </div>
 
-      {/* Hidden honeypot link for suspicious crawlers/bots */}
       <a
         href="/api/internal-admin"
         aria-hidden="true"
@@ -51,10 +51,9 @@ export default function Footer() {
           text-align: center;
           background: rgba(5, 5, 20, 0.92);
           backdrop-filter: blur(14px);
-          border-top: 4px solid;
-          border-image: linear-gradient(90deg, #ff0000 0%, #ffffff 50%, #0000ff 100%) 1;
+          border-top: 3px solid;
+          border-image: linear-gradient(90deg, #ff3b3b, #ffffff, #3b5bff) 1;
         }
-
         .nav {
           display: flex;
           flex-wrap: wrap;
@@ -63,7 +62,6 @@ export default function Footer() {
           margin: 0 auto 14px;
           max-width: 980px;
         }
-
         .link {
           display: inline-flex;
           align-items: center;
@@ -78,13 +76,11 @@ export default function Footer() {
           white-space: nowrap;
           transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
         }
-
         .link:hover {
           background: rgba(255, 255, 255, 0.12);
           border-color: rgba(255, 255, 255, 0.22);
           transform: translateY(-1px);
         }
-
         .copy {
           max-width: 980px;
           margin: 0 auto;
@@ -92,7 +88,6 @@ export default function Footer() {
           color: rgba(255, 255, 255, 0.7);
           font-size: 0.95rem;
         }
-
         .honeypot {
           position: absolute;
           left: -10000px;
@@ -104,13 +99,11 @@ export default function Footer() {
           pointer-events: none;
           opacity: 0;
         }
-
         @media (max-width: 480px) {
           .link {
             padding: 9px 10px;
             font-size: 0.95rem;
           }
-
           .copy {
             font-size: 0.9rem;
           }

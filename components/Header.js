@@ -7,18 +7,16 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navLinks = [
-    { href: "/", label: "Home", color: "#ffffff" },
-    { href: "/saved-by-grace", label: "Saved By Grace", color: "#ff6666" },
-    { href: "/Patriot", label: "Patriot", color: "#ff0000" },
-    { href: "/Social", label: "Social", color: "#4488ff" },
-    { href: "/giving", label: "Giving Back", color: "#00cc66" },
-    { href: "/blog", label: "Blog", color: "#ffaa00" },
-    { href: "/about", label: "About", color: "#00ddff" },
-    { href: "/cart", label: "Cart", color: "#ffcc00" },
-    { href: "/LegalPage", label: "Legal", color: "#ff0000" },
+    { href: "/", label: "Home" },
+    { href: "/lookbook", label: "Lookbook" },
+    { href: "/saved-by-grace", label: "Grace" },
+    { href: "/Patriot", label: "Patriot" },
+    { href: "/Social", label: "Social" },
+    { href: "/giving", label: "Giving" },
+    { href: "/about", label: "About" },
+    { href: "/cart", label: "Cart" },
   ];
 
-  // ✅ Lock scroll when drawer is open
   useEffect(() => {
     if (!mobileOpen) return;
     const prev = document.body.style.overflow;
@@ -28,7 +26,6 @@ export default function Header() {
     };
   }, [mobileOpen]);
 
-  // ✅ ESC closes drawer
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") setMobileOpen(false);
@@ -39,111 +36,28 @@ export default function Header() {
 
   return (
     <>
-      <header
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100%",
-          background: "rgba(5,5,20,0.95)",
-          backdropFilter: "blur(15px)",
-          borderBottom: "4px solid",
-          borderImage: "linear-gradient(90deg,#ff0000 0%,#ffffff 50%,#0000ff 100%) 1",
-          zIndex: 9999,
-          padding: "1rem 0",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "1600px",
-            margin: "0 auto",
-            padding: "0 2rem",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "14px", textDecoration: "none" }}>
-            <div
-              style={{
-                width: "56px",
-                height: "56px",
-                background: "url(/IMG_8198.jpeg) center/cover",
-                borderRadius: "14px",
-                boxShadow: "0 0 25px rgba(255,255,255,0.6)",
-              }}
-            />
-
-            <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-              <span
-                style={{
-                  fontSize: "2rem",
-                  fontWeight: "900",
-                  background: "linear-gradient(90deg,#ff4444,#ffffff,#4444ff)",
-                  WebkitBackgroundClip: "text",
-                  backgroundClip: "text",
-                  color: "transparent",
-                  letterSpacing: "0.1em",
-                }}
-              >
-                GRIT & GRACE
-              </span>
-
-              <span
-                style={{
-                  fontSize: "1.05rem",
-                  fontWeight: "500",
-                  marginTop: "2px",
-                  fontFamily: "'Brush Script MT', 'Lucida Handwriting', cursive",
-                  color: "rgba(255, 255, 255, 0.8)",
-                  textAlign: "center",
-                  letterSpacing: "0.15em",
-                }}
-              >
-                For A Resilient Voice
-              </span>
+      <header className="hdr">
+        <div className="hdrInner">
+          <Link href="/" className="brand">
+            <div className="brandMark" />
+            <div className="brandText">
+              <span className="brandName">GRIT & GRACE</span>
+              <span className="brandSub">For A Resilient Voice</span>
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav style={{ display: "flex", gap: "2rem" }}>
+          <nav className="deskNav" aria-label="Main">
             {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                style={{
-                  color: link.color,
-                  fontWeight: "700",
-                  fontSize: "1.1rem",
-                  padding: "0.5rem 1rem",
-                  borderRadius: "8px",
-                  transition: "all 0.3s",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              >
+              <Link key={link.href} href={link.href} className="navLink">
                 {link.label}
               </Link>
             ))}
           </nav>
 
-          {/* Mobile Menu Button */}
           <button
+            type="button"
             onClick={() => setMobileOpen((v) => !v)}
-            className="mobile-menu-button"
-            style={{
-              display: "none",
-              background: "rgba(255,255,255,0.1)",
-              border: "2px solid white",
-              color: "white",
-              padding: "10px 15px",
-              borderRadius: "8px",
-              fontSize: "1.5rem",
-              fontWeight: "900",
-              cursor: "pointer",
-              transition: "all 0.3s",
-              lineHeight: 1,
-            }}
+            className="menuBtn"
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
           >
             {mobileOpen ? "×" : "☰"}
@@ -151,105 +65,201 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Spacer for fixed header */}
-      <div style={{ height: "90px" }} />
+      <div className="hdrSpacer" />
 
-      {/* ✅ Backdrop */}
       <div
+        className="backdrop"
         onClick={() => setMobileOpen(false)}
         style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.55)",
-          zIndex: 9998,
           opacity: mobileOpen ? 1 : 0,
           pointerEvents: mobileOpen ? "auto" : "none",
-          transition: "opacity 200ms ease",
         }}
       />
 
-      {/* ✅ Left Drawer */}
       <aside
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          height: "100vh",
-          width: "86vw",
-          maxWidth: "420px",
-          background: "rgba(0,0,30,0.98)",
-          zIndex: 9999,
-          transform: mobileOpen ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 240ms ease",
-          display: "flex",
-          flexDirection: "column",
-          paddingTop: "90px", // clears the fixed header height
-          overflowY: "auto",
-          borderRight: "2px solid rgba(255,255,255,0.12)",
-        }}
+        className="drawer"
+        style={{ transform: mobileOpen ? "translateX(0)" : "translateX(-100%)" }}
       >
-        <div style={{ padding: "1rem 0" }}>
+        <div className="drawerLinks">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={() => setMobileOpen(false)}
-              style={{
-                display: "block",
-                padding: "1.3rem 1.6rem",
-                fontSize: "1.55rem",
-                fontWeight: "800",
-                color: link.color,
-                borderBottom: "1px solid rgba(255,255,255,0.1)",
-                textDecoration: "none",
-              }}
+              className="drawerLink"
             >
               {link.label}
             </Link>
           ))}
+          <Link href="/blog" onClick={() => setMobileOpen(false)} className="drawerLink muted">
+            Journal
+          </Link>
+          <Link href="/LegalPage" onClick={() => setMobileOpen(false)} className="drawerLink muted">
+            Legal
+          </Link>
         </div>
-
-        <div style={{ marginTop: "auto", padding: "1.2rem 1.6rem", color: "rgba(255,255,255,0.65)" }}>
-          <div style={{ fontWeight: 700, marginBottom: "0.4rem" }}>Grit & Grace</div>
-          <div style={{ fontSize: "0.95rem", lineHeight: 1.4 }}>
-            Faith • Freedom • Healing • Purpose
-          </div>
+        <div className="drawerFoot">
+          <strong>Grit & Grace</strong>
+          <span>Faith · Freedom · Healing · Purpose</span>
         </div>
       </aside>
 
       <style jsx>{`
-        @media (max-width: 1024px) {
-          header > div > nav {
-            display: none !important;
+        .hdr {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          background: rgba(5, 5, 20, 0.92);
+          backdrop-filter: blur(16px);
+          border-bottom: 3px solid;
+          border-image: linear-gradient(90deg, #ff3b3b, #fff, #3b5bff) 1;
+          z-index: 9999;
+          padding: 0.85rem 0;
+        }
+        .hdrInner {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 1.25rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+        }
+        .brand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          text-decoration: none;
+          min-width: 0;
+        }
+        .brandMark {
+          width: 48px;
+          height: 48px;
+          flex-shrink: 0;
+          background: url(/gritngrlogo.png) center / contain no-repeat, rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+        }
+        .brandText {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.1;
+          min-width: 0;
+        }
+        .brandName {
+          font-size: 1.35rem;
+          font-weight: 900;
+          letter-spacing: 0.06em;
+          background: linear-gradient(90deg, #ff6b6b, #fff, #6b8cff);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
+        .brandSub {
+          font-size: 0.78rem;
+          margin-top: 3px;
+          color: rgba(255, 255, 255, 0.75);
+          letter-spacing: 0.08em;
+        }
+        .deskNav {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.15rem 0.35rem;
+          justify-content: flex-end;
+        }
+        .navLink {
+          color: rgba(255, 255, 255, 0.92);
+          font-weight: 700;
+          font-size: 0.92rem;
+          padding: 0.45rem 0.7rem;
+          border-radius: 8px;
+          text-decoration: none;
+          transition: background 0.2s ease;
+        }
+        .navLink:hover {
+          background: rgba(255, 255, 255, 0.12);
+        }
+        .menuBtn {
+          display: none;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          color: white;
+          padding: 8px 12px;
+          border-radius: 8px;
+          font-size: 1.35rem;
+          font-weight: 900;
+          cursor: pointer;
+          line-height: 1;
+        }
+        .hdrSpacer {
+          height: 82px;
+        }
+        .backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.55);
+          z-index: 9998;
+          transition: opacity 200ms ease;
+        }
+        .drawer {
+          position: fixed;
+          top: 0;
+          left: 0;
+          height: 100vh;
+          width: 86vw;
+          max-width: 380px;
+          background: rgba(5, 5, 24, 0.98);
+          z-index: 9999;
+          transition: transform 240ms ease;
+          display: flex;
+          flex-direction: column;
+          padding-top: 82px;
+          overflow-y: auto;
+          border-right: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .drawerLinks {
+          padding: 0.5rem 0;
+        }
+        .drawerLink {
+          display: block;
+          padding: 1.05rem 1.4rem;
+          font-size: 1.25rem;
+          font-weight: 800;
+          color: #fff;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          text-decoration: none;
+        }
+        .drawerLink.muted {
+          color: rgba(255, 255, 255, 0.65);
+          font-size: 1.05rem;
+          font-weight: 700;
+        }
+        .drawerFoot {
+          margin-top: auto;
+          padding: 1.2rem 1.4rem 2rem;
+          color: rgba(255, 255, 255, 0.65);
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+        @media (max-width: 960px) {
+          .deskNav {
+            display: none;
           }
-          header > div > button.mobile-menu-button {
-            display: block !important;
-            min-width: 60px;
-            min-height: 48px;
-            padding: 8px 12px;
-          }
-          header > div > a > div:nth-child(2) > span:nth-child(1) {
-            font-size: 1.7rem !important;
-          }
-          header > div > a > div:nth-child(2) > span:nth-child(2) {
-            font-size: 0.8rem !important;
-          }
-          header > div > a > div:nth-child(1) {
-            width: 48px !important;
-            height: 48px !important;
+          .menuBtn {
+            display: block;
           }
         }
-
         @media (max-width: 480px) {
-          header > div > a > div:nth-child(2) > span:nth-child(1) {
-            font-size: 1.45rem !important;
+          .brandName {
+            font-size: 1.15rem;
           }
-          header > div > a > div:nth-child(2) > span:nth-child(2) {
-            font-size: 0.7rem !important;
+          .brandSub {
+            font-size: 0.68rem;
           }
-          header > div > a > div:nth-child(1) {
-            width: 44px !important;
-            height: 44px !important;
+          .brandMark {
+            width: 42px;
+            height: 42px;
           }
         }
       `}</style>
