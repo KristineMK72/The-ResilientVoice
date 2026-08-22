@@ -8,10 +8,6 @@ const supabase = createClient(
 );
 
 function authed(req) {
-  const key =
-    process.env.ADMIN_PASSWORD ||
-    process.env.ORDER_NOTIFY_EMAIL || // not a password — avoid
-    process.env.SHOP_PORTAL_PASSWORD;
   const password = process.env.ADMIN_PASSWORD || process.env.SHOP_PORTAL_PASSWORD;
   if (!password) return false;
   return (req.headers["x-admin-password"] || "") === password;
