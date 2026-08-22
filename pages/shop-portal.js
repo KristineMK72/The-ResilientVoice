@@ -1,4 +1,4 @@
-// pages/shop-portal.js — Local print shop production queue
+// pages/shop-portal.js — Vendor POD production console
 "use client";
 
 import Head from "next/head";
@@ -36,6 +36,7 @@ export default function ShopPortal() {
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("open");
   const [busyId, setBusyId] = useState(null);
+  const [demoBusy, setDemoBusy] = useState(false);
 
   useEffect(() => {
     try {
@@ -113,11 +114,8 @@ export default function ShopPortal() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || "Update failed");
-      } else {
-        await load();
-      }
+      if (!res.ok) alert(data.error || "Update failed");
+      else await load();
     } catch (e) {
       alert(e.message || "Update failed");
     } finally {
@@ -125,17 +123,38 @@ export default function ShopPortal() {
     }
   }
 
+  async function createDemo() {
+    setDemoBusy(true);
+    try {
+      const res = await fetch("/api/shop-portal/demo-order", {
+        method: "POST",
+        headers: { "x-shop-password": password },
+      });
+      const data = await res.json();
+      if (!res.ok) alert(data.error || "Could not create demo");
+      else {
+        setFilter("open");
+        await load();
+      }
+    } catch (e) {
+      alert(e.message || "Could not create demo");
+    } finally {
+      setDemoBusy(false);
+    }
+  }
+
   if (!authed) {
     return (
       <>
         <Head>
-          <title>Shop Portal | Grit & Grace</title>
+          <title>Vendor POD Console</title>
         </Head>
         <div style={styles.page}>
           <form onSubmit={login} style={styles.loginCard}>
-            <h1 style={{ margin: "0 0 0.5rem" }}>Production portal</h1>
-            <p style={{ margin: "0 0 1.25rem", opacity: 0.8 }}>
-              Grit & Grace · local print-on-demand queue
+            <p style={styles.kicker}>Vendor POD Console</p>
+            <h1 style={{ margin: "0 0 0.5rem", fontSize: "1.65rem" }}>Production queue</h1>
+            <p style={{ margin: "0 0 1.25rem", opacity: 0.8, lineHeight: 1.5 }}>
+              Print-on-demand tickets for partner brands. Enter the password from your setup sheet.
             </p>
             <input
               type="password"
@@ -144,9 +163,10 @@ export default function ShopPortal() {
               placeholder="Shop password"
               required
               style={styles.input}
+              autoComplete="current-password"
             />
             <button type="submit" style={styles.btnPrimary}>
-              Open queue
+              Open console
             </button>
           </form>
         </div>
@@ -157,14 +177,15 @@ export default function ShopPortal() {
   return (
     <>
       <Head>
-        <title>Shop Portal | Grit & Grace</title>
+        <title>Vendor POD Console</title>
       </Head>
       <div style={styles.page}>
         <header style={styles.top}>
           <div>
-            <h1 style={{ margin: 0, fontSize: "1.5rem" }}>Local POD queue</h1>
+            <p style={styles.kicker}>Vendor POD Console</p>
+            <h1 style={{ margin: 0, fontSize: "1.45rem" }}>Production queue</h1>
             <p style={{ margin: "0.35rem 0 0", opacity: 0.75, fontSize: "0.95rem" }}>
-              Orders from gritandgrace.buzz
+              Partner orders · mark Printing → Shipped when done
             </p>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -173,6 +194,9 @@ export default function ShopPortal() {
               <option value="shipped">Shipped</option>
               <option value="all_local">All local</option>
             </select>
+            <button type="button" onClick={createDemo} disabled={demoBusy} style={styles.btnGhost}>
+              {demoBusy ? "Creating…" : "+ Demo ticket"}
+            </button>
             <button type="button" onClick={load} style={styles.btnGhost}>
               Refresh
             </button>
@@ -182,11 +206,20 @@ export default function ShopPortal() {
           </div>
         </header>
 
+        <div style={styles.help}>
+          <strong>How to run a job:</strong> Open ticket → print from your file folder → click{" "}
+          <em>Printing</em> → ship → <em>Mark shipped</em> (add tracking if you have it). Use{" "}
+          <em>Hold</em> if a blank is missing or the address looks wrong.
+        </div>
+
         {error && <p style={{ color: "#ff6b6b", fontWeight: 700 }}>{error}</p>}
         {loading && <p>Loading…</p>}
 
         {!loading && !orders.length && (
-          <p style={{ opacity: 0.8 }}>No orders in this view.</p>
+          <p style={{ opacity: 0.85 }}>
+            No open tickets. Click <strong>+ Demo ticket</strong> to practice, or wait for a partner
+            order.
+          </p>
         )}
 
         <div style={styles.list}>
@@ -194,17 +227,22 @@ export default function ShopPortal() {
             const lines = itemsList(o.items);
             const id = o.stripe_session_id;
             const busy = busyId === id;
+            const isDemo = String(id || "").startsWith("demo_");
             return (
               <article key={id} style={styles.card}>
                 <div style={styles.cardHead}>
                   <div>
-                    <strong>{o.ship_name || o.customer_name || "Customer"}</strong>
+                    <strong>
+                      {o.ship_name || o.customer_name || "Customer"}
+                      {isDemo ? " · DEMO" : ""}
+                    </strong>
                     <div style={styles.meta}>{o.customer_email || "—"}</div>
                     <div style={styles.meta}>
                       {o.ship_line1}
                       {o.ship_line2 ? `, ${o.ship_line2}` : ""}
                       <br />
-                      {o.ship_city}, {o.ship_state} {o.ship_postal} {o.ship_country}
+                      {[o.ship_city, o.ship_state, o.ship_postal].filter(Boolean).join(", ")}{" "}
+                      {o.ship_country}
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
@@ -221,8 +259,16 @@ export default function ShopPortal() {
                       {li.quantity || 1}× {li.description || li.product_name || "Item"}
                     </li>
                   ))}
-                  {!lines.length && <li style={{ opacity: 0.7 }}>See order details in Stripe if needed</li>}
+                  {!lines.length && (
+                    <li style={{ opacity: 0.7 }}>Line items unavailable — confirm with brand</li>
+                  )}
                 </ul>
+
+                {o.tracking_number && (
+                  <p style={{ ...styles.meta, marginBottom: 10 }}>
+                    Tracking: <strong>{o.tracking_number}</strong>
+                  </p>
+                )}
 
                 <div style={styles.actions}>
                   <button
@@ -238,7 +284,10 @@ export default function ShopPortal() {
                     disabled={busy}
                     style={styles.btnSmall}
                     onClick={() => {
-                      const tracking = window.prompt("Tracking number (optional)", o.tracking_number || "");
+                      const tracking = window.prompt(
+                        "Tracking number (optional)",
+                        o.tracking_number || ""
+                      );
                       if (tracking === null) return;
                       updateOrder(id, "local_shipped", { tracking_number: tracking });
                     }}
@@ -262,9 +311,6 @@ export default function ShopPortal() {
                     Back to queue
                   </button>
                 </div>
-                <div style={{ ...styles.meta, marginTop: 10, fontSize: "0.8rem" }}>
-                  Session: {id?.slice(0, 20)}…
-                </div>
               </article>
             );
           })}
@@ -283,9 +329,17 @@ const styles = {
     maxWidth: 900,
     margin: "0 auto",
   },
+  kicker: {
+    margin: "0 0 0.35rem",
+    fontSize: "0.75rem",
+    fontWeight: 800,
+    letterSpacing: "0.12em",
+    textTransform: "uppercase",
+    color: "#93c5fd",
+  },
   loginCard: {
-    maxWidth: 360,
-    margin: "15vh auto",
+    maxWidth: 400,
+    margin: "12vh auto",
     padding: "1.75rem",
     borderRadius: 16,
     background: "rgba(255,255,255,0.06)",
@@ -315,7 +369,16 @@ const styles = {
     gap: 12,
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: "1.5rem",
+    marginBottom: "1rem",
+  },
+  help: {
+    marginBottom: "1.25rem",
+    padding: "0.9rem 1rem",
+    borderRadius: 12,
+    background: "rgba(59,130,246,0.12)",
+    border: "1px solid rgba(59,130,246,0.25)",
+    fontSize: "0.92rem",
+    lineHeight: 1.55,
   },
   select: {
     padding: "0.5rem 0.75rem",
