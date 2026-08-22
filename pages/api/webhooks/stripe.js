@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { buffer } from "micro";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+import { notifyOwnerNewOrder } from "../../../lib/notify";
 
 export const config = {
   api: { bodyParser: false },
@@ -277,6 +278,30 @@ export default async function handler(req, res) {
       }
     }
 
+    // ✅ Email YOU on every paid order (does not block Printful)
+    const shipSummary = [
+      recipient.name,
+      recipient.address1,
+      [recipient.city, recipient.state_code, recipient.zip].filter(Boolean).join(", "),
+      recipient.country_code,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    await notifyOwnerNewOrder({
+      sessionId: session.id,
+      customerName: recipient.name || customer.name,
+      customerEmail: customer.email,
+      amountTotal: session.amount_total,
+      currency: session.currency,
+      items: (lineItems.data || []).map((li) => ({
+        description: li.description,
+        quantity: li.quantity,
+      })),
+      fulfillmentStatus: "pending",
+      shipSummary,
+    });
+
     const printfulItemsFromMeta = parsePrintfulItemsFromSession(session);
     const printfulItems =
       printfulItemsFromMeta.length > 0
@@ -335,8 +360,6 @@ export default async function handler(req, res) {
         .json({ success: true, fulfillment: "skipped_missing_shipping" });
     }
 
-    // const safeExternalId = generateSafeExternalId(session.id);
-
     const printfulRes = await fetch(
       "https://api.printful.com/orders?update_existing=true",
       {
@@ -346,7 +369,6 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          // external_id: safeExternalId,
           recipient,
           items: printfulItems,
           confirm: true,
