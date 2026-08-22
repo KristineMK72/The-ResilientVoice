@@ -3,7 +3,10 @@ import Stripe from "stripe";
 import { buffer } from "micro";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
-import { notifyOwnerNewOrder } from "../../../lib/notify";
+import {
+  notifyOwnerNewOrder,
+  notifyCustomerOrderReceived,
+} from "../../../lib/notify";
 
 export const config = {
   api: { bodyParser: false },
@@ -70,16 +73,6 @@ function parsePrintfulItemsFromSession(session) {
   }
 }
 
-function generateSafeExternalId(sessionId) {
-  const hash = crypto
-    .createHash("sha256")
-    .update(sessionId)
-    .digest("hex")
-    .slice(0, 12);
-
-  return `ord_${hash}`;
-}
-
 function looksLikeShipping(lineItem, productName, nickname) {
   const hay = `${lineItem?.description || ""} ${productName || ""} ${
     nickname || ""
@@ -128,7 +121,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Recipient
     const shipping = session.shipping_details || {};
     const customer = session.customer_details || {};
     const addr = shipping.address || customer.address || {};
@@ -144,7 +136,6 @@ export default async function handler(req, res) {
       zip: clean(addr.postal_code),
     };
 
-    // Line items
     const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
       limit: 100,
       expand: ["data.price", "data.price.product"],
@@ -154,13 +145,10 @@ export default async function handler(req, res) {
       stripe_session_id: session.id,
       payment_intent_id: session.payment_intent ?? null,
       status: session.payment_status ?? null,
-
       customer_email: clean(customer.email) || null,
       customer_name: clean(recipient.name) || null,
-
       amount_total: session.amount_total ?? null,
       currency: session.currency ?? null,
-
       ship_name: clean(recipient.name) || null,
       ship_line1: clean(recipient.address1) || null,
       ship_line2: clean(recipient.address2) || null,
@@ -168,10 +156,8 @@ export default async function handler(req, res) {
       ship_state: clean(recipient.state_code) || null,
       ship_postal: clean(recipient.zip) || null,
       ship_country: clean(recipient.country_code) || null,
-
       shipping_address: safeJson(recipient),
       fulfillment_status: "pending",
-
       items: safeJson(
         (lineItems.data || []).map((li) => ({
           description: li.description,
@@ -185,7 +171,6 @@ export default async function handler(req, res) {
               : li.price?.product?.id ?? null,
         }))
       ),
-
       updated_at: new Date().toISOString(),
     };
 
@@ -227,7 +212,6 @@ export default async function handler(req, res) {
         "Unknown";
 
       const nickname = clean(priceObj.nickname || "");
-
       if (looksLikeShipping(li, productName, nickname)) continue;
 
       const sku = clean(
@@ -278,7 +262,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // ✅ Email YOU on every paid order (does not block Printful)
     const shipSummary = [
       recipient.name,
       recipient.address1,
@@ -288,17 +271,29 @@ export default async function handler(req, res) {
       .filter(Boolean)
       .join(" · ");
 
+    const mailItems = (lineItems.data || []).map((li) => ({
+      description: li.description,
+      quantity: li.quantity,
+    }));
+
+    // You + customer (mail never blocks Printful)
     await notifyOwnerNewOrder({
       sessionId: session.id,
       customerName: recipient.name || customer.name,
       customerEmail: customer.email,
       amountTotal: session.amount_total,
       currency: session.currency,
-      items: (lineItems.data || []).map((li) => ({
-        description: li.description,
-        quantity: li.quantity,
-      })),
+      items: mailItems,
       fulfillmentStatus: "pending",
+      shipSummary,
+    });
+
+    await notifyCustomerOrderReceived({
+      customerName: recipient.name || customer.name,
+      customerEmail: customer.email,
+      amountTotal: session.amount_total,
+      currency: session.currency,
+      items: mailItems,
       shipSummary,
     });
 
@@ -318,7 +313,6 @@ export default async function handler(req, res) {
         },
         { onConflict: "stripe_session_id" }
       );
-
       return res.status(200).json({ success: true, fulfillment: "skipped" });
     }
 
@@ -332,10 +326,7 @@ export default async function handler(req, res) {
         },
         { onConflict: "stripe_session_id" }
       );
-
-      return res
-        .status(200)
-        .json({ success: true, fulfillment: "needs_mapping" });
+      return res.status(200).json({ success: true, fulfillment: "needs_mapping" });
     }
 
     if (
@@ -354,7 +345,6 @@ export default async function handler(req, res) {
         },
         { onConflict: "stripe_session_id" }
       );
-
       return res
         .status(200)
         .json({ success: true, fulfillment: "skipped_missing_shipping" });
@@ -380,7 +370,6 @@ export default async function handler(req, res) {
     const printfulData = await printfulRes.json();
 
     if (printfulRes.status === 409) {
-      console.warn("⚠️ Printful duplicate detected (already exists)");
       await supabase.from("orders").upsert(
         {
           stripe_session_id: session.id,
@@ -390,7 +379,6 @@ export default async function handler(req, res) {
         },
         { onConflict: "stripe_session_id" }
       );
-
       return res.status(200).json({ success: true, duplicate: true });
     }
 
@@ -399,7 +387,6 @@ export default async function handler(req, res) {
         status: printfulRes.status,
         data: printfulData,
       });
-
       await supabase.from("orders").upsert(
         {
           stripe_session_id: session.id,
@@ -409,7 +396,6 @@ export default async function handler(req, res) {
         },
         { onConflict: "stripe_session_id" }
       );
-
       return res.status(200).json({ success: true, fulfillment: "failed" });
     }
 
@@ -429,7 +415,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, fulfillment: "created" });
   } catch (err) {
     console.error("❌ Webhook error:", err);
-
     try {
       await supabase.from("orders").upsert(
         {
@@ -440,7 +425,6 @@ export default async function handler(req, res) {
         { onConflict: "stripe_session_id" }
       );
     } catch {}
-
     return res.status(200).json({ success: true, error: "handled" });
   }
 }
