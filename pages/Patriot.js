@@ -1,12 +1,12 @@
 // pages/Patriot.js — Primo chapter layout
 "use client";
 
-import { PRINTFUL_PRODUCTS } from "../lib/printfulMap";
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { formatPrice } from "../lib/formatPrice";
+import { loadChapterProducts } from "../lib/catalog/loadChapterProducts";
 
 const PHRASES = [
   "Freedom isn't free. Thank a veteran.",
@@ -22,22 +22,6 @@ export default function Patriot() {
   const [error, setError] = useState(null);
   const [phrase, setPhrase] = useState(0);
   const [parallaxY, setParallaxY] = useState(0);
-
-  const TITLE_BY_ID = useMemo(() => {
-    const entries = Object.values(PRINTFUL_PRODUCTS)
-      .filter((p) => p?.sync_product_id && p?.title)
-      .map((p) => [String(p.sync_product_id), p.title]);
-    return Object.fromEntries(entries);
-  }, []);
-
-  const IDS = useMemo(() => {
-    const list = Object.values(PRINTFUL_PRODUCTS)
-      .filter((p) => p?.category === "patriot" && p?.sync_product_id)
-      .map((p) => ({ id: String(p.sync_product_id), sort: typeof p.sort === "number" ? p.sort : null }));
-    const hasSort = list.some((x) => x.sort !== null);
-    const ordered = hasSort ? [...list].sort((a, b) => (a.sort ?? 9999) - (b.sort ?? 9999)) : list;
-    return Array.from(new Set(ordered.map((x) => x.id)));
-  }, []);
 
   useEffect(() => {
     const onScroll = () => setParallaxY(Math.min((window.scrollY || 0) * 0.28, 220));
@@ -57,49 +41,15 @@ export default function Patriot() {
       try {
         setLoading(true);
         setError(null);
-        if (!IDS.length) {
-          setError("No products configured.");
+        const { products: list, warning } = await loadChapterProducts("patriot");
+        if (cancelled) return;
+        if (!list.length) {
+          setError(warning || "No products loaded.");
           setLoading(false);
           return;
         }
-        const cacheKey = `patriot_primo_v1_${IDS.join("_")}`;
-        try {
-          const cached = sessionStorage.getItem(cacheKey);
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            if (!cancelled && parsed?.length) {
-              setProducts(parsed);
-              setLoading(false);
-              return;
-            }
-          }
-        } catch {}
-        const fetchOne = async (id) => {
-          const res = await fetch(`/api/printful-product/${id}`);
-          if (!res.ok) return null;
-          return res.json();
-        };
-        const results = [];
-        for (let i = 0; i < IDS.length; i += 6) {
-          const chunk = IDS.slice(i, i + 6);
-          const settled = await Promise.all(chunk.map(fetchOne));
-          settled.forEach((r) => r && results.push(r));
-        }
-        const order = new Map(IDS.map((id, i) => [String(id), i]));
-        results.sort(
-          (a, b) =>
-            (order.get(String(a?.sync_product_id ?? a?.id)) ?? 999) -
-            (order.get(String(b?.sync_product_id ?? b?.id)) ?? 999)
-        );
-        if (!cancelled) {
-          setProducts(results);
-          setLoading(false);
-          if (results.length) {
-            try {
-              sessionStorage.setItem(cacheKey, JSON.stringify(results));
-            } catch {}
-          } else setError("No products loaded.");
-        }
+        setProducts(list);
+        setLoading(false);
       } catch {
         if (!cancelled) {
           setLoading(false);
@@ -111,7 +61,7 @@ export default function Patriot() {
     return () => {
       cancelled = true;
     };
-  }, [IDS]);
+  }, []);
 
   const featured = products[0];
   const rest = products.slice(1);
@@ -120,7 +70,7 @@ export default function Patriot() {
     const v0 = p?.variants?.[0];
     return {
       id,
-      name: TITLE_BY_ID[id] || p?.name || "Product",
+      name: p?.title || p?.name || "Product",
       price: formatPrice(v0?.retail_price ?? v0?.price ?? "0"),
       img: p?.thumbnail_url || p?.preview_url || "/gritngrlogo.png",
     };
