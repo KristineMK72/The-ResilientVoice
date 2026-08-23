@@ -1,4 +1,4 @@
-// pages/Patriot.js — Primo chapter layout
+// pages/Patriot.js — Refined Patriot chapter
 "use client";
 
 import Head from "next/head";
@@ -14,7 +14,18 @@ const PHRASES = [
   "Land of the free, because of the brave.",
   "Support those who protect and serve.",
 ];
-const BUZZ = ["Valor", "Duty", "Honor", "Veterans", "Service", "Police", "Fire", "EMS", "Freedom", "Liberty"];
+const BUZZ = [
+  "Valor",
+  "Duty",
+  "Honor",
+  "Veterans",
+  "Service",
+  "Police",
+  "Fire",
+  "EMS",
+  "Freedom",
+  "Liberty",
+];
 
 export default function Patriot() {
   const [products, setProducts] = useState([]);
@@ -24,14 +35,15 @@ export default function Patriot() {
   const [parallaxY, setParallaxY] = useState(0);
 
   useEffect(() => {
-    const onScroll = () => setParallaxY(Math.min((window.scrollY || 0) * 0.28, 220));
+    const onScroll = () =>
+      setParallaxY(Math.min((window.scrollY || 0) * 0.25, 200));
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   useEffect(() => {
-    const t = setInterval(() => setPhrase((p) => (p + 1) % PHRASES.length), 5000);
+    const t = setInterval(() => setPhrase((p) => (p + 1) % PHRASES.length), 5200);
     return () => clearInterval(t);
   }, []);
 
@@ -65,6 +77,7 @@ export default function Patriot() {
 
   const featured = products[0];
   const rest = products.slice(1);
+
   function meta(p) {
     const id = String(p?.sync_product_id ?? p?.id ?? "");
     const v0 = p?.variants?.[0];
@@ -85,20 +98,24 @@ export default function Patriot() {
           content="Courage for those who serve — and those who keep showing up. Honor veterans, first responders, and everyday grit."
         />
       </Head>
-      <div className="ch">
+
+      <div className="pat">
         <div
-          className="chSky"
-          style={{ transform: `translate3d(0, ${parallaxY}px, 0) scale(1.06)` }}
+          className="sky"
+          style={{
+            transform: `translate3d(0, ${parallaxY}px, 0) scale(1.05)`,
+          }}
           aria-hidden
         >
-          <div className="chSkyImg" />
-          <div className="chSkyWash" />
+          <div className="skyImg" />
+          <div className="skyWash" />
         </div>
-        <div className="chInner">
+
+        <div className="inner">
           {loading ? (
-            <div className="chStatus">Loading collection…</div>
+            <div className="status">Loading collection…</div>
           ) : error ? (
-            <div className="chStatus err">
+            <div className="status err">
               <p>{error}</p>
               <button type="button" onClick={() => location.reload()}>
                 Retry
@@ -106,154 +123,416 @@ export default function Patriot() {
             </div>
           ) : (
             <>
-              <header className="chHero">
-                <p className="chEyebrow">Chapter · Patriot</p>
+              <header className="hero">
+                <p className="eyebrow">Chapter · Patriot</p>
                 <h1>Patriot Collection</h1>
-                <p className="chLead">
-                  Courage for those who serve — and those who keep showing up. Honor veterans,
-                  first responders, and everyday grit.
+                <p className="lead">
+                  Courage for those who serve — and those who keep showing up.
+                  Honor veterans, first responders, and everyday grit.
                 </p>
-                <div className="chCtas">
-                  <a href="#shop" className="chBtn primary">
-                    Shop this chapter ↓
+                <div className="ctas">
+                  <a href="#shop" className="btn primary">
+                    Shop this chapter
                   </a>
-                  <Link href="/about" className="chBtn ghost">
+                  <Link href="/about" className="btn ghost">
                     Why we exist
                   </Link>
                 </div>
               </header>
-              <div className="chStrip">
+
+              <div className="strip">
                 <p>
-                  Wear your values. Stand for what matters. 10% of every sale supports veterans and
-                  community care.
+                  Wear your values. Stand for what matters. 10% of every sale
+                  supports veterans and community care.
                 </p>
-                <div className="chStripLinks">
+                <div className="stripLinks">
                   <a href="#shop">Shop</a>
                   <Link href="/giving">Giving</Link>
                   <Link href="/blog/storms">Journal</Link>
                 </div>
               </div>
-              <div className="chPhrase">{PHRASES[phrase]}</div>
-              <div className="chBuzz">
+
+              <div className="phrase" key={phrase}>
+                {PHRASES[phrase]}
+              </div>
+
+              <div className="buzz">
                 {BUZZ.map((w) => (
                   <span key={w}>{w}</span>
                 ))}
               </div>
-              <section id="shop" className="chShop">
+
+              <section id="shop" className="shop">
                 {featured &&
                   (() => {
                     const m = meta(featured);
                     return (
-                      <Link href={`/product/${m.id}`} className="chFeatured">
-                        <div className="chFeaturedImg">
+                      <Link href={`/product/${m.id}`} className="featured">
+                        <div className="featuredImg">
                           <Image
                             src={m.img}
                             alt={m.name}
                             fill
-                            style={{ objectFit: "contain", padding: 24 }}
+                            style={{ objectFit: "contain", padding: 28 }}
                             priority
                           />
                         </div>
-                        <div className="chFeaturedBody">
-                          <span className="chBadge">Signature</span>
+                        <div className="featuredBody">
+                          <span className="badge">Signature</span>
                           <h2>{m.name}</h2>
-                          <p className="chPrice">{m.price}</p>
-                          <span className="chFeaturedCta">View piece →</span>
+                          <p className="price">{m.price}</p>
+                          <span className="featuredCta">View piece →</span>
                         </div>
                       </Link>
                     );
                   })()}
-                <div className="chGrid">
+
+                <div className="grid">
                   {rest.map((p, idx) => {
                     const m = meta(p);
                     return (
-                      <Link key={m.id || idx} href={`/product/${m.id}`} className="chCard">
-                        <div className="chCardImg">
+                      <Link
+                        key={m.id || idx}
+                        href={`/product/${m.id}`}
+                        className="card"
+                      >
+                        <div className="cardImg">
                           <Image
                             src={m.img}
                             alt={m.name}
                             fill
-                            style={{ objectFit: "contain", padding: 20 }}
+                            style={{ objectFit: "contain", padding: 18 }}
                             priority={idx < 2}
                           />
                         </div>
-                        <div className="chCardBody">
+                        <div className="cardBody">
                           <h3>{m.name}</h3>
-                          <p className="chPrice">{m.price}</p>
+                          <p className="price">{m.price}</p>
                         </div>
                       </Link>
                     );
                   })}
                 </div>
               </section>
-              <p className="chFoot">More pieces coming soon · Designed with love · Powered by purpose</p>
+
+              <p className="foot">
+                More pieces coming soon · Designed with love · Powered by
+                purpose
+              </p>
             </>
           )}
         </div>
       </div>
+
       <style jsx>{`
-        .ch { position: relative; min-height: 100vh; color: #fff; overflow-x: hidden; }
-        .chSky { position: fixed; inset: -6% 0 -15% 0; z-index: 0; pointer-events: none; will-change: transform; }
-        .chSkyImg { position: absolute; inset: 0; background: #0b1220 url("/IMG_2041.jpeg") center / cover no-repeat; }
-        .chSkyWash {
-          position: absolute; inset: 0;
-          background: linear-gradient(180deg, rgba(11,18,32,0.55) 0%, rgba(11,18,32,0.35) 30%, rgba(2,6,23,0.75) 70%, rgba(0,0,0,0.92) 100%);
+        .pat {
+          position: relative;
+          min-height: 100vh;
+          color: #f8fafc;
+          overflow-x: hidden;
         }
-        .chInner { position: relative; z-index: 2; max-width: 1100px; margin: 0 auto; }
-        .chStatus { text-align: center; padding: 8rem 1rem; font-size: 1.4rem; font-weight: 800; color: #93c5fd; }
-        .chStatus.err { color: #ff6b6b; }
-        .chStatus button { margin-top: 1rem; padding: 0.75rem 1.2rem; border-radius: 999px; border: none; font-weight: 800; cursor: pointer; }
-        .chHero { text-align: center; padding: 16vh 1.25rem 2rem; max-width: 640px; margin: 0 auto; }
-        .chEyebrow { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #93c5fd; margin: 0 0 0.6rem; }
-        .chHero h1 {
-          font-size: clamp(2.3rem, 5vw, 3.4rem); font-weight: 900; margin: 0 0 0.75rem; letter-spacing: -0.02em; line-height: 1.08;
-          background: linear-gradient(135deg, #ef4444, #fff, #3b82f6); -webkit-background-clip: text; color: transparent;
+        .sky {
+          position: fixed;
+          inset: -5% 0 -12% 0;
+          z-index: 0;
+          pointer-events: none;
+          will-change: transform;
         }
-        .chLead { font-size: 1.1rem; line-height: 1.65; color: #e5e7eb; margin: 0 0 1.5rem; }
-        .chCtas { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-        .chBtn { display: inline-flex; padding: 0.85rem 1.25rem; border-radius: 12px; font-weight: 800; text-decoration: none; font-size: 0.95rem; }
-        .chBtn.primary { background: linear-gradient(135deg, #ef4444, #fff, #3b82f6); color: #0b1220; }
-        .chBtn.ghost { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
-        .chStrip { margin: 0 1rem 1rem; padding: 1.1rem 1.2rem; border-radius: 18px; background: rgba(255,255,255,0.9); color: #1f2937; text-align: center; }
-        .chStrip p { margin: 0 0 0.6rem; line-height: 1.55; font-size: 0.95rem; }
-        .chStripLinks { display: flex; gap: 1.2rem; justify-content: center; font-weight: 800; font-size: 0.9rem; }
-        .chStripLinks a { color: #111827; text-decoration: none; }
-        .chPhrase { text-align: center; padding: 0.85rem 1rem; background: rgba(255,255,255,0.92); font-size: 1rem; font-weight: 800; color: #0f172a; position: sticky; top: 0; z-index: 5; }
-        .chBuzz { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; padding: 1rem; max-width: 900px; margin: 0 auto; }
-        .chBuzz span { padding: 0.4rem 0.75rem; background: rgba(255,255,255,0.92); border-radius: 999px; font-size: 0.8rem; font-weight: 900; color: #111; text-transform: uppercase; }
-        .chShop { padding: 1.25rem 1rem 3rem; }
-        .chFeatured {
-          display: grid; grid-template-columns: 1.1fr 1fr; margin-bottom: 1.5rem; border-radius: 22px; overflow: hidden;
-          background: rgba(255,255,255,0.95); text-decoration: none; color: #111; box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+        .skyImg {
+          position: absolute;
+          inset: 0;
+          background: #0b1220 url("/IMG_2041.jpeg") center / cover no-repeat;
         }
-        .chFeatured:hover { transform: translateY(-2px); }
-        .chFeaturedImg { position: relative; min-height: 300px; background: #0b1220; }
-        .chFeaturedBody { padding: 1.75rem; display: flex; flex-direction: column; justify-content: center; }
-        .chBadge {
-          display: inline-block; width: fit-content; padding: 0.3rem 0.65rem; border-radius: 999px; font-size: 0.75rem;
-          font-weight: 800; margin-bottom: 0.65rem; background: rgba(239,68,68,0.14); color: #ef4444;
+        .skyWash {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            180deg,
+            rgba(11, 18, 32, 0.58) 0%,
+            rgba(11, 18, 32, 0.36) 30%,
+            rgba(2, 6, 23, 0.8) 70%,
+            rgba(0, 0, 0, 0.94) 100%
+          );
         }
-        .chFeaturedBody h2 { margin: 0 0 0.4rem; font-size: 1.45rem; font-weight: 700; }
-        .chPrice { font-size: 1.4rem; font-weight: 900; margin: 0 0 0.75rem; color: #0f172a; }
-        .chFeaturedCta { font-weight: 800; color: #111; }
-        .chGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.9rem; }
-        .chCard {
-          border-radius: 16px; overflow: hidden; background: rgba(255,255,255,0.95); text-decoration: none; color: #111;
-          box-shadow: 0 12px 36px rgba(0,0,0,0.2); transition: transform 0.18s ease;
+        .inner {
+          position: relative;
+          z-index: 2;
+          max-width: 1080px;
+          margin: 0 auto;
         }
-        .chCard:hover { transform: translateY(-3px); }
-        .chCardImg { position: relative; height: 200px; background: #0b1220; }
-        .chCardBody { padding: 0.85rem; text-align: center; }
-        .chCardBody h3 { margin: 0 0 0.3rem; font-size: 0.95rem; font-weight: 600; line-height: 1.3; }
-        .chCardBody .chPrice { font-size: 1.1rem; margin: 0; }
-        .chFoot { text-align: center; padding: 1rem 1rem 3.5rem; color: #a1a1aa; font-size: 0.95rem; }
+        .status {
+          text-align: center;
+          padding: 8rem 1.25rem;
+          font-size: 1.35rem;
+          font-weight: 800;
+          color: #93c5fd;
+        }
+        .status.err {
+          color: #ff6b6b;
+        }
+        .status button {
+          margin-top: 1rem;
+          padding: 0.8rem 1.3rem;
+          border-radius: 999px;
+          border: none;
+          font-weight: 800;
+          cursor: pointer;
+          background: #fff;
+          color: #0b1220;
+        }
+        .hero {
+          text-align: center;
+          padding: 15vh 1.35rem 2.1rem;
+          max-width: 640px;
+          margin: 0 auto;
+        }
+        .eyebrow {
+          font-size: 0.74rem;
+          font-weight: 800;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: #93c5fd;
+          margin: 0 0 0.7rem;
+        }
+        .hero h1 {
+          font-size: clamp(2.4rem, 5.5vw, 3.5rem);
+          font-weight: 900;
+          margin: 0 0 0.85rem;
+          letter-spacing: -0.03em;
+          line-height: 1.06;
+          background: linear-gradient(135deg, #ef4444 0%, #f8fafc 48%, #3b82f6 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
+        .lead {
+          font-size: 1.1rem;
+          line-height: 1.7;
+          color: #e2e8f0;
+          margin: 0 0 1.55rem;
+        }
+        .ctas {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.7rem;
+          justify-content: center;
+        }
+        .btn {
+          display: inline-flex;
+          align-items: center;
+          padding: 0.9rem 1.35rem;
+          border-radius: 14px;
+          font-weight: 800;
+          text-decoration: none;
+          font-size: 0.95rem;
+          transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+            filter 0.2s ease;
+        }
+        .btn:hover {
+          transform: translateY(-2px);
+          filter: brightness(1.05);
+        }
+        .btn.primary {
+          background: linear-gradient(135deg, #ef4444, #f8fafc, #3b82f6);
+          color: #0b1220;
+          box-shadow: 0 12px 32px rgba(239, 68, 68, 0.28);
+        }
+        .btn.ghost {
+          background: rgba(255, 255, 255, 0.1);
+          color: #fff;
+          border: 1px solid rgba(255, 255, 255, 0.22);
+        }
+        .strip {
+          margin: 0 1.15rem 1.15rem;
+          padding: 1.2rem 1.35rem;
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.93);
+          color: #1e293b;
+          text-align: center;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+        .strip p {
+          margin: 0 0 0.65rem;
+          line-height: 1.6;
+          font-size: 0.97rem;
+        }
+        .stripLinks {
+          display: flex;
+          gap: 1.35rem;
+          justify-content: center;
+          font-weight: 800;
+          font-size: 0.9rem;
+        }
+        .stripLinks a {
+          color: #0f172a;
+          text-decoration: none;
+        }
+        .stripLinks a:hover {
+          text-decoration: underline;
+        }
+        .phrase {
+          text-align: center;
+          padding: 0.95rem 1.25rem;
+          background: rgba(255, 255, 255, 0.94);
+          font-size: 1.02rem;
+          font-weight: 800;
+          color: #0f172a;
+          position: sticky;
+          top: 0;
+          z-index: 5;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .buzz {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          justify-content: center;
+          padding: 1.15rem 1rem;
+          max-width: 900px;
+          margin: 0 auto;
+        }
+        .buzz span {
+          padding: 0.42rem 0.8rem;
+          background: rgba(255, 255, 255, 0.93);
+          border-radius: 999px;
+          font-size: 0.78rem;
+          font-weight: 900;
+          color: #0f172a;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+        .shop {
+          padding: 1.5rem 1.15rem 3rem;
+        }
+        .featured {
+          display: grid;
+          grid-template-columns: 1.15fr 1fr;
+          margin-bottom: 1.75rem;
+          border-radius: 24px;
+          overflow: hidden;
+          background: rgba(255, 255, 255, 0.96);
+          text-decoration: none;
+          color: #0f172a;
+          box-shadow: 0 22px 56px rgba(0, 0, 0, 0.28);
+          transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+            box-shadow 0.22s ease;
+        }
+        .featured:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 28px 64px rgba(0, 0, 0, 0.32);
+        }
+        .featuredImg {
+          position: relative;
+          min-height: 320px;
+          background: #0b1220;
+        }
+        .featuredBody {
+          padding: 2rem 1.85rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        .badge {
+          display: inline-block;
+          width: fit-content;
+          padding: 0.36rem 0.72rem;
+          border-radius: 999px;
+          font-size: 0.72rem;
+          font-weight: 800;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          margin-bottom: 0.8rem;
+          background: rgba(239, 68, 68, 0.12);
+          color: #dc2626;
+        }
+        .featuredBody h2 {
+          margin: 0 0 0.5rem;
+          font-size: 1.55rem;
+          font-weight: 750;
+          line-height: 1.25;
+        }
+        .price {
+          font-size: 1.4rem;
+          font-weight: 900;
+          margin: 0 0 1rem;
+          color: #0f172a;
+        }
+        .featuredCta {
+          font-weight: 800;
+          color: #0f172a;
+        }
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+          gap: 1rem;
+        }
+        .card {
+          border-radius: 18px;
+          overflow: hidden;
+          background: rgba(255, 255, 255, 0.96);
+          text-decoration: none;
+          color: #0f172a;
+          box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
+          transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+            box-shadow 0.2s ease;
+        }
+        .card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 20px 48px rgba(0, 0, 0, 0.26);
+        }
+        .cardImg {
+          position: relative;
+          height: 200px;
+          background: #0b1220;
+        }
+        .cardBody {
+          padding: 0.9rem 0.95rem 1.1rem;
+          text-align: center;
+        }
+        .cardBody h3 {
+          margin: 0 0 0.3rem;
+          font-size: 0.96rem;
+          font-weight: 650;
+          line-height: 1.3;
+        }
+        .cardBody .price {
+          font-size: 1.1rem;
+          margin: 0;
+        }
+        .foot {
+          text-align: center;
+          padding: 0.5rem 1rem 3.75rem;
+          color: #94a3b8;
+          font-size: 0.94rem;
+        }
         @media (max-width: 720px) {
-          .chFeatured { grid-template-columns: 1fr; }
-          .chGrid { grid-template-columns: repeat(2, 1fr); }
-          .chCardImg { height: 150px; }
-          .chHero { padding-top: 12vh; }
+          .featured {
+            grid-template-columns: 1fr;
+          }
+          .featuredImg {
+            min-height: 250px;
+          }
+          .grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+          }
+          .cardImg {
+            height: 148px;
+          }
+          .hero {
+            padding-top: 11vh;
+          }
         }
-        @media (prefers-reduced-motion: reduce) { .chSky { transform: none !important; } }
+        @media (prefers-reduced-motion: reduce) {
+          .sky {
+            transform: none !important;
+          }
+          .btn:hover,
+          .featured:hover,
+          .card:hover {
+            transform: none;
+          }
+        }
       `}</style>
     </>
   );
