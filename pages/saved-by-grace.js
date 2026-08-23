@@ -4,9 +4,9 @@
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { formatPrice } from "../lib/formatPrice";
-import { PRINTFUL_PRODUCTS } from "../lib/printfulMap";
+import { loadChapterProducts } from "../lib/catalog/loadChapterProducts";
 
 export default function SavedByGrace() {
   const [products, setProducts] = useState([]);
@@ -21,32 +21,6 @@ export default function SavedByGrace() {
     "\u201cFear not, for I have redeemed you.\u201d \u2014 Isaiah 43:1",
   ];
   const [currentScripture, setCurrentScripture] = useState(0);
-
-  const GRACE_KEYS = useMemo(
-    () => [
-      "joy", "seasonal_joy", "strong", "courageous", "watchman", "builder", "power",
-      "redeemed", "unshaken", "radiant", "chosen_tee", "love_tee", "faith_tee", "truth_tee",
-      "light_classic_tee", "saved_messy_heavyweight_tee", "messy_fine_jersey_tee",
-      "saved_long_sleeve", "forgiven_free_long_sleeve", "saved_redeemed_long_sleeve", "saved_redeemed_hoodie",
-    ],
-    []
-  );
-
-  const TITLE_BY_ID = useMemo(() => {
-    const entries = Object.values(PRINTFUL_PRODUCTS)
-      .filter((p) => p?.sync_product_id && p?.title)
-      .map((p) => [String(p.sync_product_id), p.title]);
-    return Object.fromEntries(entries);
-  }, []);
-
-  const YOUR_PRODUCT_IDS = useMemo(() => {
-    const ids = GRACE_KEYS.map((k) => PRINTFUL_PRODUCTS[k]?.sync_product_id).filter(Boolean).map(String);
-    const extra = Object.values(PRINTFUL_PRODUCTS)
-      .filter((p) => p?.category === "grace" && p?.sync_product_id)
-      .map((p) => String(p.sync_product_id))
-      .filter((id) => !ids.includes(id));
-    return Array.from(new Set([...ids, ...extra]));
-  }, [GRACE_KEYS]);
 
   useEffect(() => {
     const onScroll = () => setParallaxY(Math.min((window.scrollY || 0) * 0.28, 220));
@@ -66,12 +40,7 @@ export default function SavedByGrace() {
       try {
         setLoading(true);
         setError(null);
-        if (!YOUR_PRODUCT_IDS.length) {
-          setError("No products configured.");
-          setLoading(false);
-          return;
-        }
-        const cacheKey = `sbg_primo_v1_${YOUR_PRODUCT_IDS.join("_")}`;
+        const cacheKey = "sbg_catalog_v2";
         try {
           const cached = sessionStorage.getItem(cacheKey);
           if (cached) {
@@ -79,34 +48,23 @@ export default function SavedByGrace() {
             if (!cancelled && parsed?.length) {
               setProducts(parsed);
               setLoading(false);
-              return;
+              // refresh in background
             }
           }
         } catch {}
-        const fetchOne = async (id) => {
-          const res = await fetch(`/api/printful-product/${id}`);
-          if (!res.ok) return null;
-          return res.json();
-        };
-        const results = [];
-        for (let i = 0; i < YOUR_PRODUCT_IDS.length; i += 6) {
-          const chunk = YOUR_PRODUCT_IDS.slice(i, i + 6);
-          const settled = await Promise.all(chunk.map(fetchOne));
-          settled.forEach((r) => r && results.push(r));
-        }
-        const order = new Map(YOUR_PRODUCT_IDS.map((id, i) => [String(id), i]));
-        results.sort(
-          (a, b) =>
-            (order.get(String(a?.sync_product_id ?? a?.id)) ?? 999) -
-            (order.get(String(b?.sync_product_id ?? b?.id)) ?? 999)
-        );
-        if (!cancelled) {
-          setProducts(results);
+
+        const { products: list, warning } = await loadChapterProducts("grace");
+        if (cancelled) return;
+        if (!list.length) {
+          setError(warning || "No products loaded.");
           setLoading(false);
-          if (results.length) {
-            try { sessionStorage.setItem(cacheKey, JSON.stringify(results)); } catch {}
-          } else setError("No products loaded.");
+          return;
         }
+        setProducts(list);
+        setLoading(false);
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify(list));
+        } catch {}
       } catch {
         if (!cancelled) {
           setLoading(false);
@@ -115,8 +73,10 @@ export default function SavedByGrace() {
       }
     }
     load();
-    return () => { cancelled = true; };
-  }, [YOUR_PRODUCT_IDS]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const featured = products[0];
   const rest = products.slice(1);
@@ -126,7 +86,7 @@ export default function SavedByGrace() {
     const v0 = p?.variants?.[0];
     return {
       id,
-      name: TITLE_BY_ID[id] || p?.name || "Product",
+      name: p?.title || p?.name || "Product",
       price: formatPrice(v0?.retail_price ?? v0?.price ?? "0"),
       img: p?.thumbnail_url || p?.preview_url || "/faithLogo.png",
     };
@@ -136,11 +96,18 @@ export default function SavedByGrace() {
     <>
       <Head>
         <title>Saved By Grace | Grit & Grace</title>
-        <meta name="description" content="Faith-fueled designs that speak truth, strength, and softness — all while giving back." />
+        <meta
+          name="description"
+          content="Faith-fueled designs that speak truth, strength, and softness — all while giving back."
+        />
       </Head>
 
       <div className="ch">
-        <div className="chSky" style={{ transform: `translate3d(0, ${parallaxY}px, 0) scale(1.06)` }} aria-hidden>
+        <div
+          className="chSky"
+          style={{ transform: `translate3d(0, ${parallaxY}px, 0) scale(1.06)` }}
+          aria-hidden
+        >
           <div className="chSkyImg" />
           <div className="chSkyWash" />
         </div>
@@ -151,7 +118,9 @@ export default function SavedByGrace() {
           ) : error ? (
             <div className="chStatus err">
               <p>{error}</p>
-              <button type="button" onClick={() => location.reload()}>Retry</button>
+              <button type="button" onClick={() => location.reload()}>
+                Retry
+              </button>
             </div>
           ) : (
             <>
@@ -159,11 +128,16 @@ export default function SavedByGrace() {
                 <p className="chEyebrow">Chapter · Saved by Grace</p>
                 <h1>Saved By Grace</h1>
                 <p className="chLead">
-                  Grace is permission to be human. Wear the words that still speak when the storm is loud.
+                  Grace is permission to be human. Wear the words that still speak when the storm is
+                  loud.
                 </p>
                 <div className="chCtas">
-                  <a href="#shop" className="chBtn primary">Shop this chapter ↓</a>
-                  <Link href="/about" className="chBtn ghost">Why we exist</Link>
+                  <a href="#shop" className="chBtn primary">
+                    Shop this chapter ↓
+                  </a>
+                  <Link href="/about" className="chBtn ghost">
+                    Why we exist
+                  </Link>
                 </div>
               </header>
 
@@ -183,22 +157,29 @@ export default function SavedByGrace() {
               <div className="chScripture">{scriptures[currentScripture]}</div>
 
               <section id="shop" className="chShop">
-                {featured && (() => {
-                  const m = meta(featured);
-                  return (
-                    <Link href={`/product/${m.id}`} className="chFeatured">
-                      <div className="chFeaturedImg">
-                        <Image src={m.img} alt={m.name} fill style={{ objectFit: "contain", padding: 24 }} priority />
-                      </div>
-                      <div className="chFeaturedBody">
-                        <span className="chBadge">Signature · Grace</span>
-                        <h2>{m.name}</h2>
-                        <p className="chPrice">{m.price}</p>
-                        <span className="chFeaturedCta">View piece →</span>
-                      </div>
-                    </Link>
-                  );
-                })()}
+                {featured &&
+                  (() => {
+                    const m = meta(featured);
+                    return (
+                      <Link href={`/product/${m.id}`} className="chFeatured">
+                        <div className="chFeaturedImg">
+                          <Image
+                            src={m.img}
+                            alt={m.name}
+                            fill
+                            style={{ objectFit: "contain", padding: 24 }}
+                            priority
+                          />
+                        </div>
+                        <div className="chFeaturedBody">
+                          <span className="chBadge">Signature · Grace</span>
+                          <h2>{m.name}</h2>
+                          <p className="chPrice">{m.price}</p>
+                          <span className="chFeaturedCta">View piece →</span>
+                        </div>
+                      </Link>
+                    );
+                  })()}
 
                 <div className="chGrid">
                   {rest.map((p, idx) => {
@@ -206,7 +187,13 @@ export default function SavedByGrace() {
                     return (
                       <Link key={m.id || idx} href={`/product/${m.id}`} className="chCard">
                         <div className="chCardImg">
-                          <Image src={m.img} alt={m.name} fill style={{ objectFit: "contain", padding: 20 }} priority={idx < 2} />
+                          <Image
+                            src={m.img}
+                            alt={m.name}
+                            fill
+                            style={{ objectFit: "contain", padding: 20 }}
+                            priority={idx < 2}
+                          />
                         </div>
                         <div className="chCardBody">
                           <h3>{m.name}</h3>
