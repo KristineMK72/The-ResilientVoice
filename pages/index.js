@@ -1,19 +1,14 @@
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { loadChapterProducts } from "../lib/catalog/loadChapterProducts";
 
 /**
  * Immersive home — storm → light story
- * Background: /IMG_2038.jpeg (in public/)
- * Parallax + soft atmosphere (no heavy weather engine)
+ * Background: /IMG_2038.jpeg
+ * Chapter previews load from catalog API (Supabase → map fallback)
  */
-
-const FEATURED = {
-  grace: ["402034024"],
-  patriot: ["405190886"],
-  social: ["408880904", "408875632", "408880721"],
-};
 
 function money(n) {
   const num = Number(n);
@@ -25,13 +20,16 @@ function pickImage(product) {
   return (
     v0?.preview_url ||
     product?.thumbnail_url ||
+    product?.preview_url ||
     (product?.sync_product_id ? `/${product.sync_product_id}_1.png` : null) ||
-    "/fallback.png"
+    "/faithLogo.png"
   );
 }
 
+const EMPTY = { grace: [], patriot: [], social: [] };
+
 export default function HomeImmersive() {
-  const [products, setProducts] = useState({ grace: [], patriot: [], social: [] });
+  const [products, setProducts] = useState(EMPTY);
   const [loading, setLoading] = useState(true);
   const [parallaxY, setParallaxY] = useState(0);
   const [emailStatus, setEmailStatus] = useState({ state: "idle", message: "" });
@@ -48,31 +46,46 @@ export default function HomeImmersive() {
 
   useEffect(() => {
     let alive = true;
+
+    async function loadCategory(cat) {
+      try {
+        const { products: list } = await loadChapterProducts(cat);
+        return (list || []).slice(0, 4);
+      } catch {
+        return [];
+      }
+    }
+
     async function load() {
       setLoading(true);
       try {
-        const fetchOne = async (id) => {
-          const res = await fetch(`/api/printful-product/${id}`);
-          if (!res.ok) return null;
-          return res.json();
-        };
-        const [g, p, s] = await Promise.all([
-          Promise.all(FEATURED.grace.map(fetchOne)),
-          Promise.all(FEATURED.patriot.map(fetchOne)),
-          Promise.all(FEATURED.social.map(fetchOne)),
+        // Cap wait so UI never hangs on "Loading pieces…"
+        const timed = Promise.race([
+          Promise.all([
+            loadCategory("grace"),
+            loadCategory("patriot"),
+            loadCategory("social"),
+          ]),
+          new Promise((resolve) =>
+            setTimeout(() => resolve([[], [], []]), 8000)
+          ),
         ]);
+
+        const [g, p, s] = await timed;
         if (!alive) return;
         setProducts({
-          grace: g.filter(Boolean),
-          patriot: p.filter(Boolean),
-          social: s.filter(Boolean),
+          grace: g || [],
+          patriot: p || [],
+          social: s || [],
         });
       } catch (e) {
         console.error(e);
+        if (alive) setProducts(EMPTY);
       } finally {
         if (alive) setLoading(false);
       }
     }
+
     load();
     return () => {
       alive = false;
@@ -138,7 +151,12 @@ export default function HomeImmersive() {
               <Link href="/saved-by-grace" className="btn btnGrace">
                 Shop Saved by Grace →
               </Link>
-              <ProductRow items={products.grace} loading={loading} badge="Grace" />
+              <ProductRow
+                items={products.grace}
+                loading={loading}
+                badge="Grace"
+                href="/saved-by-grace"
+              />
             </div>
           </section>
 
@@ -155,7 +173,12 @@ export default function HomeImmersive() {
               <Link href="/Patriot" className="btn btnPatriot">
                 Shop Patriot →
               </Link>
-              <ProductRow items={products.patriot} loading={loading} badge="Patriot" />
+              <ProductRow
+                items={products.patriot}
+                loading={loading}
+                badge="Patriot"
+                href="/Patriot"
+              />
             </div>
           </section>
 
@@ -177,7 +200,12 @@ export default function HomeImmersive() {
                   See our giving
                 </Link>
               </div>
-              <ProductRow items={products.social} loading={loading} badge="Social" />
+              <ProductRow
+                items={products.social}
+                loading={loading}
+                badge="Social"
+                href="/Social"
+              />
 
               <div className="partners">
                 <p className="partnersLabel">10% of every sale supports</p>
@@ -504,11 +532,72 @@ export default function HomeImmersive() {
   );
 }
 
-function ProductRow({ items, loading, badge }) {
+function ProductRow({ items, loading, badge, href }) {
   if (loading) {
-    return <p style={{ opacity: 0.7, marginTop: "1.25rem" }}>Loading pieces…</p>;
+    return (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+          gap: "0.85rem",
+          marginTop: "1.35rem",
+        }}
+        aria-busy="true"
+        aria-label="Loading products"
+      >
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            style={{
+              borderRadius: 14,
+              overflow: "hidden",
+              border: "1px solid rgba(255,255,255,0.1)",
+              background: "rgba(0,0,0,0.35)",
+              minHeight: 210,
+            }}
+          >
+            <div
+              style={{
+                height: 150,
+                background:
+                  "linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.1), rgba(255,255,255,0.04))",
+              }}
+            />
+            <div style={{ padding: "0.75rem" }}>
+              <div
+                style={{
+                  height: 10,
+                  width: "40%",
+                  borderRadius: 4,
+                  background: "rgba(255,255,255,0.15)",
+                  marginBottom: 8,
+                }}
+              />
+              <div
+                style={{
+                  height: 12,
+                  width: "75%",
+                  borderRadius: 4,
+                  background: "rgba(255,255,255,0.12)",
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
-  if (!items?.length) return null;
+
+  if (!items?.length) {
+    return (
+      <p style={{ opacity: 0.8, marginTop: "1.25rem", fontSize: "0.95rem" }}>
+        <Link href={href || "#"} style={{ color: "#ffc0cb", fontWeight: 800 }}>
+          Browse the full {badge} collection →
+        </Link>
+      </p>
+    );
+  }
+
   return (
     <div
       style={{
@@ -521,7 +610,7 @@ function ProductRow({ items, loading, badge }) {
       {items.map((p) => {
         const id = String(p.sync_product_id || p.id || "");
         const img = pickImage(p);
-        const price = p.variants?.[0]?.retail_price;
+        const price = p.variants?.[0]?.retail_price ?? p.variants?.[0]?.price;
         return (
           <Link
             key={id}
@@ -536,11 +625,18 @@ function ProductRow({ items, loading, badge }) {
             }}
           >
             <div style={{ position: "relative", height: 150, background: "#0b1220" }}>
-              <Image src={img} alt={p.name || ""} fill style={{ objectFit: "contain", padding: 10 }} />
+              <Image
+                src={img}
+                alt={p.name || p.title || ""}
+                fill
+                style={{ objectFit: "contain", padding: 10 }}
+              />
             </div>
             <div style={{ padding: "0.65rem 0.7rem 0.85rem" }}>
               <div style={{ fontSize: "0.7rem", fontWeight: 800, opacity: 0.75 }}>{badge}</div>
-              <div style={{ fontWeight: 700, fontSize: "0.92rem", lineHeight: 1.3 }}>{p.name}</div>
+              <div style={{ fontWeight: 700, fontSize: "0.92rem", lineHeight: 1.3 }}>
+                {p.title || p.name}
+              </div>
               <div style={{ color: "#ff6b6b", fontWeight: 900, marginTop: 4 }}>{money(price)}</div>
             </div>
           </Link>
