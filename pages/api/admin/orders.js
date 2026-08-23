@@ -13,6 +13,12 @@ function authed(req) {
   return (req.headers["x-admin-password"] || "") === password;
 }
 
+const SELECT_FULL =
+  "stripe_session_id, customer_name, customer_email, amount_total, currency, fulfillment_status, ship_name, ship_city, ship_state, ship_country, items, tracking_number, updated_at, created_at";
+
+const SELECT_SAFE =
+  "stripe_session_id, customer_name, customer_email, amount_total, currency, fulfillment_status, ship_name, ship_city, ship_state, ship_country, items, updated_at, created_at";
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
@@ -30,17 +36,41 @@ export default async function handler(req, res) {
 
   const limit = Math.min(Number(req.query.limit) || 25, 100);
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("orders")
-    .select(
-      "stripe_session_id, customer_name, customer_email, amount_total, currency, fulfillment_status, ship_name, ship_city, ship_state, ship_country, items, tracking_number, updated_at, created_at"
-    )
+    .select(SELECT_FULL)
     .order("updated_at", { ascending: false })
     .limit(limit);
 
+  // Older schemas may not have tracking_number / created_at
   if (error) {
-    console.error(error);
-    return res.status(500).json({ error: error.message });
+    const msg = (error.message || "").toLowerCase();
+    if (msg.includes("tracking_number") || msg.includes("does not exist")) {
+      const fallback = await supabase
+        .from("orders")
+        .select(SELECT_SAFE)
+        .order("updated_at", { ascending: false })
+        .limit(limit);
+      data = fallback.data;
+      error = fallback.error;
+    }
+  }
+
+  if (error) {
+    // Last resort: minimal columns
+    const minimal = await supabase
+      .from("orders")
+      .select(
+        "stripe_session_id, customer_name, customer_email, amount_total, currency, fulfillment_status, items, updated_at"
+      )
+      .order("updated_at", { ascending: false })
+      .limit(limit);
+
+    if (minimal.error) {
+      console.error(minimal.error);
+      return res.status(500).json({ error: minimal.error.message });
+    }
+    return res.status(200).json({ orders: minimal.data || [] });
   }
 
   return res.status(200).json({ orders: data || [] });
