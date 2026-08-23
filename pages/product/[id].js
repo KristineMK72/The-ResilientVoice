@@ -192,10 +192,6 @@ export default function ProductPage({ initialProduct, productId }) {
 
   /* -----------------------------
      Gallery image sources
-     Priority:
-     - local /{id}_1.png, /{id}_2.png, etc
-     - selected variant preview
-     - product thumbnail
   ------------------------------ */
   const localCandidates = useMemo(() => {
     return buildLocalImageList(product?.sync_product_id, 8);
@@ -346,17 +342,18 @@ export default function ProductPage({ initialProduct, productId }) {
 
   if (!product) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "grid",
-          placeItems: "center",
-          color: "white",
-          fontSize: "1.2rem",
-          background: "radial-gradient(circle at center, #0f172a 0%, #000 100%)",
-        }}
-      >
+      <div className="notFound">
         Product not found.
+        <style jsx>{`
+          .notFound {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            color: white;
+            font-size: 1.2rem;
+            background: radial-gradient(circle at center, #0f172a 0%, #000 100%);
+          }
+        `}</style>
       </div>
     );
   }
@@ -393,388 +390,181 @@ export default function ProductPage({ initialProduct, productId }) {
         <meta name="twitter:image" content={metaImage} />
       </Head>
 
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "radial-gradient(circle at center, #0f172a 0%, #000 100%)",
-          padding: "4rem 1rem",
-          color: "white",
-          textAlign: "center",
-        }}
-      >
-        {/* Main image + gallery thumbnails */}
-        <div style={{ maxWidth: "720px", margin: "0 auto 1.5rem" }}>
-          <button
-            onClick={() => setLightboxOpen(true)}
-            style={{
-              display: "block",
-              width: "100%",
-              background: "transparent",
-              border: "none",
-              padding: 0,
-              cursor: "zoom-in",
-            }}
-            aria-label="Open product image gallery"
-          >
-            <Image
-              src={activeImage || "/fallback.png"}
-              alt={product.name}
-              width={700}
-              height={700}
-              priority
-              style={{
-                width: "100%",
-                height: "auto",
-                borderRadius: "18px",
-                boxShadow: "0 0 50px rgba(255,255,255,0.14)",
-                objectFit: "contain",
-                background: "rgba(255,255,255,0.02)",
-              }}
-            />
-          </button>
-
-          {galleryImages.length > 1 && (
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                justifyContent: "center",
-                flexWrap: "wrap",
-                marginTop: 14,
-              }}
+      <div className="pd">
+        <div className="pdInner">
+          {/* Gallery */}
+          <div className="gallery">
+            <button
+              className="mainImgBtn"
+              onClick={() => setLightboxOpen(true)}
+              aria-label="Open product image gallery"
             >
-              {galleryImages.map((img, index) => {
-                const isSelected = img === activeImage;
+              <Image
+                src={activeImage || "/fallback.png"}
+                alt={product.name}
+                width={700}
+                height={700}
+                priority
+                className="mainImg"
+              />
+            </button>
 
-                return (
-                  <button
-                    key={`${img}-${index}`}
-                    onClick={() => setActiveImage(img)}
-                    style={{
-                      border: isSelected
-                        ? "2px solid #ff4444"
-                        : "1px solid rgba(148,163,184,0.35)",
-                      borderRadius: "12px",
-                      padding: 4,
-                      background: isSelected
-                        ? "rgba(255,68,68,0.10)"
-                        : "rgba(255,255,255,0.02)",
-                      cursor: "pointer",
-                    }}
-                    aria-label={`Show product image ${index + 1}`}
-                  >
-                    <Image
-                      src={img}
-                      alt={`${product.name} thumbnail ${index + 1}`}
-                      width={84}
-                      height={84}
-                      style={{
-                        borderRadius: "8px",
-                        objectFit: "cover",
-                      }}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          )}
+            {galleryImages.length > 1 && (
+              <div className="thumbs">
+                {galleryImages.map((img, index) => {
+                  const isSelected = img === activeImage;
+                  return (
+                    <button
+                      key={`${img}-${index}`}
+                      onClick={() => setActiveImage(img)}
+                      className={isSelected ? "thumb selected" : "thumb"}
+                      aria-label={`Show product image ${index + 1}`}
+                    >
+                      <Image
+                        src={img}
+                        alt={`${product.name} thumbnail ${index + 1}`}
+                        width={84}
+                        height={84}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-          <p style={{ opacity: 0.7, marginTop: 12, fontSize: "0.95rem" }}>
-            Tap image to enlarge
-          </p>
-        </div>
+            <p className="tapHint">Tap image to enlarge</p>
+          </div>
 
-        {/* Title */}
-        <h1 style={{ fontSize: "2.2rem", fontWeight: 900, margin: "1rem 0" }}>
-          {product.name}
-        </h1>
+          {/* Details */}
+          <div className="details">
+            <h1 className="title">{product.name}</h1>
 
-        {!!product.description && (
-          <p
-            style={{
-              fontSize: "1.05rem",
-              maxWidth: "840px",
-              margin: "0.75rem auto 1.25rem",
-              lineHeight: 1.6,
-              opacity: 0.9,
-            }}
-          >
-            {product.description}
-          </p>
-        )}
+            {!!product.description && (
+              <p className="desc">{product.description}</p>
+            )}
 
-        {/* Price */}
-        <p
-          style={{
-            fontSize: "2rem",
-            fontWeight: "bold",
-            color: "#ff6b6b",
-            margin: "1rem 0 1.25rem",
-          }}
-        >
-          ${displayPrice.toFixed(2)}
-        </p>
+            <p className="price">${displayPrice.toFixed(2)}</p>
 
-        {/* Options */}
-        {variants.length > 0 && (
-          <div style={{ margin: "1.5rem auto 1.25rem", maxWidth: "860px" }}>
-            {showColorPicker && (
-              <div style={{ marginBottom: "1.25rem" }}>
-                <h3 style={{ fontSize: "1.2rem", margin: 0, fontWeight: 700 }}>
-                  Choose color:
-                </h3>
+            {variants.length > 0 && (
+              <div className="options">
+                {showColorPicker && (
+                  <div className="optionGroup">
+                    <h3>Choose color</h3>
+                    <div className="pills">
+                      {availableColors.map((color) => {
+                        const isSelected = color === selectedColor;
+                        return (
+                          <button
+                            key={color}
+                            onClick={() => {
+                              setSelectedColor(color);
+                              const first = variantsByColor[color]?.[0];
+                              if (first) setSelectedSyncVariantId(first.sync_variant_id);
+                            }}
+                            className={isSelected ? "pill selected" : "pill"}
+                          >
+                            {color}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "10px",
-                    justifyContent: "center",
-                    flexWrap: "wrap",
-                    marginTop: "12px",
-                  }}
-                >
-                  {availableColors.map((color) => {
-                    const isSelected = color === selectedColor;
-                    return (
-                      <button
-                        key={color}
-                        onClick={() => {
-                          setSelectedColor(color);
-                          const first = variantsByColor[color]?.[0];
-                          if (first) setSelectedSyncVariantId(first.sync_variant_id);
-                        }}
-                        style={{
-                          padding: "10px 14px",
-                          borderRadius: "999px",
-                          border: isSelected
-                            ? "2px solid #ff4444"
-                            : "1px solid rgba(148,163,184,0.35)",
-                          background: isSelected
-                            ? "rgba(255,68,68,0.16)"
-                            : "rgba(255,255,255,0.02)",
-                          color: isSelected ? "#ff6b6b" : "white",
-                          cursor: "pointer",
-                          fontSize: "1rem",
-                          fontWeight: 800,
-                          transition: "all 0.15s ease",
-                        }}
-                      >
-                        {color}
-                      </button>
-                    );
-                  })}
+                <div className="optionGroup">
+                  <div className="sizeHeader">
+                    <h3>Choose size</h3>
+                    {checking && <span className="checking">checking…</span>}
+                  </div>
+                  <div className="pills">
+                    {filteredVariants.map((variant) => {
+                      const size = parseSizeFromVariantName(variant.name);
+                      const sku = (variant.sku || "").trim();
+                      const known = sku ? availability[sku] : null;
+                      const disabled = !sku || (known && known.available === false);
+                      const isSelected = variant.sync_variant_id === selectedSyncVariantId;
+
+                      return (
+                        <button
+                          key={variant.sync_variant_id}
+                          onClick={() => !disabled && setSelectedSyncVariantId(variant.sync_variant_id)}
+                          disabled={disabled}
+                          className={
+                            disabled
+                              ? "pill disabled"
+                              : isSelected
+                              ? "pill selected"
+                              : "pill"
+                          }
+                          title={
+                            !sku
+                              ? "SKU missing for this size"
+                              : known?.available === false
+                              ? "Not available"
+                              : ""
+                          }
+                        >
+                          {size}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="selectionStatus">
+                    {selectedIsMissingSku ? (
+                      <p className="warn">This option is missing a SKU, so Stripe mapping can’t happen.</p>
+                    ) : selectedIsUnavailable ? (
+                      <p className="err">This option is currently unavailable.</p>
+                    ) : (
+                      <p className="ok">
+                        Selected:{" "}
+                        <strong>
+                          {showColorPicker && selectedVariant
+                            ? `${parseColorFromVariantName(selectedVariant.name)} / `
+                            : ""}
+                          {parseSizeFromVariantName(selectedVariant?.name)}
+                        </strong>
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
 
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 10,
-              }}
-            >
-              <h3 style={{ fontSize: "1.2rem", margin: 0, fontWeight: 700 }}>
-                Choose size:
-              </h3>
-              {checking && (
-                <span style={{ fontSize: "0.95rem", opacity: 0.8 }}>
-                  checking availability…
-                </span>
-              )}
-            </div>
+            {/* Add to cart */}
+            {!added ? (
+              <button
+                onClick={addToCart}
+                disabled={selectedIsMissingSku || selectedIsUnavailable}
+                className={
+                  selectedIsMissingSku || selectedIsUnavailable
+                    ? "addBtn disabled"
+                    : "addBtn"
+                }
+              >
+                Add to Cart
+              </button>
+            ) : (
+              <div className="added">
+                <p>Added to cart!</p>
+                <Link href="/cart">Go to Cart →</Link>
+              </div>
+            )}
 
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "10px",
-                justifyContent: "center",
-                marginTop: "12px",
-              }}
-            >
-              {filteredVariants.map((variant) => {
-                const size = parseSizeFromVariantName(variant.name);
-                const sku = (variant.sku || "").trim();
-                const known = sku ? availability[sku] : null;
-                const disabled = !sku || (known && known.available === false);
-                const isSelected = variant.sync_variant_id === selectedSyncVariantId;
-
-                return (
-                  <button
-                    key={variant.sync_variant_id}
-                    onClick={() => !disabled && setSelectedSyncVariantId(variant.sync_variant_id)}
-                    disabled={disabled}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: "10px",
-                      border: isSelected
-                        ? "2px solid #ff4444"
-                        : "1px solid rgba(148,163,184,0.35)",
-                      background: disabled
-                        ? "rgba(148,163,184,0.08)"
-                        : isSelected
-                        ? "rgba(255,68,68,0.16)"
-                        : "rgba(255,255,255,0.02)",
-                      color: disabled
-                        ? "rgba(255,255,255,0.35)"
-                        : isSelected
-                        ? "#ff6b6b"
-                        : "white",
-                      cursor: disabled ? "not-allowed" : "pointer",
-                      fontSize: "1rem",
-                      fontWeight: 700,
-                      opacity: disabled ? 0.7 : 1,
-                      transform: isSelected ? "translateY(-1px)" : "none",
-                      transition: "all 0.15s ease",
-                    }}
-                    title={
-                      !sku
-                        ? "SKU missing for this size"
-                        : known?.available === false
-                        ? "Not available"
-                        : ""
-                    }
-                  >
-                    {size}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div style={{ marginTop: 12, minHeight: 22 }}>
-              {selectedIsMissingSku ? (
-                <p style={{ color: "#fbbf24", margin: 0, fontWeight: 700 }}>
-                  This option is missing a SKU, so Stripe mapping can’t happen.
-                </p>
-              ) : selectedIsUnavailable ? (
-                <p style={{ color: "#f87171", margin: 0, fontWeight: 700 }}>
-                  This option is currently unavailable.
-                </p>
-              ) : (
-                <p style={{ opacity: 0.75, margin: 0 }}>
-                  Selected:{" "}
-                  <span style={{ fontWeight: 800 }}>
-                    {showColorPicker && selectedVariant
-                      ? `${parseColorFromVariantName(selectedVariant.name)} / `
-                      : ""}
-                    {parseSizeFromVariantName(selectedVariant?.name)}
-                  </span>
-                </p>
-              )}
-            </div>
+            <button onClick={() => router.back()} className="backBtn">
+              ← Keep Shopping
+            </button>
           </div>
-        )}
-
-        {/* Add to cart */}
-        {!added ? (
-          <button
-            onClick={addToCart}
-            disabled={selectedIsMissingSku || selectedIsUnavailable}
-            style={{
-              padding: "1.15rem 2.6rem",
-              background:
-                selectedIsMissingSku || selectedIsUnavailable
-                  ? "rgba(148,163,184,0.35)"
-                  : "#ff4444",
-              color: "white",
-              border: "none",
-              borderRadius: "14px",
-              fontSize: "1.25rem",
-              fontWeight: 900,
-              cursor:
-                selectedIsMissingSku || selectedIsUnavailable
-                  ? "not-allowed"
-                  : "pointer",
-              boxShadow: "0 10px 26px rgba(255,68,68,0.28)",
-              transition: "transform 0.12s ease",
-            }}
-          >
-            Add to Cart
-          </button>
-        ) : (
-          <div style={{ margin: "1.25rem 0" }}>
-            <p
-              style={{
-                color: "#4ade80",
-                fontSize: "1.35rem",
-                fontWeight: 900,
-                marginBottom: "0.75rem",
-              }}
-            >
-              Added to cart!
-            </p>
-            <Link href="/cart" style={{ textDecoration: "none" }}>
-              Go to Cart →
-            </Link>
-          </div>
-        )}
-
-        {/* Back */}
-        <div style={{ marginTop: "2.25rem" }}>
-          <button
-            onClick={() => router.back()}
-            style={{
-              padding: "0.9rem 1.7rem",
-              background: "linear-gradient(90deg, #ff4444, #4444ff)",
-              color: "white",
-              border: "none",
-              borderRadius: "12px",
-              fontWeight: 800,
-              fontSize: "1.1rem",
-              cursor: "pointer",
-            }}
-          >
-            ← Keep Shopping
-          </button>
         </div>
       </div>
 
-      {/* Lightbox popup gallery */}
+      {/* Lightbox */}
       {lightboxOpen && (
-        <div
-          onClick={() => setLightboxOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.88)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "2rem 1rem",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: "relative",
-              width: "100%",
-              maxWidth: "1100px",
-              maxHeight: "92vh",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "1rem",
-            }}
-          >
+        <div className="lightbox" onClick={() => setLightboxOpen(false)}>
+          <div className="lightboxInner" onClick={(e) => e.stopPropagation()}>
             <button
+              className="lbClose"
               onClick={() => setLightboxOpen(false)}
-              style={{
-                position: "absolute",
-                top: "-8px",
-                right: "-8px",
-                width: 42,
-                height: 42,
-                borderRadius: "999px",
-                border: "none",
-                background: "rgba(255,255,255,0.12)",
-                color: "white",
-                fontSize: "1.4rem",
-                cursor: "pointer",
-                fontWeight: 900,
-              }}
               aria-label="Close gallery"
             >
               ×
@@ -782,111 +572,40 @@ export default function ProductPage({ initialProduct, productId }) {
 
             {galleryImages.length > 1 && (
               <>
-                <button
-                  onClick={goPrevImage}
-                  style={{
-                    position: "absolute",
-                    left: "6px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    width: 48,
-                    height: 48,
-                    borderRadius: "999px",
-                    border: "none",
-                    background: "rgba(255,255,255,0.14)",
-                    color: "white",
-                    fontSize: "1.5rem",
-                    cursor: "pointer",
-                    fontWeight: 900,
-                  }}
-                  aria-label="Previous image"
-                >
+                <button className="lbNav prev" onClick={goPrevImage} aria-label="Previous image">
                   ‹
                 </button>
-
-                <button
-                  onClick={goNextImage}
-                  style={{
-                    position: "absolute",
-                    right: "6px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    width: 48,
-                    height: 48,
-                    borderRadius: "999px",
-                    border: "none",
-                    background: "rgba(255,255,255,0.14)",
-                    color: "white",
-                    fontSize: "1.5rem",
-                    cursor: "pointer",
-                    fontWeight: 900,
-                  }}
-                  aria-label="Next image"
-                >
+                <button className="lbNav next" onClick={goNextImage} aria-label="Next image">
                   ›
                 </button>
               </>
             )}
 
-            <div
-              style={{
-                width: "100%",
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
+            <div className="lbImgWrap">
               <Image
                 src={activeImage || "/fallback.png"}
                 alt={product.name}
                 width={1000}
                 height={1000}
-                style={{
-                  width: "auto",
-                  maxWidth: "100%",
-                  maxHeight: "72vh",
-                  height: "auto",
-                  objectFit: "contain",
-                  borderRadius: "16px",
-                }}
+                className="lbImg"
               />
             </div>
 
             {galleryImages.length > 1 && (
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  justifyContent: "center",
-                  gap: 10,
-                  maxWidth: "100%",
-                }}
-              >
+              <div className="lbThumbs">
                 {galleryImages.map((img, index) => {
                   const isSelected = img === activeImage;
-
                   return (
                     <button
                       key={`${img}-lightbox-${index}`}
                       onClick={() => setActiveImage(img)}
-                      style={{
-                        border: isSelected
-                          ? "2px solid #ff4444"
-                          : "1px solid rgba(255,255,255,0.25)",
-                        borderRadius: "10px",
-                        padding: 4,
-                        background: "rgba(255,255,255,0.04)",
-                        cursor: "pointer",
-                      }}
+                      className={isSelected ? "lbThumb selected" : "lbThumb"}
                     >
                       <Image
                         src={img}
                         alt={`${product.name} lightbox thumbnail ${index + 1}`}
                         width={78}
                         height={78}
-                        style={{
-                          borderRadius: "8px",
-                          objectFit: "cover",
-                        }}
                       />
                     </button>
                   );
@@ -896,6 +615,366 @@ export default function ProductPage({ initialProduct, productId }) {
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        .pd {
+          min-height: 100vh;
+          background: radial-gradient(circle at 30% 20%, #0f172a 0%, #000 70%);
+          padding: 3rem 1.25rem 4rem;
+          color: #f8fafc;
+        }
+        .pdInner {
+          max-width: 1100px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: 1.1fr 1fr;
+          gap: 2.5rem;
+          align-items: start;
+        }
+
+        /* Gallery */
+        .gallery {
+          position: sticky;
+          top: 1.5rem;
+        }
+        .mainImgBtn {
+          display: block;
+          width: 100%;
+          background: transparent;
+          border: none;
+          padding: 0;
+          cursor: zoom-in;
+          border-radius: 20px;
+          overflow: hidden;
+        }
+        .mainImg {
+          width: 100% !important;
+          height: auto !important;
+          border-radius: 20px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+          object-fit: contain;
+          background: rgba(255, 255, 255, 0.03);
+        }
+        .thumbs {
+          display: flex;
+          gap: 0.6rem;
+          justify-content: center;
+          flex-wrap: wrap;
+          margin-top: 1rem;
+        }
+        .thumb {
+          border: 1px solid rgba(148, 163, 184, 0.3);
+          border-radius: 12px;
+          padding: 3px;
+          background: rgba(255, 255, 255, 0.03);
+          cursor: pointer;
+          transition: border-color 0.15s ease, background 0.15s ease;
+        }
+        .thumb.selected {
+          border: 2px solid #ff4444;
+          background: rgba(255, 68, 68, 0.1);
+        }
+        .thumb :global(img) {
+          border-radius: 8px;
+          object-fit: cover;
+          display: block;
+        }
+        .tapHint {
+          opacity: 0.6;
+          margin: 0.75rem 0 0;
+          font-size: 0.9rem;
+          text-align: center;
+        }
+
+        /* Details */
+        .details {
+          text-align: left;
+          padding-top: 0.5rem;
+        }
+        .title {
+          font-size: clamp(1.75rem, 3.5vw, 2.35rem);
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          line-height: 1.15;
+          margin: 0 0 0.85rem;
+        }
+        .desc {
+          font-size: 1.05rem;
+          line-height: 1.65;
+          opacity: 0.88;
+          margin: 0 0 1.25rem;
+        }
+        .price {
+          font-size: 1.85rem;
+          font-weight: 900;
+          color: #ff6b6b;
+          margin: 0 0 1.5rem;
+        }
+
+        .options {
+          margin-bottom: 1.5rem;
+        }
+        .optionGroup {
+          margin-bottom: 1.35rem;
+        }
+        .optionGroup h3 {
+          font-size: 0.95rem;
+          font-weight: 800;
+          margin: 0 0 0.7rem;
+          letter-spacing: 0.02em;
+        }
+        .sizeHeader {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+          margin-bottom: 0.7rem;
+        }
+        .sizeHeader h3 {
+          margin: 0;
+        }
+        .checking {
+          font-size: 0.85rem;
+          opacity: 0.7;
+        }
+        .pills {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+        .pill {
+          padding: 0.6rem 1rem;
+          border-radius: 999px;
+          border: 1px solid rgba(148, 163, 184, 0.3);
+          background: rgba(255, 255, 255, 0.04);
+          color: #f8fafc;
+          cursor: pointer;
+          font-size: 0.95rem;
+          font-weight: 750;
+          transition: all 0.15s ease;
+        }
+        .pill:hover:not(.disabled):not(.selected) {
+          border-color: rgba(255, 255, 255, 0.35);
+          background: rgba(255, 255, 255, 0.08);
+        }
+        .pill.selected {
+          border: 2px solid #ff4444;
+          background: rgba(255, 68, 68, 0.14);
+          color: #ff6b6b;
+        }
+        .pill.disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+          background: rgba(148, 163, 184, 0.08);
+        }
+
+        .selectionStatus {
+          margin-top: 0.75rem;
+          min-height: 1.4rem;
+        }
+        .selectionStatus p {
+          margin: 0;
+          font-size: 0.92rem;
+        }
+        .selectionStatus .warn {
+          color: #fbbf24;
+          font-weight: 700;
+        }
+        .selectionStatus .err {
+          color: #f87171;
+          font-weight: 700;
+        }
+        .selectionStatus .ok {
+          opacity: 0.75;
+        }
+        .selectionStatus strong {
+          font-weight: 800;
+          color: #f8fafc;
+        }
+
+        .addBtn {
+          display: block;
+          width: 100%;
+          max-width: 320px;
+          padding: 1.05rem 1.5rem;
+          background: #ff4444;
+          color: white;
+          border: none;
+          border-radius: 14px;
+          font-size: 1.15rem;
+          font-weight: 900;
+          cursor: pointer;
+          box-shadow: 0 12px 32px rgba(255, 68, 68, 0.28);
+          transition: transform 0.15s ease, filter 0.15s ease;
+          margin-bottom: 1rem;
+        }
+        .addBtn:hover:not(.disabled) {
+          transform: translateY(-2px);
+          filter: brightness(1.06);
+        }
+        .addBtn.disabled {
+          background: rgba(148, 163, 184, 0.35);
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+
+        .added {
+          margin-bottom: 1rem;
+        }
+        .added p {
+          color: #4ade80;
+          font-size: 1.25rem;
+          font-weight: 900;
+          margin: 0 0 0.5rem;
+        }
+        .added a {
+          color: #93c5fd;
+          font-weight: 800;
+          text-decoration: none;
+        }
+        .added a:hover {
+          text-decoration: underline;
+        }
+
+        .backBtn {
+          padding: 0.8rem 1.4rem;
+          background: linear-gradient(90deg, #ff4444, #4444ff);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          font-weight: 800;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: transform 0.15s ease, filter 0.15s ease;
+        }
+        .backBtn:hover {
+          transform: translateY(-1px);
+          filter: brightness(1.05);
+        }
+
+        /* Lightbox */
+        .lightbox {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.9);
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem 1rem;
+        }
+        .lightboxInner {
+          position: relative;
+          width: 100%;
+          max-width: 1100px;
+          max-height: 92vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1rem;
+        }
+        .lbClose {
+          position: absolute;
+          top: -6px;
+          right: -6px;
+          width: 42px;
+          height: 42px;
+          border-radius: 999px;
+          border: none;
+          background: rgba(255, 255, 255, 0.12);
+          color: white;
+          font-size: 1.4rem;
+          cursor: pointer;
+          font-weight: 900;
+          z-index: 2;
+        }
+        .lbNav {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 48px;
+          height: 48px;
+          border-radius: 999px;
+          border: none;
+          background: rgba(255, 255, 255, 0.14);
+          color: white;
+          font-size: 1.5rem;
+          cursor: pointer;
+          font-weight: 900;
+          z-index: 2;
+        }
+        .lbNav.prev {
+          left: 6px;
+        }
+        .lbNav.next {
+          right: 6px;
+        }
+        .lbImgWrap {
+          width: 100%;
+          display: flex;
+          justify-content: center;
+        }
+        .lbImg {
+          width: auto !important;
+          max-width: 100% !important;
+          max-height: 72vh !important;
+          height: auto !important;
+          object-fit: contain;
+          border-radius: 16px;
+        }
+        .lbThumbs {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 0.55rem;
+          max-width: 100%;
+        }
+        .lbThumb {
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          border-radius: 10px;
+          padding: 3px;
+          background: rgba(255, 255, 255, 0.04);
+          cursor: pointer;
+        }
+        .lbThumb.selected {
+          border: 2px solid #ff4444;
+        }
+        .lbThumb :global(img) {
+          border-radius: 8px;
+          object-fit: cover;
+          display: block;
+        }
+
+        @media (max-width: 820px) {
+          .pdInner {
+            grid-template-columns: 1fr;
+            gap: 1.75rem;
+          }
+          .gallery {
+            position: static;
+          }
+          .details {
+            text-align: center;
+          }
+          .pills {
+            justify-content: center;
+          }
+          .sizeHeader {
+            justify-content: center;
+          }
+          .addBtn {
+            margin-left: auto;
+            margin-right: auto;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .addBtn:hover,
+          .backBtn:hover,
+          .pill {
+            transform: none !important;
+          }
+        }
+      `}</style>
     </>
   );
 }
