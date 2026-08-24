@@ -27,12 +27,37 @@ const BUZZ = [
   "Liberty",
 ];
 
+const BAD_MARKERS = [
+  "REPLACE_WITH_REAL_THUMB",
+  "PUT_THE_IMAGE_URL_HERE",
+  "missing-image",
+  "placeholder",
+];
+
+function isUsableUrl(url) {
+  if (!url || typeof url !== "string") return false;
+  const u = url.trim();
+  if (!u) return false;
+  if (BAD_MARKERS.some((m) => u.includes(m))) return false;
+  return true;
+}
+
+/** Prefer local mockup, then real CDN, then brand logo */
+function resolveImg(p) {
+  const id = String(p?.sync_product_id ?? p?.id ?? "");
+  const local = id ? `/${id}_1.png` : null;
+  const remote = [p?.thumbnail_url, p?.preview_url].find(isUsableUrl);
+  return local || remote || "/gritngrlogo.png";
+}
+
 export default function Patriot() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [phrase, setPhrase] = useState(0);
   const [parallaxY, setParallaxY] = useState(0);
+  // Track broken image ids → swap to logo
+  const [broken, setBroken] = useState({});
 
   useEffect(() => {
     const onScroll = () =>
@@ -81,12 +106,17 @@ export default function Patriot() {
   function meta(p) {
     const id = String(p?.sync_product_id ?? p?.id ?? "");
     const v0 = p?.variants?.[0];
+    const img = broken[id] ? "/gritngrlogo.png" : resolveImg(p);
     return {
       id,
       name: p?.title || p?.name || "Product",
       price: formatPrice(v0?.retail_price ?? v0?.price ?? "0"),
-      img: p?.thumbnail_url || p?.preview_url || "/gritngrlogo.png",
+      img,
     };
+  }
+
+  function onImgError(id) {
+    setBroken((prev) => (prev[id] ? prev : { ...prev, [id]: true }));
   }
 
   return (
@@ -175,6 +205,7 @@ export default function Patriot() {
                             fill
                             style={{ objectFit: "contain", padding: 28 }}
                             priority
+                            onError={() => onImgError(m.id)}
                           />
                         </div>
                         <div className="featuredBody">
@@ -203,6 +234,7 @@ export default function Patriot() {
                             fill
                             style={{ objectFit: "contain", padding: 18 }}
                             priority={idx < 2}
+                            onError={() => onImgError(m.id)}
                           />
                         </div>
                         <div className="cardBody">
