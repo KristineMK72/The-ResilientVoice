@@ -44,7 +44,6 @@ export default function AdminHomePage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
-      {/* Header */}
       <div
         style={{
           display: "flex",
@@ -72,8 +71,18 @@ export default function AdminHomePage() {
         </button>
       </div>
 
-      {/* Dashboard grid */}
       <div style={{ display: "grid", gap: 16 }}>
+        <Link href="/admin/orders" style={cardStyle}>
+          📦 Orders
+        </Link>
+
+        <Link href="/admin/traffic" style={cardStyle}>
+          🗺️ Traffic Map
+        </Link>
+
+        <Link href="/admin/metrics" style={cardStyle}>
+          📊 Metrics Dashboard
+        </Link>
 
         <Link href="/admin/banner" style={cardStyle}>
           📢 Edit Site Banner
@@ -87,22 +96,17 @@ export default function AdminHomePage() {
           🛍 Manage Products
         </Link>
 
-        <Link href="/admin/media" style={cardStyle}>
-          🖼 Manage Images / Media
+        <Link href="/admin/scam-reports" style={cardStyle}>
+          🛡️ Scam Reports
         </Link>
 
-        <Link href="/admin/metrics" style={cardStyle}>
-          📊 Metrics Dashboard
+        <Link href="/admin/giving" style={cardStyle}>
+          💗 Giving Admin
         </Link>
-        
+
         <Link href="/" style={cardStyle}>
           🌐 View Live Website
         </Link>
-        
-        <Link href="/admin/traffic" style={cardStyle}>
-          🗺️ Traffic Map
-        </Link>
-
       </div>
     </div>
   );

@@ -16,12 +16,27 @@ const LINKS = [
   { href: "/LegalPage", label: "Legal" },
 ];
 
+// Staff links — destinations require Supabase admin login
+const STAFF_LINKS = [
+  { href: "/admin", label: "Admin" },
+  { href: "/admin/orders", label: "Orders" },
+  { href: "/admin/traffic", label: "Traffic Map" },
+];
+
 export default function Footer() {
   return (
     <footer className="footer">
       <nav className="nav" aria-label="Footer navigation">
         {LINKS.map((l) => (
           <Link key={l.href} href={l.href} className="link">
+            {l.label}
+          </Link>
+        ))}
+      </nav>
+
+      <nav className="staffNav" aria-label="Staff">
+        {STAFF_LINKS.map((l) => (
+          <Link key={l.href} href={l.href} className="staffLink">
             {l.label}
           </Link>
         ))}
@@ -59,7 +74,7 @@ export default function Footer() {
           flex-wrap: wrap;
           justify-content: center;
           gap: 10px 14px;
-          margin: 0 auto 14px;
+          margin: 0 auto 12px;
           max-width: 980px;
         }
         .link {
@@ -80,6 +95,25 @@ export default function Footer() {
           background: rgba(255, 255, 255, 0.12);
           border-color: rgba(255, 255, 255, 0.22);
           transform: translateY(-1px);
+        }
+        .staffNav {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 8px 12px;
+          margin: 0 auto 14px;
+          max-width: 980px;
+        }
+        .staffLink {
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: rgba(255, 255, 255, 0.45);
+          text-decoration: none;
+          padding: 4px 8px;
+        }
+        .staffLink:hover {
+          color: rgba(255, 255, 255, 0.75);
+          text-decoration: underline;
         }
         .copy {
           max-width: 980px;

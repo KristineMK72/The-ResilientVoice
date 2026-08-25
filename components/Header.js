@@ -17,6 +17,13 @@ export default function Header() {
     { href: "/cart", label: "Cart" },
   ];
 
+  // Staff links — pages require Supabase admin login
+  const staffLinks = [
+    { href: "/admin", label: "Admin" },
+    { href: "/admin/orders", label: "Orders" },
+    { href: "/admin/traffic", label: "Traffic Map" },
+  ];
+
   useEffect(() => {
     if (!mobileOpen) return;
     const prev = document.body.style.overflow;
@@ -34,7 +41,6 @@ export default function Header() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Close drawer when switching to desktop width
   useEffect(() => {
     const onResize = () => {
       if (window.innerWidth > 1024) setMobileOpen(false);
@@ -71,7 +77,6 @@ export default function Header() {
             minHeight: "56px",
           }}
         >
-          {/* Brand — never shrink away */}
           <Link
             href="/"
             style={{
@@ -121,7 +126,6 @@ export default function Header() {
             </div>
           </Link>
 
-          {/* Desktop nav — hidden on tablet/phone via CSS */}
           <nav
             className="gg-desk-nav"
             aria-label="Main"
@@ -152,7 +156,6 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* Hamburger — only mobile/tablet */}
           <button
             type="button"
             className="gg-menu-btn"
@@ -177,10 +180,8 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Fixed spacer so page content isn't under the header */}
       <div style={{ height: 78, flexShrink: 0 }} aria-hidden />
 
-      {/* Backdrop */}
       <div
         onClick={() => setMobileOpen(false)}
         style={{
@@ -194,7 +195,6 @@ export default function Header() {
         }}
       />
 
-      {/* Mobile drawer */}
       <aside
         style={{
           position: "fixed",
@@ -256,11 +256,45 @@ export default function Header() {
               fontSize: "1.05rem",
               fontWeight: 700,
               color: "rgba(255,255,255,0.65)",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
               textDecoration: "none",
             }}
           >
             Legal
           </Link>
+
+          {/* Staff section — login required on destination pages */}
+          <div
+            style={{
+              marginTop: "0.75rem",
+              padding: "0.75rem 1.4rem 0.35rem",
+              fontSize: "0.72rem",
+              fontWeight: 800,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,0.4)",
+            }}
+          >
+            Staff
+          </div>
+          {staffLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setMobileOpen(false)}
+              style={{
+                display: "block",
+                padding: "0.9rem 1.4rem",
+                fontSize: "1.05rem",
+                fontWeight: 700,
+                color: "rgba(255,255,255,0.75)",
+                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                textDecoration: "none",
+              }}
+            >
+              {link.label}
+            </Link>
+          ))}
         </div>
         <div
           style={{
@@ -274,7 +308,6 @@ export default function Header() {
         </div>
       </aside>
 
-      {/* Global media queries — reliable outside styled-jsx scoping quirks */}
       <style jsx global>{`
         @media (max-width: 1024px) {
           .gg-desk-nav {
