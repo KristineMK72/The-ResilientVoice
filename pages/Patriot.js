@@ -39,15 +39,70 @@ function isUsableUrl(url) {
   const u = url.trim();
   if (!u) return false;
   if (BAD_MARKERS.some((m) => u.includes(m))) return false;
-  return true;
+  // Must look like a real URL or site path
+  if (u.startsWith("http://") || u.startsWith("https://") || u.startsWith("/"))
+    return true;
+  return false;
 }
 
-/** Prefer local mockup, then real CDN, then brand logo */
+function needsEnrich(p) {
+  return !isUsableUrl(p?.thumbnail_url) && !isUsableUrl(p?.preview_url);
+}
+
+/** Prefer real CDN, then local mockup, then brand logo */
 function resolveImg(p) {
   const id = String(p?.sync_product_id ?? p?.id ?? "");
-  const local = id ? `/${id}_1.png` : null;
-  const remote = [p?.thumbnail_url, p?.preview_url].find(isUsableUrl);
-  return local || remote || "/gritngrlogo.png";
+  const remote = [p?.thumbnail_url, p?.preview_url, p?.variants?.[0]?.preview_url].find(
+    isUsableUrl
+  );
+  if (remote) return remote;
+  if (id) return `/${id}_1.png`;
+  return "/gritngrlogo.png";
+}
+
+async function enrichMissingThumbs(list) {
+  const needs = list.filter(needsEnrich);
+  if (!needs.length) return list;
+
+  const updated = [...list];
+  // Small batches so we don't hammer the API
+  for (let i = 0; i < needs.length; i += 4) {
+    const chunk = needs.slice(i, i + 4);
+    await Promise.all(
+      chunk.map(async (p) => {
+        const id = String(p.sync_product_id || p.id);
+        try {
+          const res = await fetch(`/api/printful-product/${id}`);
+          if (!res.ok) return;
+          const detail = await res.json();
+          const thumb =
+            detail.thumbnail_url ||
+            detail.variants?.[0]?.preview_url ||
+            null;
+          if (!isUsableUrl(thumb)) return;
+          const idx = updated.findIndex(
+            (x) => String(x.sync_product_id || x.id) === id
+          );
+          if (idx >= 0) {
+            updated[idx] = {
+              ...updated[idx],
+              thumbnail_url: thumb,
+              preview_url: thumb,
+              variants:
+                detail.variants?.length > 0
+                  ? detail.variants
+                  : updated[idx].variants || [],
+              title: updated[idx].title || detail.name,
+              name: updated[idx].name || detail.name,
+            };
+          }
+        } catch {
+          /* keep existing */
+        }
+      })
+    );
+  }
+  return updated;
 }
 
 export default function Patriot() {
@@ -56,7 +111,6 @@ export default function Patriot() {
   const [error, setError] = useState(null);
   const [phrase, setPhrase] = useState(0);
   const [parallaxY, setParallaxY] = useState(0);
-  // Track broken image ids → swap to logo
   const [broken, setBroken] = useState({});
 
   useEffect(() => {
@@ -85,8 +139,12 @@ export default function Patriot() {
           setLoading(false);
           return;
         }
+        // Show list immediately, then fill in missing Printful thumbs
         setProducts(list);
         setLoading(false);
+
+        const enriched = await enrichMissingThumbs(list);
+        if (!cancelled) setProducts(enriched);
       } catch {
         if (!cancelled) {
           setLoading(false);
