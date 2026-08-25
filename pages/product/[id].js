@@ -1,4 +1,4 @@
-// pages/product/[id].js
+// pages/product/[id].js — Professional product detail with Printful multi-view gallery
 
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -27,13 +27,6 @@ function parseColorFromVariantName(name = "") {
   return "Default";
 }
 
-/* -----------------------------
-   Local image convention
-   /public/{id}_1.png
-   /public/{id}_2.png
-   /public/{id}_3.png
-   ...
------------------------------- */
 function buildLocalImageList(syncProductId, max = 8) {
   if (!syncProductId) return [];
   return Array.from({ length: max }, (_, i) => `/${syncProductId}_${i + 1}.png`);
@@ -49,7 +42,11 @@ function buildDescription(product) {
   if (product?.description && String(product.description).trim()) {
     return String(product.description).trim().slice(0, 200);
   }
-  return "Minnesota-inspired apparel from Grit & Grace.";
+  return "Wearable grit and grace — premium apparel from Grit & Grace. 10% of every sale supports healing in our community.";
+}
+
+function unique(arr) {
+  return [...new Set((arr || []).filter(Boolean))];
 }
 
 export default function ProductPage({ initialProduct, productId }) {
@@ -57,57 +54,40 @@ export default function ProductPage({ initialProduct, productId }) {
 
   const [product] = useState(initialProduct || null);
   const [added, setAdded] = useState(false);
-
-  // Selected Printful sync_variant_id
   const [selectedSyncVariantId, setSelectedSyncVariantId] = useState(null);
-
-  // Color selection
   const [selectedColor, setSelectedColor] = useState(null);
-
-  // Stripe availability map
   const [availability, setAvailability] = useState({});
   const [checking, setChecking] = useState(false);
-
-  // Gallery state
   const [galleryImages, setGalleryImages] = useState([]);
   const [activeImage, setActiveImage] = useState("/fallback.png");
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const variants = product?.variants || [];
 
-  /* -----------------------------
-     Default variant selection
-  ------------------------------ */
   useEffect(() => {
     if (!product?.variants?.length) return;
-
     const first = product.variants[0];
     setSelectedSyncVariantId(first.sync_variant_id);
-    setSelectedColor(parseColorFromVariantName(first.name));
+    setSelectedColor(
+      first.color || parseColorFromVariantName(first.name)
+    );
   }, [product]);
 
-  /* -----------------------------
-     Optional SKU availability check
-  ------------------------------ */
   useEffect(() => {
     if (!product?.variants?.length) return;
-
     let cancelled = false;
-
     (async () => {
       setChecking(true);
       try {
         const skus = (product.variants || [])
           .map((v) => (v.sku || "").trim())
           .filter(Boolean);
-
         if (skus.length) {
           const checkRes = await fetch("/api/stripe/check-skus", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ skus }),
           });
-
           if (checkRes.ok) {
             const checkData = await checkRes.json();
             if (!cancelled && checkData?.availability) {
@@ -121,53 +101,47 @@ export default function ProductPage({ initialProduct, productId }) {
         if (!cancelled) setChecking(false);
       }
     })();
-
     return () => {
       cancelled = true;
     };
   }, [product]);
 
-  /* -----------------------------
-     Group variants by color
-  ------------------------------ */
   const variantsByColor = useMemo(() => {
     const map = {};
-
     for (const v of variants) {
-      const color = parseColorFromVariantName(v.name);
+      const color = v.color || parseColorFromVariantName(v.name);
       if (!map[color]) map[color] = [];
       map[color].push(v);
     }
-
-    const sizeOrder = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"];
-
+    const sizeOrder = ["2XS", "XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL", "6XL"];
     for (const color of Object.keys(map)) {
       map[color].sort((a, b) => {
-        const sa = parseSizeFromVariantName(a.name);
-        const sb = parseSizeFromVariantName(b.name);
+        const sa = a.size || parseSizeFromVariantName(a.name);
+        const sb = b.size || parseSizeFromVariantName(b.name);
         const ia = sizeOrder.indexOf(sa);
         const ib = sizeOrder.indexOf(sb);
-
         if (ia === -1 && ib === -1) return String(sa).localeCompare(String(sb));
         if (ia === -1) return 1;
         if (ib === -1) return -1;
         return ia - ib;
       });
     }
-
     return map;
   }, [variants]);
 
-  const availableColors = useMemo(() => Object.keys(variantsByColor), [variantsByColor]);
+  const availableColors = useMemo(
+    () => Object.keys(variantsByColor),
+    [variantsByColor]
+  );
 
   useEffect(() => {
     if (!variants.length) return;
-
     if (!selectedColor) {
-      setSelectedColor(parseColorFromVariantName(variants[0].name));
+      setSelectedColor(
+        variants[0].color || parseColorFromVariantName(variants[0].name)
+      );
       return;
     }
-
     if (!variantsByColor[selectedColor]) {
       setSelectedColor(Object.keys(variantsByColor)[0] || "Default");
     }
@@ -180,44 +154,66 @@ export default function ProductPage({ initialProduct, productId }) {
 
   useEffect(() => {
     if (!filteredVariants.length) return;
-    const match = filteredVariants.find((v) => v.sync_variant_id === selectedSyncVariantId);
+    const match = filteredVariants.find(
+      (v) => v.sync_variant_id === selectedSyncVariantId
+    );
     if (match) return;
     setSelectedSyncVariantId(filteredVariants[0].sync_variant_id);
   }, [filteredVariants, selectedSyncVariantId]);
 
   const selectedVariant = useMemo(() => {
     if (!variants.length || !selectedSyncVariantId) return null;
-    return variants.find((v) => v.sync_variant_id === selectedSyncVariantId) || null;
+    return (
+      variants.find((v) => v.sync_variant_id === selectedSyncVariantId) || null
+    );
   }, [variants, selectedSyncVariantId]);
 
   /* -----------------------------
-     Gallery image sources
+     Gallery: Printful multi-view + local + color-aware
   ------------------------------ */
-  const localCandidates = useMemo(() => {
-    return buildLocalImageList(product?.sync_product_id, 8);
-  }, [product?.sync_product_id]);
-
-  const remoteCandidates = useMemo(() => {
-    return [
-      selectedVariant?.preview_url || null,
-      product?.thumbnail_url || null,
-    ].filter(Boolean);
-  }, [selectedVariant?.preview_url, product?.thumbnail_url]);
-
   useEffect(() => {
     let cancelled = false;
 
-    async function probeImages() {
-      const candidates = [...localCandidates, ...remoteCandidates].filter(Boolean);
-      const uniqueCandidates = [...new Set(candidates)];
+    async function buildGallery() {
+      const local = buildLocalImageList(product?.sync_product_id, 8);
 
-      if (!uniqueCandidates.length) {
-        setGalleryImages(["/fallback.png"]);
-        setActiveImage("/fallback.png");
+      // Color-specific gallery from API when available
+      const colorKey = selectedColor ? `${selectedColor}__gallery` : null;
+      const colorGallery =
+        (colorKey && product?.color_images?.[colorKey]) ||
+        (selectedColor && product?.color_images?.[selectedColor]
+          ? [product.color_images[selectedColor]]
+          : []);
+
+      const fromSelected = selectedVariant?.gallery || [];
+      const fromProduct = product?.gallery_images || [];
+      const remote = unique([
+        ...fromSelected,
+        ...colorGallery,
+        selectedVariant?.preview_url,
+        product?.thumbnail_url,
+        ...fromProduct,
+      ]);
+
+      // Prefer Printful CDN views, then local mockups
+      const candidates = unique([...remote, ...local]);
+
+      if (!candidates.length) {
+        if (!cancelled) {
+          setGalleryImages(["/fallback.png"]);
+          setActiveImage("/fallback.png");
+        }
         return;
       }
 
       async function exists(src) {
+        // CDN URLs from Printful are trusted — skip probe for speed
+        if (
+          typeof src === "string" &&
+          (src.includes("printful.com") || src.includes("printful-media"))
+        ) {
+          return true;
+        }
         return new Promise((resolve) => {
           const img = new window.Image();
           img.onload = () => resolve(true);
@@ -227,43 +223,53 @@ export default function ProductPage({ initialProduct, productId }) {
       }
 
       const valid = [];
-      for (const src of uniqueCandidates) {
+      for (const src of candidates) {
         // eslint-disable-next-line no-await-in-loop
         const ok = await exists(src);
         if (ok) valid.push(src);
+        // Cap gallery size for UI cleanliness
+        if (valid.length >= 10) break;
       }
 
       if (cancelled) return;
 
       if (valid.length) {
         setGalleryImages(valid);
-        setActiveImage((prev) => (valid.includes(prev) ? prev : valid[0]));
+        // When color changes, jump to that color's first mockup
+        setActiveImage(valid[0]);
       } else {
         setGalleryImages(["/fallback.png"]);
         setActiveImage("/fallback.png");
       }
     }
 
-    probeImages();
-
+    buildGallery();
     return () => {
       cancelled = true;
     };
-  }, [localCandidates, remoteCandidates]);
+  }, [
+    product?.sync_product_id,
+    product?.gallery_images,
+    product?.thumbnail_url,
+    product?.color_images,
+    selectedVariant,
+    selectedColor,
+  ]);
 
-  /* -----------------------------
-     Price + availability
-  ------------------------------ */
   const displayPrice = useMemo(() => {
-    const p = selectedVariant?.retail_price ?? filteredVariants?.[0]?.retail_price ?? "0";
+    const p =
+      selectedVariant?.retail_price ??
+      filteredVariants?.[0]?.retail_price ??
+      "0";
     const n = Number(p);
     return Number.isFinite(n) ? n : 0;
   }, [selectedVariant, filteredVariants]);
 
-  const selectedSku = useMemo(() => (selectedVariant?.sku || "").trim(), [selectedVariant]);
-
+  const selectedSku = useMemo(
+    () => (selectedVariant?.sku || "").trim(),
+    [selectedVariant]
+  );
   const selectedIsMissingSku = !selectedSku;
-
   const selectedIsUnavailable = useMemo(() => {
     if (!selectedSku) return true;
     const entry = availability[selectedSku];
@@ -271,31 +277,32 @@ export default function ProductPage({ initialProduct, productId }) {
     return entry.available === false;
   }, [selectedSku, availability]);
 
-  const activeImageIndex = useMemo(() => {
-    return galleryImages.findIndex((img) => img === activeImage);
-  }, [galleryImages, activeImage]);
+  const activeImageIndex = useMemo(
+    () => galleryImages.findIndex((img) => img === activeImage),
+    [galleryImages, activeImage]
+  );
 
   const goPrevImage = () => {
     if (!galleryImages.length) return;
-    const prevIndex = activeImageIndex <= 0 ? galleryImages.length - 1 : activeImageIndex - 1;
+    const prevIndex =
+      activeImageIndex <= 0 ? galleryImages.length - 1 : activeImageIndex - 1;
     setActiveImage(galleryImages[prevIndex]);
   };
 
   const goNextImage = () => {
     if (!galleryImages.length) return;
-    const nextIndex = activeImageIndex >= galleryImages.length - 1 ? 0 : activeImageIndex + 1;
+    const nextIndex =
+      activeImageIndex >= galleryImages.length - 1 ? 0 : activeImageIndex + 1;
     setActiveImage(galleryImages[nextIndex]);
   };
 
   const addToCart = () => {
     if (!product || !selectedVariant) return;
-
     const sku = (selectedVariant.sku || "").trim();
     if (!sku) {
       alert("This option is missing a SKU, so checkout can't map it to Stripe yet.");
       return;
     }
-
     const entry = availability[sku];
     if (entry && entry.available === false) {
       alert("That option isn't available right now.");
@@ -312,13 +319,15 @@ export default function ProductPage({ initialProduct, productId }) {
       image: activeImage || product?.thumbnail_url || "/fallback.png",
       quantity: 1,
       is_synced: true,
-      color: parseColorFromVariantName(selectedVariant.name),
-      size: parseSizeFromVariantName(selectedVariant.name),
+      color:
+        selectedVariant.color ||
+        parseColorFromVariantName(selectedVariant.name),
+      size:
+        selectedVariant.size || parseSizeFromVariantName(selectedVariant.name),
     };
 
     const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
     const existing = existingCart.find((item) => item.sku === cartItem.sku);
-
     if (existing) existing.quantity += 1;
     else existingCart.push(cartItem);
 
@@ -330,12 +339,10 @@ export default function ProductPage({ initialProduct, productId }) {
   useEffect(() => {
     function handleKeyDown(e) {
       if (!lightboxOpen) return;
-
       if (e.key === "Escape") setLightboxOpen(false);
       if (e.key === "ArrowLeft") goPrevImage();
       if (e.key === "ArrowRight") goNextImage();
     }
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lightboxOpen, activeImageIndex, galleryImages]);
@@ -375,7 +382,6 @@ export default function ProductPage({ initialProduct, productId }) {
         <title>{metaTitle}</title>
         <meta name="description" content={metaDescription} />
         <link rel="canonical" href={canonicalUrl} />
-
         <meta property="og:type" content="product" />
         <meta property="og:site_name" content="Grit & Grace" />
         <meta property="og:title" content={metaTitle} />
@@ -383,7 +389,6 @@ export default function ProductPage({ initialProduct, productId }) {
         <meta property="og:url" content={canonicalUrl} />
         <meta property="og:image" content={metaImage} />
         <meta property="og:image:alt" content={product.name} />
-
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={metaTitle} />
         <meta name="twitter:description" content={metaDescription} />
@@ -394,20 +399,54 @@ export default function ProductPage({ initialProduct, productId }) {
         <div className="pdInner">
           {/* Gallery */}
           <div className="gallery">
-            <button
-              className="mainImgBtn"
-              onClick={() => setLightboxOpen(true)}
-              aria-label="Open product image gallery"
-            >
-              <Image
-                src={activeImage || "/fallback.png"}
-                alt={product.name}
-                width={700}
-                height={700}
-                priority
-                className="mainImg"
-              />
-            </button>
+            <div className="mainStage">
+              {galleryImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="stageNav prev"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      goPrevImage();
+                    }}
+                    aria-label="Previous view"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    className="stageNav next"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      goNextImage();
+                    }}
+                    aria-label="Next view"
+                  >
+                    ›
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                className="mainImgBtn"
+                onClick={() => setLightboxOpen(true)}
+                aria-label="Open product image gallery"
+              >
+                <Image
+                  src={activeImage || "/fallback.png"}
+                  alt={product.name}
+                  width={720}
+                  height={720}
+                  priority
+                  className="mainImg"
+                />
+              </button>
+              {galleryImages.length > 1 && (
+                <span className="viewCount">
+                  {Math.max(activeImageIndex, 0) + 1} / {galleryImages.length}
+                </span>
+              )}
+            </div>
 
             {galleryImages.length > 1 && (
               <div className="thumbs">
@@ -416,15 +455,16 @@ export default function ProductPage({ initialProduct, productId }) {
                   return (
                     <button
                       key={`${img}-${index}`}
+                      type="button"
                       onClick={() => setActiveImage(img)}
                       className={isSelected ? "thumb selected" : "thumb"}
-                      aria-label={`Show product image ${index + 1}`}
+                      aria-label={`Show product view ${index + 1}`}
                     >
                       <Image
                         src={img}
-                        alt={`${product.name} thumbnail ${index + 1}`}
-                        width={84}
-                        height={84}
+                        alt={`${product.name} view ${index + 1}`}
+                        width={88}
+                        height={88}
                       />
                     </button>
                   );
@@ -432,11 +472,16 @@ export default function ProductPage({ initialProduct, productId }) {
               </div>
             )}
 
-            <p className="tapHint">Tap image to enlarge</p>
+            <p className="tapHint">
+              {galleryImages.length > 1
+                ? "Swipe views · Tap to enlarge"
+                : "Tap image to enlarge"}
+            </p>
           </div>
 
           {/* Details */}
           <div className="details">
+            <p className="brandMark">Grit & Grace</p>
             <h1 className="title">{product.name}</h1>
 
             {!!product.description && (
@@ -444,22 +489,25 @@ export default function ProductPage({ initialProduct, productId }) {
             )}
 
             <p className="price">${displayPrice.toFixed(2)}</p>
+            <p className="givingNote">10% of every sale supports community healing</p>
 
             {variants.length > 0 && (
               <div className="options">
                 {showColorPicker && (
                   <div className="optionGroup">
-                    <h3>Choose color</h3>
+                    <h3>Color</h3>
                     <div className="pills">
                       {availableColors.map((color) => {
                         const isSelected = color === selectedColor;
                         return (
                           <button
                             key={color}
+                            type="button"
                             onClick={() => {
                               setSelectedColor(color);
                               const first = variantsByColor[color]?.[0];
-                              if (first) setSelectedSyncVariantId(first.sync_variant_id);
+                              if (first)
+                                setSelectedSyncVariantId(first.sync_variant_id);
                             }}
                             className={isSelected ? "pill selected" : "pill"}
                           >
@@ -473,21 +521,28 @@ export default function ProductPage({ initialProduct, productId }) {
 
                 <div className="optionGroup">
                   <div className="sizeHeader">
-                    <h3>Choose size</h3>
+                    <h3>Size</h3>
                     {checking && <span className="checking">checking…</span>}
                   </div>
                   <div className="pills">
                     {filteredVariants.map((variant) => {
-                      const size = parseSizeFromVariantName(variant.name);
+                      const size =
+                        variant.size || parseSizeFromVariantName(variant.name);
                       const sku = (variant.sku || "").trim();
                       const known = sku ? availability[sku] : null;
-                      const disabled = !sku || (known && known.available === false);
-                      const isSelected = variant.sync_variant_id === selectedSyncVariantId;
+                      const disabled =
+                        !sku || (known && known.available === false);
+                      const isSelected =
+                        variant.sync_variant_id === selectedSyncVariantId;
 
                       return (
                         <button
                           key={variant.sync_variant_id}
-                          onClick={() => !disabled && setSelectedSyncVariantId(variant.sync_variant_id)}
+                          type="button"
+                          onClick={() =>
+                            !disabled &&
+                            setSelectedSyncVariantId(variant.sync_variant_id)
+                          }
                           disabled={disabled}
                           className={
                             disabled
@@ -512,7 +567,10 @@ export default function ProductPage({ initialProduct, productId }) {
 
                   <div className="selectionStatus">
                     {selectedIsMissingSku ? (
-                      <p className="warn">This option is missing a SKU, so Stripe mapping can’t happen.</p>
+                      <p className="warn">
+                        This option is missing a SKU, so Stripe mapping can’t
+                        happen.
+                      </p>
                     ) : selectedIsUnavailable ? (
                       <p className="err">This option is currently unavailable.</p>
                     ) : (
@@ -520,9 +578,13 @@ export default function ProductPage({ initialProduct, productId }) {
                         Selected:{" "}
                         <strong>
                           {showColorPicker && selectedVariant
-                            ? `${parseColorFromVariantName(selectedVariant.name)} / `
+                            ? `${
+                                selectedVariant.color ||
+                                parseColorFromVariantName(selectedVariant.name)
+                              } / `
                             : ""}
-                          {parseSizeFromVariantName(selectedVariant?.name)}
+                          {selectedVariant?.size ||
+                            parseSizeFromVariantName(selectedVariant?.name)}
                         </strong>
                       </p>
                     )}
@@ -531,9 +593,9 @@ export default function ProductPage({ initialProduct, productId }) {
               </div>
             )}
 
-            {/* Add to cart */}
             {!added ? (
               <button
+                type="button"
                 onClick={addToCart}
                 disabled={selectedIsMissingSku || selectedIsUnavailable}
                 className={
@@ -551,18 +613,22 @@ export default function ProductPage({ initialProduct, productId }) {
               </div>
             )}
 
-            <button onClick={() => router.back()} className="backBtn">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="backBtn"
+            >
               ← Keep Shopping
             </button>
           </div>
         </div>
       </div>
 
-      {/* Lightbox */}
       {lightboxOpen && (
         <div className="lightbox" onClick={() => setLightboxOpen(false)}>
           <div className="lightboxInner" onClick={(e) => e.stopPropagation()}>
             <button
+              type="button"
               className="lbClose"
               onClick={() => setLightboxOpen(false)}
               aria-label="Close gallery"
@@ -572,10 +638,20 @@ export default function ProductPage({ initialProduct, productId }) {
 
             {galleryImages.length > 1 && (
               <>
-                <button className="lbNav prev" onClick={goPrevImage} aria-label="Previous image">
+                <button
+                  type="button"
+                  className="lbNav prev"
+                  onClick={goPrevImage}
+                  aria-label="Previous image"
+                >
                   ‹
                 </button>
-                <button className="lbNav next" onClick={goNextImage} aria-label="Next image">
+                <button
+                  type="button"
+                  className="lbNav next"
+                  onClick={goNextImage}
+                  aria-label="Next image"
+                >
                   ›
                 </button>
               </>
@@ -598,12 +674,13 @@ export default function ProductPage({ initialProduct, productId }) {
                   return (
                     <button
                       key={`${img}-lightbox-${index}`}
+                      type="button"
                       onClick={() => setActiveImage(img)}
                       className={isSelected ? "lbThumb selected" : "lbThumb"}
                     >
                       <Image
                         src={img}
-                        alt={`${product.name} lightbox thumbnail ${index + 1}`}
+                        alt={`${product.name} lightbox view ${index + 1}`}
                         width={78}
                         height={78}
                       />
@@ -619,23 +696,35 @@ export default function ProductPage({ initialProduct, productId }) {
       <style jsx>{`
         .pd {
           min-height: 100vh;
-          background: radial-gradient(circle at 30% 20%, #0f172a 0%, #000 70%);
-          padding: 3rem 1.25rem 4rem;
+          background: radial-gradient(
+            ellipse at 25% 15%,
+            #141b2d 0%,
+            #070b14 55%,
+            #000 100%
+          );
+          padding: 2.75rem 1.25rem 4rem;
           color: #f8fafc;
         }
         .pdInner {
-          max-width: 1100px;
+          max-width: 1120px;
           margin: 0 auto;
           display: grid;
-          grid-template-columns: 1.1fr 1fr;
-          gap: 2.5rem;
+          grid-template-columns: 1.15fr 1fr;
+          gap: 2.75rem;
           align-items: start;
         }
 
-        /* Gallery */
         .gallery {
           position: sticky;
-          top: 1.5rem;
+          top: 1.35rem;
+        }
+        .mainStage {
+          position: relative;
+          border-radius: 24px;
+          overflow: hidden;
+          background: linear-gradient(160deg, #0c1220, #111827);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
         }
         .mainImgBtn {
           display: block;
@@ -644,35 +733,75 @@ export default function ProductPage({ initialProduct, productId }) {
           border: none;
           padding: 0;
           cursor: zoom-in;
-          border-radius: 20px;
-          overflow: hidden;
         }
         .mainImg {
           width: 100% !important;
           height: auto !important;
-          border-radius: 20px;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
           object-fit: contain;
-          background: rgba(255, 255, 255, 0.03);
+          display: block;
+        }
+        .stageNav {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 3;
+          width: 42px;
+          height: 42px;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          background: rgba(0, 0, 0, 0.45);
+          color: #fff;
+          font-size: 1.4rem;
+          font-weight: 800;
+          cursor: pointer;
+          backdrop-filter: blur(8px);
+          transition: background 0.15s ease;
+        }
+        .stageNav:hover {
+          background: rgba(0, 0, 0, 0.65);
+        }
+        .stageNav.prev {
+          left: 10px;
+        }
+        .stageNav.next {
+          right: 10px;
+        }
+        .viewCount {
+          position: absolute;
+          bottom: 12px;
+          right: 14px;
+          z-index: 3;
+          font-size: 0.78rem;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          padding: 0.35rem 0.65rem;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: rgba(255, 255, 255, 0.9);
         }
         .thumbs {
           display: flex;
-          gap: 0.6rem;
+          gap: 0.55rem;
           justify-content: center;
           flex-wrap: wrap;
           margin-top: 1rem;
         }
         .thumb {
-          border: 1px solid rgba(148, 163, 184, 0.3);
+          border: 1px solid rgba(148, 163, 184, 0.28);
           border-radius: 12px;
           padding: 3px;
           background: rgba(255, 255, 255, 0.03);
           cursor: pointer;
-          transition: border-color 0.15s ease, background 0.15s ease;
+          transition: border-color 0.15s ease, transform 0.15s ease;
+        }
+        .thumb:hover {
+          transform: translateY(-1px);
+          border-color: rgba(255, 255, 255, 0.35);
         }
         .thumb.selected {
-          border: 2px solid #ff4444;
-          background: rgba(255, 68, 68, 0.1);
+          border: 2px solid #ff6b6b;
+          background: rgba(255, 107, 107, 0.1);
         }
         .thumb :global(img) {
           border-radius: 8px;
@@ -680,35 +809,47 @@ export default function ProductPage({ initialProduct, productId }) {
           display: block;
         }
         .tapHint {
-          opacity: 0.6;
+          opacity: 0.55;
           margin: 0.75rem 0 0;
-          font-size: 0.9rem;
+          font-size: 0.88rem;
           text-align: center;
         }
 
-        /* Details */
         .details {
           text-align: left;
-          padding-top: 0.5rem;
+          padding-top: 0.35rem;
+        }
+        .brandMark {
+          margin: 0 0 0.45rem;
+          font-size: 0.72rem;
+          font-weight: 800;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: #f9a8d4;
         }
         .title {
-          font-size: clamp(1.75rem, 3.5vw, 2.35rem);
+          font-size: clamp(1.7rem, 3.4vw, 2.3rem);
           font-weight: 900;
-          letter-spacing: -0.02em;
+          letter-spacing: -0.025em;
           line-height: 1.15;
           margin: 0 0 0.85rem;
         }
         .desc {
-          font-size: 1.05rem;
+          font-size: 1.02rem;
           line-height: 1.65;
           opacity: 0.88;
-          margin: 0 0 1.25rem;
+          margin: 0 0 1.1rem;
         }
         .price {
-          font-size: 1.85rem;
+          font-size: 1.9rem;
           font-weight: 900;
           color: #ff6b6b;
-          margin: 0 0 1.5rem;
+          margin: 0 0 0.35rem;
+        }
+        .givingNote {
+          margin: 0 0 1.4rem;
+          font-size: 0.9rem;
+          color: rgba(248, 250, 252, 0.65);
         }
 
         .options {
@@ -718,10 +859,12 @@ export default function ProductPage({ initialProduct, productId }) {
           margin-bottom: 1.35rem;
         }
         .optionGroup h3 {
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           font-weight: 800;
           margin: 0 0 0.7rem;
-          letter-spacing: 0.02em;
+          letter-spacing: 0.03em;
+          text-transform: uppercase;
+          color: rgba(248, 250, 252, 0.8);
         }
         .sizeHeader {
           display: flex;
@@ -742,7 +885,7 @@ export default function ProductPage({ initialProduct, productId }) {
           gap: 0.5rem;
         }
         .pill {
-          padding: 0.6rem 1rem;
+          padding: 0.62rem 1.05rem;
           border-radius: 999px;
           border: 1px solid rgba(148, 163, 184, 0.3);
           background: rgba(255, 255, 255, 0.04);
@@ -757,9 +900,9 @@ export default function ProductPage({ initialProduct, productId }) {
           background: rgba(255, 255, 255, 0.08);
         }
         .pill.selected {
-          border: 2px solid #ff4444;
-          background: rgba(255, 68, 68, 0.14);
-          color: #ff6b6b;
+          border: 2px solid #ff6b6b;
+          background: rgba(255, 107, 107, 0.14);
+          color: #ff8a8a;
         }
         .pill.disabled {
           opacity: 0.4;
@@ -794,16 +937,16 @@ export default function ProductPage({ initialProduct, productId }) {
         .addBtn {
           display: block;
           width: 100%;
-          max-width: 320px;
-          padding: 1.05rem 1.5rem;
-          background: #ff4444;
+          max-width: 340px;
+          padding: 1.08rem 1.5rem;
+          background: linear-gradient(135deg, #ff4d4d, #ff6b6b);
           color: white;
           border: none;
           border-radius: 14px;
-          font-size: 1.15rem;
+          font-size: 1.12rem;
           font-weight: 900;
           cursor: pointer;
-          box-shadow: 0 12px 32px rgba(255, 68, 68, 0.28);
+          box-shadow: 0 14px 36px rgba(255, 68, 68, 0.3);
           transition: transform 0.15s ease, filter 0.15s ease;
           margin-bottom: 1rem;
         }
@@ -837,25 +980,24 @@ export default function ProductPage({ initialProduct, productId }) {
 
         .backBtn {
           padding: 0.8rem 1.4rem;
-          background: linear-gradient(90deg, #ff4444, #4444ff);
+          background: rgba(255, 255, 255, 0.06);
           color: white;
-          border: none;
+          border: 1px solid rgba(255, 255, 255, 0.18);
           border-radius: 12px;
           font-weight: 800;
-          font-size: 1rem;
+          font-size: 0.98rem;
           cursor: pointer;
-          transition: transform 0.15s ease, filter 0.15s ease;
+          transition: transform 0.15s ease, background 0.15s ease;
         }
         .backBtn:hover {
           transform: translateY(-1px);
-          filter: brightness(1.05);
+          background: rgba(255, 255, 255, 0.1);
         }
 
-        /* Lightbox */
         .lightbox {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.9);
+          background: rgba(0, 0, 0, 0.92);
           z-index: 9999;
           display: flex;
           align-items: center;
@@ -936,7 +1078,7 @@ export default function ProductPage({ initialProduct, productId }) {
           cursor: pointer;
         }
         .lbThumb.selected {
-          border: 2px solid #ff4444;
+          border: 2px solid #ff6b6b;
         }
         .lbThumb :global(img) {
           border-radius: 8px;
@@ -970,7 +1112,7 @@ export default function ProductPage({ initialProduct, productId }) {
         @media (prefers-reduced-motion: reduce) {
           .addBtn:hover,
           .backBtn:hover,
-          .pill {
+          .thumb:hover {
             transform: none !important;
           }
         }
@@ -989,17 +1131,13 @@ export async function getServerSideProps(context) {
     const res = await fetch(`${baseUrl}/api/printful-product/${id}`);
 
     if (!res.ok) {
-      return {
-        notFound: true,
-      };
+      return { notFound: true };
     }
 
     const data = await res.json();
 
     if (!data || !data.sync_product_id) {
-      return {
-        notFound: true,
-      };
+      return { notFound: true };
     }
 
     return {
@@ -1010,9 +1148,6 @@ export async function getServerSideProps(context) {
     };
   } catch (error) {
     console.error("getServerSideProps product error:", error);
-
-    return {
-      notFound: true,
-    };
+    return { notFound: true };
   }
 }
