@@ -23,28 +23,52 @@ export default async function handler(req, res) {
     const items = data.result || [];
 
     const products = items.map((item) => {
-      const syncProduct = item.sync_product || {};
-      const variants = item.sync_variants || [];
+      // Support multiple possible response shapes from Printful
+      const syncProduct = item.sync_product || item || {};
+      const variants = item.sync_variants || item.variants || [];
       const firstVariant = variants[0] || {};
+
+      const id = String(
+        syncProduct.id ||
+        syncProduct.sync_product_id ||
+        item.id ||
+        item.sync_product_id ||
+        ""
+      );
+
+      const name =
+        syncProduct.name ||
+        item.name ||
+        firstVariant.name ||
+        "Untitled";
 
       const image =
         firstVariant.files?.find((f) => f.type === "preview")?.preview_url ||
         firstVariant.files?.[0]?.preview_url ||
+        firstVariant.preview_url ||
         syncProduct.thumbnail_url ||
+        item.thumbnail_url ||
         "/images/placeholder.jpg";
 
+      const price = parseFloat(
+        firstVariant.retail_price ||
+        firstVariant.price ||
+        syncProduct.retail_price ||
+        0
+      );
+
       return {
-        id: String(syncProduct.id),
-        name: syncProduct.name || "Untitled",
+        id,
+        name,
         image,
-        price: parseFloat(firstVariant.retail_price || 0),
-        tags: (syncProduct.tags || "").toLowerCase(),
+        price,
+        tags: (syncProduct.tags || item.tags || "").toLowerCase(),
         variants,
         thumbnail_url: image,
         preview_url: image,
-        title: syncProduct.name || "Untitled",
+        title: name,
       };
-    });
+    }).filter((p) => p.id && p.id !== "undefined" && p.id !== "");
 
     res.status(200).json(products);
   } catch (err) {
