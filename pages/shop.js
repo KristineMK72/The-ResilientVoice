@@ -1,4 +1,4 @@
-// pages/shop.js — Full Printful catalog with prices
+// pages/shop.js — Full catalog, Patriot-style layout
 "use client";
 
 import Head from "next/head";
@@ -6,10 +6,33 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
+const PHRASES = [
+  "Wear your story.",
+  "Faith. Freedom. Healing.",
+  "Every piece has purpose.",
+  "Stand for what matters.",
+];
+
+const BUZZ = ["Grace", "Patriot", "Social", "Faith", "Freedom", "Healing", "Purpose"];
+
 export default function Shop() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [phrase, setPhrase] = useState(0);
+  const [parallaxY, setParallaxY] = useState(0);
+
+  useEffect(() => {
+    const onScroll = () => setParallaxY(Math.min((window.scrollY || 0) * 0.25, 200));
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => setPhrase((p) => (p + 1) % PHRASES.length), 5200);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     async function loadAll() {
@@ -17,10 +40,8 @@ export default function Shop() {
         const res = await fetch("/api/printful-products");
         if (!res.ok) throw new Error("Failed to load products");
         const data = await res.json();
-        const list = Array.isArray(data) ? data : [];
-        setProducts(list);
+        setProducts(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error(err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -29,97 +50,163 @@ export default function Shop() {
     loadAll();
   }, []);
 
-  if (loading) {
-    return (
-      <div style={{ textAlign: "center", padding: "12rem 1rem", fontSize: "1.8rem", color: "#9f6baa" }}>
-        Loading the full collection…
-      </div>
-    );
-  }
+  const featured = products[0];
+  const rest = products.slice(1);
 
-  if (error) {
-    return (
-      <div style={{ textAlign: "center", padding: "10rem 1rem" }}>
-        <p style={{ color: "#ff6b6b", fontSize: "1.6rem" }}>Unable to load products</p>
-        <p style={{ color: "#aaa" }}>{error}</p>
-      </div>
-    );
+  function meta(p) {
+    return {
+      id: String(p.id),
+      name: p.name || "Product",
+      price: p.price != null && Number(p.price) > 0 ? `$${Number(p.price).toFixed(2)}` : "View",
+      img: p.image || p.thumbnail_url || "/gritngrlogo.png",
+    };
   }
 
   return (
     <>
       <Head>
-        <title>Shop All | The Resilient Voice</title>
+        <title>Shop All | Grit & Grace</title>
         <meta name="description" content="Browse the full collection of faith-fueled, patriotic, and purpose-driven apparel." />
       </Head>
 
-      <main style={{ padding: "5rem 1rem", maxWidth: "1400px", margin: "0 auto", minHeight: "100vh" }}>
-        <div style={{ textAlign: "center", marginBottom: "4rem" }}>
-          <h1 style={{ fontSize: "4.5rem", color: "#9f6baa", fontWeight: "800", margin: "0 0 1rem" }}>
-            Shop Everything
-          </h1>
-          <p style={{ fontSize: "1.5rem", color: "#666", maxWidth: "800px", margin: "0 auto" }}>
-            Every piece currently published in the Resilient Voice collection.
-          </p>
-          <p style={{ marginTop: "1rem", color: "#9f6baa", fontWeight: "600" }}>
-            {products.length} {products.length === 1 ? "product" : "products"}
-          </p>
+      <div className="shopPage">
+        <div className="sky" style={{ transform: `translate3d(0, ${parallaxY}px, 0) scale(1.05)` }} aria-hidden>
+          <div className="skyImg" />
+          <div className="skyWash" />
         </div>
 
-        {products.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "6rem 1rem" }}>
-            <p style={{ fontSize: "1.8rem", color: "#aaa" }}>No products published yet.</p>
-            <p style={{ color: "#ccc" }}>Publish something in Printful and it will appear here automatically.</p>
-          </div>
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gap: "3rem",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-            }}
-          >
-            {products.map((product) => (
-              <Link key={product.id} href={`/product/${product.id}`} style={{ textDecoration: "none" }}>
-                <div
-                  style={{
-                    borderRadius: "24px",
-                    overflow: "hidden",
-                    background: "#fff",
-                    boxShadow: "0 16px 50px rgba(0,0,0,0.12)",
-                    transition: "transform 0.3s ease",
-                    cursor: "pointer",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-12px)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
-                >
-                  <div style={{ position: "relative", height: "360px", background: "#f8f5fa" }}>
-                    <Image
-                      src={product.image || product.thumbnail_url || "/images/placeholder.jpg"}
-                      alt={product.name}
-                      fill
-                      style={{ objectFit: "contain", padding: "30px" }}
-                      unoptimized
-                    />
-                  </div>
-                  <div style={{ padding: "1.6rem", textAlign: "center" }}>
-                    <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.4rem", color: "#333" }}>{product.name}</h3>
-                    <p style={{ color: "#9f6baa", fontWeight: "bold", fontSize: "1.3rem", margin: 0 }}>
-                      {product.price != null && product.price > 0
-                        ? `$${Number(product.price).toFixed(2)}`
-                        : "View"}
-                    </p>
-                  </div>
+        <div className="inner">
+          {loading ? (
+            <div className="status">Loading the full collection…</div>
+          ) : error ? (
+            <div className="status err">
+              <p>{error}</p>
+              <button type="button" onClick={() => location.reload()}>Retry</button>
+            </div>
+          ) : (
+            <>
+              <header className="hero">
+                <p className="eyebrow">Full Collection</p>
+                <h1>Shop Everything</h1>
+                <p className="lead">
+                  Every piece currently published. Faith, freedom, and healing — all in one place.
+                </p>
+                <div className="ctas">
+                  <a href="#shop" className="btn primary">Browse all</a>
+                  <Link href="/saved-by-grace" className="btn ghost">Grace chapter</Link>
                 </div>
-              </Link>
-            ))}
-          </div>
-        )}
+              </header>
 
-        <p style={{ textAlign: "center", marginTop: "6rem", color: "#aaa", fontSize: "1.1rem" }}>
-          New pieces appear here as soon as you publish them in Printful.
-        </p>
-      </main>
+              <div className="strip">
+                <p>
+                  {products.length} {products.length === 1 ? "product" : "products"} · 10% of every sale supports healing in our community.
+                </p>
+                <div className="stripLinks">
+                  <Link href="/saved-by-grace">Grace</Link>
+                  <Link href="/Patriot">Patriot</Link>
+                  <Link href="/Social">Social</Link>
+                </div>
+              </div>
+
+              <div className="phrase" key={phrase}>{PHRASES[phrase]}</div>
+
+              <div className="buzz">
+                {BUZZ.map((w) => <span key={w}>{w}</span>)}
+              </div>
+
+              <section id="shop" className="shop">
+                {featured && (() => {
+                  const m = meta(featured);
+                  return (
+                    <Link href={`/product/${m.id}`} className="featured">
+                      <div className="featuredImg">
+                        <Image src={m.img} alt={m.name} fill style={{ objectFit: "contain", padding: 28 }} priority />
+                      </div>
+                      <div className="featuredBody">
+                        <span className="badge">Featured</span>
+                        <h2>{m.name}</h2>
+                        <p className="price">{m.price}</p>
+                        <span className="featuredCta">View piece →</span>
+                      </div>
+                    </Link>
+                  );
+                })()}
+
+                <div className="grid">
+                  {rest.map((p, idx) => {
+                    const m = meta(p);
+                    return (
+                      <Link key={m.id || idx} href={`/product/${m.id}`} className="card">
+                        <div className="cardImg">
+                          <Image src={m.img} alt={m.name} fill style={{ objectFit: "contain", padding: 18 }} priority={idx < 2} />
+                        </div>
+                        <div className="cardBody">
+                          <h3>{m.name}</h3>
+                          <p className="price">{m.price}</p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <p className="foot">New pieces appear here as soon as you publish them in Printful.</p>
+            </>
+          )}
+        </div>
+      </div>
+
+      <style jsx>{`
+        .shopPage { position: relative; min-height: 100vh; color: #f8fafc; overflow-x: hidden; }
+        .sky { position: fixed; inset: -5% 0 -12% 0; z-index: 0; pointer-events: none; will-change: transform; }
+        .skyImg { position: absolute; inset: 0; background: #0b1220 url("/IMG_2041.jpeg") center / cover no-repeat; }
+        .skyWash { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11,18,32,0.58) 0%, rgba(11,18,32,0.36) 30%, rgba(2,6,23,0.8) 70%, rgba(0,0,0,0.94) 100%); }
+        .inner { position: relative; z-index: 2; max-width: 1080px; margin: 0 auto; }
+        .status { text-align: center; padding: 8rem 1.25rem; font-size: 1.35rem; font-weight: 800; color: #93c5fd; }
+        .status.err { color: #ff6b6b; }
+        .status button { margin-top: 1rem; padding: 0.8rem 1.3rem; border-radius: 999px; border: none; font-weight: 800; cursor: pointer; background: #fff; color: #0b1220; }
+        .hero { text-align: center; padding: 15vh 1.35rem 2.1rem; max-width: 640px; margin: 0 auto; }
+        .eyebrow { font-size: 0.74rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: #93c5fd; margin: 0 0 0.7rem; }
+        .hero h1 { font-size: clamp(2.4rem, 5.5vw, 3.5rem); font-weight: 900; margin: 0 0 0.85rem; letter-spacing: -0.03em; line-height: 1.06; background: linear-gradient(135deg, #ef4444 0%, #f8fafc 48%, #3b82f6 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .lead { font-size: 1.1rem; line-height: 1.7; color: #e2e8f0; margin: 0 0 1.55rem; }
+        .ctas { display: flex; flex-wrap: wrap; gap: 0.7rem; justify-content: center; }
+        .btn { display: inline-flex; align-items: center; padding: 0.9rem 1.35rem; border-radius: 14px; font-weight: 800; text-decoration: none; font-size: 0.95rem; transition: transform 0.2s; }
+        .btn:hover { transform: translateY(-2px); }
+        .btn.primary { background: linear-gradient(135deg, #ef4444, #f8fafc, #3b82f6); color: #0b1220; box-shadow: 0 12px 32px rgba(239,68,68,0.28); }
+        .btn.ghost { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.22); }
+        .strip { margin: 0 1.15rem 1.15rem; padding: 1.2rem 1.35rem; border-radius: 20px; background: rgba(255,255,255,0.93); color: #1e293b; text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,0.15); }
+        .strip p { margin: 0 0 0.65rem; line-height: 1.6; font-size: 0.97rem; }
+        .stripLinks { display: flex; gap: 1.35rem; justify-content: center; font-weight: 800; font-size: 0.9rem; }
+        .stripLinks a { color: #0f172a; text-decoration: none; }
+        .stripLinks a:hover { text-decoration: underline; }
+        .phrase { text-align: center; padding: 0.95rem 1.25rem; background: rgba(255,255,255,0.94); font-size: 1.02rem; font-weight: 800; color: #0f172a; position: sticky; top: 0; z-index: 5; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .buzz { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; padding: 1.15rem 1rem; max-width: 900px; margin: 0 auto; }
+        .buzz span { padding: 0.42rem 0.8rem; background: rgba(255,255,255,0.93); border-radius: 999px; font-size: 0.78rem; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 0.04em; }
+        .shop { padding: 1.5rem 1.15rem 3rem; }
+        .featured { display: grid; grid-template-columns: 1.15fr 1fr; margin-bottom: 1.75rem; border-radius: 24px; overflow: hidden; background: rgba(255,255,255,0.96); text-decoration: none; color: #0f172a; box-shadow: 0 22px 56px rgba(0,0,0,0.28); transition: transform 0.22s; }
+        .featured:hover { transform: translateY(-3px); }
+        .featuredImg { position: relative; min-height: 320px; background: #0b1220; }
+        .featuredBody { padding: 2rem 1.85rem; display: flex; flex-direction: column; justify-content: center; }
+        .badge { display: inline-block; width: fit-content; padding: 0.36rem 0.72rem; border-radius: 999px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.8rem; background: rgba(239,68,68,0.12); color: #dc2626; }
+        .featuredBody h2 { margin: 0 0 0.5rem; font-size: 1.55rem; font-weight: 750; line-height: 1.25; }
+        .price { font-size: 1.4rem; font-weight: 900; margin: 0 0 1rem; color: #0f172a; }
+        .featuredCta { font-weight: 800; color: #0f172a; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 1rem; }
+        .card { border-radius: 18px; overflow: hidden; background: rgba(255,255,255,0.96); text-decoration: none; color: #0f172a; box-shadow: 0 12px 36px rgba(0,0,0,0.2); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-4px); }
+        .cardImg { position: relative; height: 200px; background: #0b1220; }
+        .cardBody { padding: 0.9rem 0.95rem 1.1rem; text-align: center; }
+        .cardBody h3 { margin: 0 0 0.3rem; font-size: 0.96rem; font-weight: 650; line-height: 1.3; }
+        .cardBody .price { font-size: 1.1rem; margin: 0; }
+        .foot { text-align: center; padding: 0.5rem 1rem 3.75rem; color: #94a3b8; font-size: 0.94rem; }
+        @media (max-width: 720px) {
+          .featured { grid-template-columns: 1fr; }
+          .featuredImg { min-height: 250px; }
+          .grid { grid-template-columns: repeat(2, 1fr); gap: 0.8rem; }
+          .cardImg { height: 148px; }
+          .hero { padding-top: 11vh; }
+        }
+      `}</style>
     </>
   );
 }
