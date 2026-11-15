@@ -1,4 +1,4 @@
-// pages/index.js — Longer continuous story with smaller product cards
+// pages/index.js — Even longer continuous story with smaller product cards
 "use client";
 
 import Head from "next/head";
@@ -26,7 +26,7 @@ function SmallCard({ product }) {
       <div className="smallImg">
         <Image src={img} alt={name} fill style={{ objectFit: "contain", padding: 8 }} unoptimized />
       </div>
-      <span className="smallName">{name.split(" ").slice(0, 4).join(" ")}{name.split(" ").length > 4 ? "…" : ""}</span>
+      <span className="smallName">{name.split(" ").slice(0, 5).join(" ")}{name.split(" ").length > 5 ? "…" : ""}</span>
     </Link>
   );
 }
@@ -37,7 +37,7 @@ export default function HomeStory() {
   const [parallaxY, setParallaxY] = useState(0);
 
   useEffect(() => {
-    const onScroll = () => setParallaxY(Math.min((window.scrollY || 0) * 0.18, 160));
+    const onScroll = () => setParallaxY(Math.min((window.scrollY || 0) * 0.16, 140));
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -60,22 +60,26 @@ export default function HomeStory() {
 
   const byName = (re) => products.find((p) => re.test(p.name || ""));
 
-  // Map key pieces from the list
   const garden = byName(/garden of eden/i);
   const joy = byName(/^joy/i);
   const redeemed = byName(/redeemed/i);
   const saved = byName(/saved garment/i);
   const forgiven = byName(/forgiven and free/i);
   const gritGrace = byName(/grit\. grace\. freedom/i);
-  const mnFlag = byName(/only minnesota flag long/i);
+  const mnFlagLong = byName(/only minnesota flag long/i);
+  const mnFlagShort = byName(/only mn flag short/i);
   const usaLeggings = byName(/usa flag youth/i);
   const patriotYoga = byName(/patriot yoga/i);
   const messy = byName(/messy heavyweight/i);
+  const messyFine = byName(/messy fine jersey/i);
   const cheerleader = byName(/accidental cheerleader/i);
   const rockstar = byName(/rockstar/i);
   const mnLand = byName(/mn land of lakes/i);
+  const mnHeritage = byName(/minnesota cotton heritage/i);
   const colorado = byName(/colorado/i);
   const toby = byName(/toby patriot/i);
+  const savedRedeemedHoodie = byName(/saved and redeemed garment-dyed hoodie/i);
+  const savedMessy = byName(/saved\/messy/i);
 
   return (
     <>
@@ -93,9 +97,9 @@ export default function HomeStory() {
         <article className="narrative">
           <header className="open">
             <p className="eyebrow">One story. Every piece.</p>
-            <h1>From the garden to the climb.</h1>
+            <h1>From the garden to the climb — and back again.</h1>
             <p className="sub">
-              Grace, patriotism, and the messy work of healing are not separate chapters. They are the same life, worn on the same body.
+              Grace, patriotism, and the messy work of healing are not separate chapters. They are the same life, worn on the same body, told in the same breath.
             </p>
           </header>
 
@@ -104,82 +108,107 @@ export default function HomeStory() {
           ) : (
             <div className="flow">
               <p>
-                It began in a garden. Not the one with perfect light, but the one where everything broke and Someone still came looking. That is where grace starts.
+                It began in a garden. Not the one with perfect light and easy answers, but the one where everything broke and Someone still came looking. That is where grace starts — before the shame had a name, before the hiding had a strategy.
               </p>
               <SmallCard product={garden} />
 
               <p>
-                Joy is not the absence of the break. It is the decision to wear the light anyway, even on the days the light is hard to see.
+                Joy is not the absence of the break. It is the decision to wear the light anyway, even on the days the light is hard to see. Some seasons the light is a single candle. You still wear it.
               </p>
               <SmallCard product={joy} />
 
               <p>
-                You are redeemed. Not improved. Not managed. Redeemed. The old name does not get the last word.
+                You are redeemed. Not improved. Not managed. Redeemed. The old name does not get the last word. The story does not end where the fall began.
               </p>
               <SmallCard product={redeemed} />
 
               <p>
-                Saved is not a feeling. It is a fact you can put on your back and walk around in, even when your hands are still shaking.
+                Saved is not a feeling that comes and goes with your mood. It is a fact you can put on your back and walk around in, even when your hands are still shaking and the ground still feels uneven.
               </p>
               <SmallCard product={saved} />
 
               <p>
-                Forgiven and free is not a slogan for the good days. It is the ground under your feet on the hard ones.
+                Forgiven and free is not a slogan for the good days. It is the ground under your feet on the hard ones — the ones where you need to remember you are not still paying a debt that was already settled.
               </p>
               <SmallCard product={forgiven} />
 
               <p>
-                Grit. Grace. Freedom. Three words that refuse to stay in separate rooms. The same hands that receive mercy are the hands that stand for liberty.
+                Grit. Grace. Freedom. Three words that refuse to stay in separate rooms. The same hands that receive mercy are the hands that stand for liberty. You cannot keep one and discard the others without losing the whole.
               </p>
               <SmallCard product={gritGrace} />
 
               <p>
-                Freedom has a cost. Some of us wear the flag of the place that still believes a person can start over. Minnesota. The land of lakes and second chances.
+                Freedom has a cost. Some of us wear the flag of the place that still believes a person can start over. Minnesota. The land of lakes and long winters and second chances that do not come with fine print.
               </p>
-              <SmallCard product={mnFlag} />
+              <SmallCard product={mnFlagLong} />
 
               <p>
-                The next generation learns it early. A youth who knows the flag is not a costume — it is a promise — is already part of the story.
+                The short sleeve version is for the days the weather turns and you still want the reminder close to your skin. Same flag. Same promise. Different temperature.
+              </p>
+              <SmallCard product={mnFlagShort} />
+
+              <p>
+                The next generation learns it early. A youth who knows the flag is not a costume — it is a promise — is already part of the story. They do not have to wait until they are older to understand what it costs.
               </p>
               <SmallCard product={usaLeggings} />
 
               <p>
-                Strength is not only for the battlefield. It is for the mat, the classroom, the quiet morning when you choose to show up anyway.
+                Strength is not only for the battlefield. It is for the mat, the classroom, the quiet morning when you choose to show up anyway. Patriotism can look like stillness. It can look like discipline. It can look like yoga.
               </p>
               <SmallCard product={patriotYoga} />
 
               <p>
-                And then the story gets honest. Messy is not the opposite of holy. It is often the place holy shows up.
+                And then the story gets honest. Messy is not the opposite of holy. It is often the place holy shows up — unannounced, unpolished, unwilling to wait until you have cleaned the kitchen.
               </p>
               <SmallCard product={messy} />
 
               <p>
-                You can be the accidental cheerleader of your own life. The one who shows up for the people who forgot how to show up for themselves.
+                The fine jersey version is for the days you need the truth close, soft against your skin, without the weight of a heavyweight reminder. Soft does not mean weak. Soft means wearable on the ordinary days.
+              </p>
+              <SmallCard product={messyFine} />
+
+              <p>
+                You can be the accidental cheerleader of your own life. The one who shows up for the people who forgot how to show up for themselves. Sometimes the most radical thing you can do is refuse to leave the sidelines when someone else is still in the game.
               </p>
               <SmallCard product={cheerleader} />
 
               <p>
-                Some days you need to feel like a rockstar just to get out of bed. That is not vanity. That is survival with a little shine on it.
+                Some days you need to feel like a rockstar just to get out of bed. That is not vanity. That is survival with a little shine on it. The world does not always hand you the spotlight. Sometimes you have to put it on yourself.
               </p>
               <SmallCard product={rockstar} />
 
               <p>
-                Land of lakes. Land of long winters. Land of people who know how to keep going when the light is short. Wear the place that shaped you.
+                Land of lakes. Land of long winters. Land of people who know how to keep going when the light is short and the cold is honest. Wear the place that shaped you. Let it remind you that endurance is not a personality trait — it is a practice.
               </p>
               <SmallCard product={mnLand} />
 
               <p>
-                Colorado, Minnesota, or anywhere else — the story travels. Grace does not need a zip code.
+                Minnesota Cotton Heritage is for the days you want the story closer to the skin — soft, familiar, the kind of fabric that remembers the hands that made it and the land that raised you.
+              </p>
+              <SmallCard product={mnHeritage} />
+
+              <p>
+                Colorado, Minnesota, or anywhere else — the story travels. Grace does not need a zip code. The mountains and the lakes both know how to hold a person who is still becoming free.
               </p>
               <SmallCard product={colorado} />
 
               <p>
-                Toby. The name on the back of a shirt that says someone is still standing for the ones who stood for us.
+                Toby. The name on the back of a shirt that says someone is still standing for the ones who stood for us. Names matter. They are how we remember that freedom is not abstract — it has faces.
               </p>
               <SmallCard product={toby} />
 
               <p>
-                Every piece on this page is part of the same sentence: you were chosen, you are free, and you are allowed to be messy while you heal. Wear the mix. Tell the whole story. 10% of every sale supports healing in our community.
+                Saved and redeemed on a hoodie is for the nights when the weight of the day needs a little more fabric. You can pull the hood up. You can still be seen. You can still be both.
+              </p>
+              <SmallCard product={savedRedeemedHoodie} />
+
+              <p>
+                Saved/messy is not a contradiction. It is the honest middle. You can be rescued and still in process. You can be clean in the places that matter and still learning how to live like it.
+              </p>
+              <SmallCard product={savedMessy} />
+
+              <p>
+                Every piece on this page is part of the same sentence: you were chosen, you are free, and you are allowed to be messy while you heal. Wear the mix. Tell the whole story. 10% of every sale supports healing in our community — because the story is not only yours to carry.
               </p>
 
               <div className="close">
@@ -205,14 +234,14 @@ export default function HomeStory() {
 
         .loading { text-align: center; padding: 3rem 0; color: #d4a5e8; font-weight: 700; }
 
-        .flow p { font-size: 1.12rem; line-height: 1.75; margin: 0 0 1.2rem; color: rgba(255,255,255,0.92); }
+        .flow p { font-size: 1.12rem; line-height: 1.75; margin: 0 0 1.1rem; color: rgba(255,255,255,0.92); }
 
         .smallCard {
           display: inline-flex;
           flex-direction: column;
           align-items: center;
           width: 140px;
-          margin: 0.4rem 0.6rem 1.4rem 0;
+          margin: 0.35rem 0.55rem 1.3rem 0;
           border-radius: 14px;
           overflow: hidden;
           background: rgba(255,255,255,0.95);
@@ -226,8 +255,8 @@ export default function HomeStory() {
         .smallImg { position: relative; width: 140px; height: 140px; background: #f8f5fa; }
         .smallName {
           display: block;
-          padding: 0.45rem 0.5rem 0.55rem;
-          font-size: 0.72rem;
+          padding: 0.4rem 0.45rem 0.5rem;
+          font-size: 0.7rem;
           font-weight: 700;
           text-align: center;
           line-height: 1.25;
