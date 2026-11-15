@@ -1,4 +1,4 @@
-// pages/shop.js — Full Printful catalog
+// pages/shop.js — Full Printful catalog with prices
 "use client";
 
 import Head from "next/head";
@@ -17,7 +17,8 @@ export default function Shop() {
         const res = await fetch("/api/printful-products");
         if (!res.ok) throw new Error("Failed to load products");
         const data = await res.json();
-        setProducts(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        setProducts(list);
       } catch (err) {
         console.error(err);
         setError(err.message);
@@ -104,7 +105,9 @@ export default function Shop() {
                   <div style={{ padding: "1.6rem", textAlign: "center" }}>
                     <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.4rem", color: "#333" }}>{product.name}</h3>
                     <p style={{ color: "#9f6baa", fontWeight: "bold", fontSize: "1.3rem", margin: 0 }}>
-                      ${product.price?.toFixed(2) || "View"}
+                      {product.price != null && product.price > 0
+                        ? `$${Number(product.price).toFixed(2)}`
+                        : "View"}
                     </p>
                   </div>
                 </div>
