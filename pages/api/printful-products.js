@@ -5,42 +5,51 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Missing Printful token" });
   }
 
-  try {
-    const response = await fetch("https://api.printful.com/store/products", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("Printful store products error:", response.status, text);
-      return res.status(response.status).json({ error: "Printful API error", details: text });
+  try {
+    const listRes = await fetch("https://api.printful.com/store/products", { headers });
+    if (!listRes.ok) {
+      const text = await listRes.text();
+      return res.status(listRes.status).json({ error: "Printful list error", details: text });
     }
 
-    const data = await response.json();
-    const items = data.result || [];
+    const listData = await listRes.json();
+    const items = listData.result || [];
 
-    // List endpoint returns: { id, external_id, name, variants (count), synced, thumbnail_url, is_ignored }
-    const products = items
-      .map((item) => {
-        const id = String(item.id || "");
-        const name = item.name || "Untitled";
-        const image = item.thumbnail_url || "/images/placeholder.jpg";
+    // Fetch details (for price) in parallel, with a small concurrency limit
+    const products = [];
+    for (const item of items) {
+      const id = String(item.id || "");
+      if (!id) continue;
 
-        return {
-          id,
-          name,
-          image,
-          price: null, // price lives on the individual product endpoint
-          thumbnail_url: image,
-          preview_url: image,
-          title: name,
-          variantCount: item.variants || 0,
-        };
-      })
-      .filter((p) => p.id && p.id !== "undefined");
+      let price = null;
+      try {
+        const detailRes = await fetch(`https://api.printful.com/store/products/${id}`, { headers });
+        if (detailRes.ok) {
+          const detail = await detailRes.json();
+          const variants = detail?.result?.sync_variants || detail?.result?.variants || [];
+          const first = variants[0] || {};
+          price = parseFloat(first.retail_price || first.price || 0) || null;
+        }
+      } catch {
+        // ignore individual failures
+      }
+
+      products.push({
+        id,
+        name: item.name || "Untitled",
+        image: item.thumbnail_url || "/images/placeholder.jpg",
+        price,
+        thumbnail_url: item.thumbnail_url || "/images/placeholder.jpg",
+        preview_url: item.thumbnail_url || "/images/placeholder.jpg",
+        title: item.name || "Untitled",
+        variantCount: item.variants || 0,
+      });
+    }
 
     res.status(200).json(products);
   } catch (err) {
