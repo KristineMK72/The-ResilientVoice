@@ -95,7 +95,7 @@ export default function HomeStory() {
         <section className="hero">
           <div className="heroLogo">
             <Image
-              src="/IMG_8198.jpeg"
+              src="/gritngrlogo.png"
               alt="Grit & Grace"
               width={180}
               height={180}
