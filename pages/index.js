@@ -1,4 +1,4 @@
-// pages/index.js — Tiny inline product thumbnails woven into the story
+// pages/index.js — Hero + story with inline thumbnails
 "use client";
 
 import Head from "next/head";
@@ -81,23 +81,45 @@ export default function HomeStory() {
   return (
     <>
       <Head>
-        <title>Grit & Grace | The Story</title>
-        <meta name="description" content="One long story of grace, freedom, and healing — with every piece woven in." />
+        <title>Grit & Grace | Faith · Freedom · Healing</title>
+        <meta name="description" content="Faith-driven apparel that mixes grace, patriotism, and social impact. Wear the whole story." />
       </Head>
 
-      <div className="story">
+      <div className="home">
         <div className="sky" style={{ transform: `translate3d(0, ${parallaxY}px, 0) scale(1.04)` }} aria-hidden>
           <div className="skyImg" />
           <div className="skyWash" />
         </div>
 
-        <article className="narrative">
+        {/* HERO */}
+        <section className="hero">
+          <div className="heroLogo">
+            <Image
+              src="/IMG_8198.jpeg"
+              alt="Grit & Grace"
+              width={180}
+              height={180}
+              priority
+              style={{ borderRadius: "50%", filter: "drop-shadow(0 0 40px rgba(255,255,255,0.5))" }}
+            />
+          </div>
+          <p className="heroEyebrow">Faith · Freedom · Healing</p>
+          <h1 className="heroTitle">Wear the whole story.</h1>
+          <p className="heroLead">
+            Grace that saves. Freedom worth standing for. Healing you can wear.
+            One life. One brand. 10% of every sale supports the climb.
+          </p>
+          <div className="heroCtas">
+            <a href="#story" className="btn primary">Read the story</a>
+            <Link href="/shop" className="btn ghost">Shop everything</Link>
+          </div>
+        </section>
+
+        {/* STORY */}
+        <article id="story" className="narrative">
           <header className="open">
-            <p className="eyebrow">One story. Every piece.</p>
-            <h1>From the garden to the climb — and back again.</h1>
-            <p className="sub">
-              Grace, patriotism, and the messy work of healing are not separate chapters. They are the same life, worn on the same body, told in the same breath.
-            </p>
+            <p className="eyebrow">The story continues</p>
+            <h2>From the garden to the climb — and back again.</h2>
           </header>
 
           {loading ? (
@@ -189,7 +211,7 @@ export default function HomeStory() {
               </p>
 
               <div className="close">
-                <Link href="/shop" className="btn">Shop the whole story</Link>
+                <Link href="/shop" className="btn primary">Shop the whole story</Link>
                 <Link href="/about" className="btn ghost">Why we exist</Link>
               </div>
             </div>
@@ -198,16 +220,53 @@ export default function HomeStory() {
       </div>
 
       <style jsx>{`
-        .story { position: relative; min-height: 100vh; color: #f8fafc; overflow-x: hidden; }
+        .home { position: relative; min-height: 100vh; color: #f8fafc; overflow-x: hidden; }
         .sky { position: fixed; inset: -4% 0 -10% 0; z-index: 0; pointer-events: none; }
         .skyImg { position: absolute; inset: 0; background: #070b14 url("/IMG_2038.jpeg") center / cover no-repeat; }
-        .skyWash { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7,11,20,0.55) 0%, rgba(7,11,20,0.72) 40%, rgba(7,11,20,0.92) 100%); }
+        .skyWash { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7,11,20,0.45) 0%, rgba(7,11,20,0.7) 50%, rgba(7,11,20,0.94) 100%); }
 
-        .narrative { position: relative; z-index: 2; max-width: 680px; margin: 0 auto; padding: 7vh 1.25rem 6rem; }
-        .open { text-align: center; margin-bottom: 3rem; }
-        .eyebrow { font-size: 0.76rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: #d4a5e8; margin: 0 0 0.7rem; }
-        .open h1 { font-size: clamp(2rem, 5vw, 2.9rem); font-weight: 900; line-height: 1.12; margin: 0 0 0.9rem; letter-spacing: -0.03em; }
-        .sub { font-size: 1.08rem; line-height: 1.7; color: rgba(255,255,255,0.88); margin: 0 auto; max-width: 34rem; }
+        .hero {
+          position: relative;
+          z-index: 2;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 4rem 1.5rem 6rem;
+        }
+        .heroLogo { margin-bottom: 1.5rem; }
+        .heroEyebrow {
+          font-size: 0.8rem;
+          font-weight: 800;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #ffc0cb;
+          margin: 0 0 1rem;
+        }
+        .heroTitle {
+          font-size: clamp(2.6rem, 7vw, 4.2rem);
+          font-weight: 900;
+          line-height: 1.05;
+          letter-spacing: -0.03em;
+          margin: 0 0 1.25rem;
+          text-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .heroLead {
+          font-size: clamp(1.1rem, 2.2vw, 1.3rem);
+          line-height: 1.7;
+          max-width: 36rem;
+          margin: 0 auto 2rem;
+          color: rgba(255,255,255,0.92);
+          text-shadow: 0 2px 16px rgba(0,0,0,0.4);
+        }
+        .heroCtas { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
+
+        .narrative { position: relative; z-index: 2; max-width: 680px; margin: 0 auto; padding: 4rem 1.25rem 6rem; }
+        .open { text-align: center; margin-bottom: 2.5rem; }
+        .eyebrow { font-size: 0.76rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: #d4a5e8; margin: 0 0 0.6rem; }
+        .open h2 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); font-weight: 900; line-height: 1.15; margin: 0; letter-spacing: -0.02em; }
 
         .loading { text-align: center; padding: 3rem 0; color: #d4a5e8; font-weight: 700; }
 
@@ -228,12 +287,32 @@ export default function HomeStory() {
         .inlineThumb:hover { transform: scale(1.08); }
         .inlineThumb img { display: block; }
 
-        .close { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin-top: 2rem; }
-        .btn { display: inline-flex; padding: 0.9rem 1.35rem; border-radius: 14px; font-weight: 800; text-decoration: none; background: linear-gradient(135deg, #9f6baa, #ef4444); color: #fff; }
-        .btn.ghost { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
+        .btn {
+          display: inline-flex;
+          align-items: center;
+          padding: 0.95rem 1.4rem;
+          border-radius: 14px;
+          font-weight: 800;
+          text-decoration: none;
+          font-size: 0.95rem;
+          transition: transform 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn.primary {
+          background: linear-gradient(135deg, #9f6baa, #ef4444);
+          color: #fff;
+          box-shadow: 0 12px 32px rgba(159,107,170,0.3);
+        }
+        .btn.ghost {
+          background: rgba(255,255,255,0.1);
+          color: #fff;
+          border: 1px solid rgba(255,255,255,0.22);
+        }
+
+        .close { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin-top: 2.5rem; }
 
         @media (max-width: 640px) {
-          .narrative { padding-top: 5vh; }
+          .hero { padding: 3rem 1.25rem 4rem; }
           .inlineThumb { width: 40px; height: 40px; }
         }
       `}</style>
