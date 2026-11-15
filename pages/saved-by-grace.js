@@ -1,10 +1,11 @@
-// pages/saved-by-grace.js — Auto-loads all Printful products
+// pages/saved-by-grace.js — Grace chapter only
 "use client";
 
 import Head from "next/head";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { loadChapterProducts } from "../lib/catalog/loadChapterProducts";
 
 export default function SavedByGrace() {
   const [products, setProducts] = useState([]);
@@ -12,20 +13,29 @@ export default function SavedByGrace() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function loadProducts() {
+    let cancelled = false;
+    async function load() {
       try {
-        const res = await fetch("/api/printful-products");
-        if (!res.ok) throw new Error("Failed to load products");
-        const data = await res.json();
-        setProducts(Array.isArray(data) ? data : []);
+        setLoading(true);
+        setError(null);
+        const { products: list, warning } = await loadChapterProducts("grace");
+        if (cancelled) return;
+        if (!list?.length) {
+          setError(warning || "No Grace products found.");
+          setProducts([]);
+        } else {
+          setProducts(list);
+        }
       } catch (err) {
-        console.error(err);
-        setError(err.message);
+        if (!cancelled) setError(err.message || "Failed to load");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
-    loadProducts();
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading) {
@@ -39,17 +49,8 @@ export default function SavedByGrace() {
   if (error) {
     return (
       <div style={{ textAlign: "center", padding: "10rem 1rem" }}>
-        <p style={{ color: "#ff6b6b", fontSize: "1.6rem" }}>Unable to load products</p>
+        <p style={{ color: "#ff6b6b", fontSize: "1.6rem" }}>Unable to load Grace products</p>
         <p style={{ color: "#aaa" }}>{error}</p>
-      </div>
-    );
-  }
-
-  if (products.length === 0) {
-    return (
-      <div style={{ textAlign: "center", padding: "10rem 1rem" }}>
-        <p style={{ fontSize: "2rem", color: "#9f6baa" }}>No products yet</p>
-        <p style={{ color: "#aaa" }}>Publish a product in Printful and it will appear here automatically.</p>
       </div>
     );
   }
@@ -57,7 +58,7 @@ export default function SavedByGrace() {
   return (
     <>
       <Head>
-        <title>Saved By Grace Collection | The Resilient Voice</title>
+        <title>Saved By Grace | Grit & Grace</title>
         <meta name="description" content="Faith-fueled designs that speak truth, strength, and softness." />
       </Head>
 
@@ -69,41 +70,51 @@ export default function SavedByGrace() {
           <p style={{ fontSize: "1.6rem", color: "#666", maxWidth: "800px", margin: "0 auto" }}>
             Strength wrapped in softness. Delicate pieces for the days you need to remember you are still whole.
           </p>
+          <p style={{ marginTop: "1rem", color: "#9f6baa", fontWeight: "600" }}>
+            {products.length} {products.length === 1 ? "piece" : "pieces"}
+          </p>
         </div>
 
         <div style={{ display: "grid", gap: "3rem", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
-          {products.map((product) => (
-            <Link key={product.id} href={`/product/${product.id}`} style={{ textDecoration: "none" }}>
-              <div
-                style={{
-                  borderRadius: "24px",
-                  overflow: "hidden",
-                  background: "#fff",
-                  boxShadow: "0 16px 50px rgba(0,0,0,0.15)",
-                  transition: "transform 0.3s",
-                  cursor: "pointer",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-12px)")}
-                onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
-              >
-                <div style={{ position: "relative", height: "380px", background: "#f8f5fa" }}>
-                  <Image
-                    src={product.image || product.thumbnail_url || "/images/placeholder.jpg"}
-                    alt={product.name}
-                    fill
-                    style={{ objectFit: "contain", padding: "30px" }}
-                    unoptimized
-                  />
+          {products.map((product) => {
+            const id = String(product.sync_product_id || product.id);
+            const name = product.title || product.name || "Product";
+            const img = product.thumbnail_url || product.preview_url || "/images/placeholder.jpg";
+            const price = product.variants?.[0]?.retail_price ?? product.variants?.[0]?.price;
+
+            return (
+              <Link key={id} href={`/product/${id}`} style={{ textDecoration: "none" }}>
+                <div
+                  style={{
+                    borderRadius: "24px",
+                    overflow: "hidden",
+                    background: "#fff",
+                    boxShadow: "0 16px 50px rgba(0,0,0,0.15)",
+                    transition: "transform 0.3s",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-12px)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
+                >
+                  <div style={{ position: "relative", height: "380px", background: "#f8f5fa" }}>
+                    <Image
+                      src={img}
+                      alt={name}
+                      fill
+                      style={{ objectFit: "contain", padding: "30px" }}
+                      unoptimized
+                    />
+                  </div>
+                  <div style={{ padding: "1.8rem", textAlign: "center" }}>
+                    <h3 style={{ margin: "0 0 0.6rem", fontSize: "1.5rem", color: "#333" }}>{name}</h3>
+                    <p style={{ color: "#9f6baa", fontWeight: "bold", fontSize: "1.4rem", margin: 0 }}>
+                      {price != null && Number(price) > 0 ? `$${Number(price).toFixed(2)}` : "View"}
+                    </p>
+                  </div>
                 </div>
-                <div style={{ padding: "1.8rem", textAlign: "center" }}>
-                  <h3 style={{ margin: "0 0 0.6rem", fontSize: "1.5rem", color: "#333" }}>{product.name}</h3>
-                  <p style={{ color: "#9f6baa", fontWeight: "bold", fontSize: "1.4rem", margin: 0 }}>
-                    ${product.price?.toFixed(2) || "View"}
-                  </p>
-                </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
 
         <p style={{ textAlign: "center", marginTop: "6rem", color: "#aaa", fontSize: "1.1rem" }}>
